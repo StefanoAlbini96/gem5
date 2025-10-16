@@ -1,4 +1,4 @@
-# Copyright (c) 2016-2017, 2022-2024 Arm Limited
+# Copyright (c) 2016-2017, 2022-2023 Arm Limited
 # All rights reserved.
 #
 # The license below extends only to copyright in the software and shall
@@ -45,6 +45,9 @@ import shlex
 import m5
 from m5.objects import *
 from m5.util import addToPath
+
+m5.util.addToPath("../../")
+from common import Options
 
 m5.util.addToPath("../..")
 
@@ -103,6 +106,8 @@ def create(args):
         mem_mode=mem_mode,
     )
 
+    # print(args.)
+
     # Add CPUs to the system. A cluster of CPUs typically have
     # private L1 caches and a shared L2 cache.
     system.cpu_cluster = devices.ArmCpuCluster(
@@ -111,6 +116,11 @@ def create(args):
         args.cpu_freq,
         "1.2V",
         *cpu_types[args.cpu],
+        args.l1d_size,
+        args.l2_size,
+        args.l2_PF_degree,
+        args.l2_PF_conf_bits,
+        args.l2_PF_start_conf,
         tarmac_gen=args.tarmac_gen,
         tarmac_dest=args.tarmac_dest,
     )
@@ -131,21 +141,40 @@ def create(args):
     # Wire up the system's memory system
     system.connect()
 
+
+    # FROM TEH TUTORIAL 
     # Parse the command line and get a list of Processes instances
     # that we can pass to gem5.
-    processes = get_processes(args.commands_to_run)
-    if len(processes) != args.num_cores:
-        print(
-            "Error: Cannot map %d command(s) onto %d CPU(s)"
-            % (len(processes), args.num_cores)
-        )
-        sys.exit(1)
+    # processes = get_processes(args.commands_to_run)
+    # if len(processes) != args.num_cores:
+    #     print(
+    #         "Error: Cannot map %d command(s) onto %d CPU(s)"
+    #         % (len(processes), args.num_cores)
+    #     )
+    #     sys.exit(1)
 
-    system.workload = SEWorkload.init_compatible(processes[0].executable)
+    # system.workload = SEWorkload.init_compatible(processes[0].executable)
 
-    # Assign one workload to each CPU
-    for cpu, workload in zip(system.cpu_cluster.cpus, processes):
-        cpu.workload = workload
+    # # Assign one workload to each CPU
+    # for cpu, workload in zip(system.cpu_cluster.cpus, processes):
+    #     cpu.workload = workload    
+    # END FROM THE TUTORAIL
+
+    # MY TESTS
+    # binary = "/home/albini/Documents/ESL/gem5/apps/test_app"
+    # binary = "/home/albini/Documents/ESL/gem5/apps/NN_layers/conv3D_sve/experiments/initial_test_SE/50_static_normal"
+    # binary = "/home/albini/Documents/ESL/gem5/apps/NN_layers/conv3D_sve/experiments/initial_test_SE/50_static_compact"
+    # binary = "/home/albini/Documents/ESL/gem5/apps/NN_layers/conv3D_sve/experiments/initial_test_SE/50_static_compact_SVE"
+    # binary = "/home/albini/Documents/ESL/gem5/apps/NN_layers/dense/experiments/5000x200_CB4_20+100/all_SE_static"
+    binary = "/home/albini/Documents/ESL/gem5/apps/cus_instr_tests/add1"
+
+    system.workload = SEWorkload.init_compatible(binary)
+
+    process = Process()
+    process.cmd = [binary]
+    system.cpu_cluster[0].cpus[0].workload = process
+    # system.cpu_cluster[0].cpus[0].createThreads()
+    # END MY TESTS
 
     return system
 
@@ -170,28 +199,28 @@ def main():
     parser.add_argument(
         "--num-cores", type=int, default=1, help="Number of CPU cores"
     )
-    parser.add_argument(
-        "--mem-type",
-        default="DDR3_1600_8x8",
-        choices=ObjectList.mem_list.get_names(),
-        help="type of memory to use",
-    )
-    parser.add_argument(
-        "--mem-channels", type=int, default=2, help="number of memory channels"
-    )
-    parser.add_argument(
-        "--mem-ranks",
-        type=int,
-        default=None,
-        help="number of memory ranks per channel",
-    )
-    parser.add_argument(
-        "--mem-size",
-        action="store",
-        type=str,
-        default="2GiB",
-        help="Specify the physical memory size",
-    )
+    # parser.add_argument(
+    #     "--mem-type",
+    #     default="DDR3_1600_8x8",
+    #     choices=ObjectList.mem_list.get_names(),
+    #     help="type of memory to use",
+    # )
+    # parser.add_argument(
+    #     "--mem-channels", type=int, default=2, help="number of memory channels"
+    # )
+    # parser.add_argument(
+    #     "--mem-ranks",
+    #     type=int,
+    #     default=None,
+    #     help="number of memory ranks per channel",
+    # )
+    # parser.add_argument(
+    #     "--mem-size",
+    #     action="store",
+    #     type=str,
+    #     default="2GB",
+    #     help="Specify the physical memory size",
+    # )
     parser.add_argument(
         "--tarmac-gen",
         action="store_true",
@@ -203,19 +232,31 @@ def main():
         default="stdoutput",
         help="Destination for the Tarmac trace output. [Default: stdoutput]",
     )
+
+
+
     parser.add_argument(
-        "-P",
-        "--param",
-        action="append",
-        default=[],
-        help="Set a SimObject parameter relative to the root node. "
-        "An extended Python multi range slicing syntax can be used "
-        "for arrays. For example: "
-        "'system.cpu[0,1,3:8:2].max_insts_all_threads = 42' "
-        "sets max_insts_all_threads for cpus 0, 1, 3, 5 and 7 "
-        "Direct parameters of the root object are not accessible, "
-        "only parameters of its children.",
+        "--l2_PF_degree",
+        type=int,
+        default=8,
+        help="Degree of the L2 stride prefetcher",
     )
+
+    parser.add_argument(
+        "--l2_PF_conf_bits",
+        type=int,
+        default=3,
+        help="Number of bits for the confidence counter of the L2 stride prefetcher",
+    )
+
+    parser.add_argument(
+        "--l2_PF_start_conf",
+        type=int,
+        default=4,
+        help="Initial confidence for the L2 stride prefetcher.",
+    )
+
+    Options.addNoISAOptions(parser)
 
     args = parser.parse_args()
 
@@ -228,7 +269,6 @@ def main():
     # Populate the root node with a system. A system corresponds to a
     # single node with shared memory.
     root.system = create(args)
-    root.apply_config(args.param)
 
     # Instantiate the C++ object hierarchy. After this point,
     # SimObjects can't be instantiated anymore.

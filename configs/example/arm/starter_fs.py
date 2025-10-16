@@ -46,6 +46,10 @@ from m5.objects import *
 from m5.options import *
 from m5.util import addToPath
 
+
+m5.util.addToPath("../../")
+from common import Options
+
 m5.util.addToPath("../..")
 
 import devices
@@ -59,8 +63,15 @@ from common.cores.arm import (
     O3_ARM_v7a,
 )
 
-default_kernel = "vmlinux.arm64"
-default_disk = "linaro-minimal-aarch64.img"
+
+
+# default_disk = "/shares/eslfiler1/scratch/gem5_shared/full_system_gem5/disks/arm64-ubuntu-20.04-new-img"
+# default_kernel = "vmlinux.5.15.36.arm"
+# default_disk = "arm64-ubuntu-20.04-new-img"
+
+default_disk = "arm64-ubuntu-20.04-new-img"
+# default_disk = "arm64-ubuntu-20.04-new-img-mod-new"
+default_kernel = "vmlinux.5.15.36.arm"
 default_root_device = "/dev/vda1"
 
 
@@ -86,6 +97,23 @@ def create_cow_image(name):
     image.child.image_file = SysPaths.disk(name)
 
     return image
+
+
+def get_processes(cmd):
+    """Interprets commands to run and returns a list of processes"""
+
+    cwd = os.getcwd()
+    multiprocesses = []
+    for idx, c in enumerate(cmd):
+        argv = shlex.split(c)
+
+        process = Process(pid=100 + idx, cwd=cwd, cmd=argv, executable=argv[0])
+        process.gid = os.getgid()
+
+        print("info: %d. command and arguments: %s" % (idx + 1, process.cmd))
+        multiprocesses.append(process)
+
+    return multiprocesses
 
 
 def create(args):
@@ -130,6 +158,10 @@ def create(args):
     # Wire up the system's memory system
     system.connect()
 
+    print("======================")
+    print(args.l2_size)
+    print("======================")
+
     # Add CPU clusters to the system
     system.cpu_cluster = [
         devices.ArmCpuCluster(
@@ -138,6 +170,11 @@ def create(args):
             args.cpu_freq,
             "1.0V",
             *cpu_types[args.cpu],
+            args.l1d_size,
+            args.l2_size,
+            args.l2_PF_degree,
+            args.l2_PF_conf_bits,
+            args.l2_PF_start_conf,
             tarmac_gen=args.tarmac_gen,
             tarmac_dest=args.tarmac_dest,
         )
@@ -216,6 +253,15 @@ def arm_ppi_arg(int_num: int) -> int:
     raise ValueError(f"{int_num} is not a valid Arm PPI number")
 
 
+def create_and_set_outdir(outdir_path):
+    if not os.path.exists(outdir_path):
+        os.mkdir(outdir_path)
+    m5.options.outdir = outdir_path
+
+def set_terminal_port(r, term_port):
+    r.system.terminal = m5.objects.Terminal(port=term_port)
+
+
 def main():
     parser = argparse.ArgumentParser(epilog=__doc__)
 
@@ -257,28 +303,28 @@ def main():
     parser.add_argument(
         "--num-cores", type=int, default=1, help="Number of CPU cores"
     )
-    parser.add_argument(
-        "--mem-type",
-        default="DDR3_1600_8x8",
-        choices=ObjectList.mem_list.get_names(),
-        help="type of memory to use",
-    )
-    parser.add_argument(
-        "--mem-channels", type=int, default=1, help="number of memory channels"
-    )
-    parser.add_argument(
-        "--mem-ranks",
-        type=int,
-        default=None,
-        help="number of memory ranks per channel",
-    )
-    parser.add_argument(
-        "--mem-size",
-        action="store",
-        type=str,
-        default="2GiB",
-        help="Specify the physical memory size",
-    )
+    # parser.add_argument(
+    #     "--mem-type",
+    #     default="DDR3_1600_8x8",
+    #     choices=ObjectList.mem_list.get_names(),
+    #     help="type of memory to use",
+    # )
+    # parser.add_argument(
+    #     "--mem-channels", type=int, default=1, help="number of memory channels"
+    # )
+    # parser.add_argument(
+    #     "--mem-ranks",
+    #     type=int,
+    #     default=None,
+    #     help="number of memory ranks per channel",
+    # )
+    # parser.add_argument(
+    #     "--mem-size",
+    #     action="store",
+    #     type=str,
+    #     default="2GB",
+    #     help="Specify the physical memory size",
+    # )
     parser.add_argument(
         "--tarmac-gen",
         action="store_true",
@@ -305,10 +351,111 @@ def main():
     parser.add_argument("--checkpoint", action="store_true")
     parser.add_argument("--restore", type=str, default=None)
 
+    parser.add_argument(
+        "--outdir",
+        type=str,
+        default=m5.options.outdir,
+        help="The output directory where to save the statistics of the simulation.",
+    )
+
+    parser.add_argument(
+        "--term_port",
+        type=int,
+        default=3456,
+        help="Serial port number to connect to the terminal.",
+    )
+
+    parser.add_argument(
+        "--l2_PF_degree",
+        type=int,
+        default=8,
+        help="Degree of the L2 stride prefetcher",
+    )
+
+    parser.add_argument(
+        "--l2_PF_conf_bits",
+        type=int,
+        default=3,
+        help="Number of bits for the confidence counter of the L2 stride prefetcher",
+    )
+
+    parser.add_argument(
+        "--l2_PF_start_conf",
+        type=int,
+        default=4,
+        help="Initial confidence for the L2 stride prefetcher.",
+    )
+
+    parser.add_argument(
+        "--sve_vl",
+        type=int,
+        default=1,
+        help="Initial Vector Lenght for the SVE extension.",
+    )
+
+    Options.addNoISAOptions(parser)
+
     args = parser.parse_args()
+
+    create_and_set_outdir(args.outdir)
+
+    
+    # print("===================")
+    # print("Output directory: {}".format(m5.options.outdir))
+    # print("===================")
 
     root = Root(full_system=True)
     root.system = create(args)
+
+    root.system.sve_vl = args.sve_vl
+
+    if args.term_port is not None:
+        set_terminal_port(root, args.term_port)
+
+    # print(root.system._clusters)
+    for c in root.system._clusters:
+        print(type(c)) 
+        print(c.cpus) 
+        print(c._l1d_type) 
+        print()
+    
+    if args.cpu == "minor":
+        print("-------")
+        print(root.system.cpu_cluster)
+        print(type(root.system.cpu_cluster[0]), " - ", root.system.cpu_cluster[0])
+        print(type(root.system.cpu_cluster[0].cpus[0]), " - ", root.system.cpu_cluster[0].cpus[0])
+        print(type(root.system.cpu_cluster[0].cpus[0].dcache), " - ", root.system.cpu_cluster[0].cpus[0].dcache)
+        print("L1D cache size: {} B | {} kB".format(root.system.cpu_cluster[0].cpus[0].dcache.size, root.system.cpu_cluster[0].cpus[0].dcache.size / 1024))
+
+        print("OPTION: ", args.l1d_size)
+
+
+        # root.system.cpu_cluster[0].cpus[0].dcache.size = str(512 *1024)
+        print("\n==========================")
+        # root.system.sve_vl = 16 
+        print("L1D cache size: {} kB".format(root.system.cpu_cluster[0].cpus[0].dcache.size))
+        print("L1I assoc = {}".format(root.system.cpu_cluster[0].cpus[0].icache.assoc))
+        # print("L1I numSets = {}".format(root.system.cpu_cluster[0].cpus[0].icache.numSets))
+        print("L2 cache size: {} kB".format(root.system.cpu_cluster[0].l2.size))
+        print("SVE vector size: ", root.system.sve_vl)
+        print("Output directory: ", m5.options.outdir)
+        print("Terminal port: ", root.system.terminal.port)
+        print("==========================")
+
+
+        print("=================")
+        print("L2 Prefetcher: ", root.system.cpu_cluster[0].l2.prefetcher.__class__.__name__)
+        print("L2 PF confidence bits: ", root.system.cpu_cluster[0].l2.prefetcher.confidence_counter_bits)
+        print("L2 PF init confidence: ", root.system.cpu_cluster[0].l2.prefetcher.initial_confidence)
+        print("=================")
+
+    # exit(0)
+
+    # print(">>>>>>>>>>>>>>>..")
+    # print(root.system.terminal.port)
+    # root.system.terminal = m5.objects.Terminal(port=7777)
+    # print(root.system.terminal.port)
+    # print(">>>>>>>>>>>>>>>..")
 
     if args.restore is not None:
         m5.instantiate(args.restore)
@@ -319,4 +466,11 @@ def main():
 
 
 if __name__ == "__m5_main__":
+    # print(m5.options.outdir)
+    # m5.options.outdir = "new_outdir"
+    # os.mkdir(m5.options.outdir)
+    # print(m5.options.outdir)
+    # print("END")
+    # exit()
+    # print(dir())
     main()

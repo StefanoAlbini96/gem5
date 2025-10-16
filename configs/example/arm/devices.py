@@ -41,6 +41,7 @@ from m5.objects import *
 m5.util.addToPath("../../")
 from common import ObjectList
 from common.Caches import *
+from common import Options
 
 have_kvm = "ArmV8KvmCPU" in ObjectList.cpu_list.get_names()
 have_fastmodel = "FastModelCortexA76" in ObjectList.cpu_list.get_names()
@@ -52,8 +53,10 @@ class L1I(L1_ICache):
     response_latency = 1
     mshrs = 4
     tgts_per_mshr = 8
-    size = "48KiB"
-    assoc = 3
+    # size = "48kB"
+    # assoc = 3
+    size = "32kB"
+    assoc = 2
 
 
 class L1D(L1_DCache):
@@ -62,9 +65,10 @@ class L1D(L1_DCache):
     response_latency = 1
     mshrs = 16
     tgts_per_mshr = 16
-    size = "32KiB"
+    size = "32kB"
     assoc = 2
     write_buffers = 16
+    # prefetcher = StridePrefetcher(degree=2, latency=1, prefetch_on_access=True)
 
 
 class L2(L2Cache):
@@ -73,14 +77,18 @@ class L2(L2Cache):
     response_latency = 5
     mshrs = 32
     tgts_per_mshr = 8
-    size = "1MiB"
+    # size = "1MB"
+    size = "512kB"
     assoc = 16
     write_buffers = 8
     clusivity = "mostly_excl"
+    # Simple stride prefetcher
+    prefetcher = StridePrefetcher(degree=8, latency=1, prefetch_on_access=True)
+    # prefetcher = StridePrefetcher(confidence_counter_bits=2, initial_confidence=2, degree=8, latency=1, prefetch_on_access=True)
 
 
 class L3(Cache):
-    size = "16MiB"
+    size = "16MB"
     assoc = 16
     tag_latency = 20
     data_latency = 20
@@ -106,6 +114,11 @@ class ArmCpuCluster(CpuCluster):
         l1i_type,
         l1d_type,
         l2_type,
+        l1d_size,
+        l2_size,
+        l2_pf_degree,
+        l2_pf_conf_bits,
+        l2_pf_start_conf,
         tarmac_gen=False,
         tarmac_dest=None,
     ):
@@ -114,6 +127,11 @@ class ArmCpuCluster(CpuCluster):
         self._l1i_type = l1i_type
         self._l1d_type = l1d_type
         self._l2_type = l2_type
+        self._l1d_size = l1d_size
+        self._l2_size = l2_size
+        self._l2_pf_degree = l2_pf_degree
+        self._l2_pf_conf_bits = l2_pf_conf_bits
+        self._l2_pf_start_conf = l2_pf_start_conf
 
         assert num_cpus > 0
 
@@ -136,6 +154,7 @@ class ArmCpuCluster(CpuCluster):
         for cpu in self.cpus:
             l1i = None if self._l1i_type is None else self._l1i_type()
             l1d = None if self._l1d_type is None else self._l1d_type()
+            l1d.size = self._l1d_size
             cpu.addPrivateSplitL1Caches(l1i, l1d)
 
     def addL2(self, clk_domain):
@@ -143,6 +162,12 @@ class ArmCpuCluster(CpuCluster):
             return
         self.toL2Bus = L2XBar(width=64, clk_domain=clk_domain)
         self.l2 = self._l2_type()
+        self.l2.size = self._l2_size
+        self.l2.prefetcher = StridePrefetcher(confidence_counter_bits=self._l2_pf_conf_bits, 
+                                              initial_confidence=self._l2_pf_start_conf, 
+                                              degree=self._l2_pf_degree, 
+                                              latency=1, 
+                                              prefetch_on_access=True)
         for cpu in self.cpus:
             cpu.connectCachedPorts(self.toL2Bus.cpu_side_ports)
         self.toL2Bus.mem_side_ports = self.l2.cpu_side

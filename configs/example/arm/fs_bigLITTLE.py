@@ -63,9 +63,10 @@ from devices import (
     KvmCluster,
 )
 
-default_disk = "aarch64-ubuntu-trusty-headless.img"
+# default_disk = "aarch64-ubuntu-trusty-headless.img"
+# default_disk = "m5_exit.squashfs.arm"
 
-default_mem_size = "2GiB"
+default_mem_size = "2GB"
 
 
 def _to_ticks(value):
