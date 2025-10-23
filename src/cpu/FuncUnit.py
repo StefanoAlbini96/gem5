@@ -119,6 +119,7 @@ class OpClass(Enum):
         "SimdExt",
         "SimdFloatExt",
         "SimdConfig",
+        "CusAlu"
     ]
 
 

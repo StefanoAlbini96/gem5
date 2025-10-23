@@ -55,6 +55,7 @@ if env['CONF']['BUILD_ISA']:
     Source('fetch2.cc')
     Source('func_unit.cc')
     Source('lsq.cc')
+    Source('myadd.cc')
     Source('pipe_data.cc')
     Source('pipeline.cc')
     Source('scoreboard.cc')
