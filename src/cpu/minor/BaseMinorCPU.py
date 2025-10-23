@@ -169,14 +169,6 @@ class MinorDefaultIntDivFU(MinorFU):
     opLat = 9
 
 
-class MinorDefaultCusFU(MinorFU):
-    opClasses = minorMakeOpClassSet(['CusAlu'])
-    timings = [MinorFUTiming(description="Cus",
-        srcRegsRelativeLats=[2])]
-    opLat = 6
-
-
-
 class MinorDefaultFloatSimdFU(MinorFU):
     opClasses = minorMakeOpClassSet(
         [
@@ -287,7 +279,6 @@ class MinorDefaultFUPool(MinorFUPool):
         MinorDefaultPredFU(),
         MinorDefaultMemFU(),
         MinorDefaultMiscFU(),
-        MinorDefaultCusFU(),
     ]
 
 

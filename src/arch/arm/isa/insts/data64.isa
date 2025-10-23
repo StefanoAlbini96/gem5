@@ -72,7 +72,6 @@ let {{
     carryCode64 = {
         "none": "none",
         "add": 'findCarry(intWidth, resTemp, Op164, secOp)',
-        "add1": 'findCarry(intWidth, resTemp, Op164, secOp)',
         "sub": 'findCarry(intWidth, resTemp, Op164, ~secOp)',
         "logic": '0'
     }
@@ -80,7 +79,6 @@ let {{
     overflowCode64 = {
         "none": "none",
         "add": 'findOverflow(intWidth, resTemp, Op164, secOp)',
-        "add1": 'findOverflow(intWidth, resTemp, Op164, secOp)',
         "sub": 'findOverflow(intWidth, resTemp, Op164, ~secOp)',
         "logic": '0'
     }
@@ -92,7 +90,7 @@ let {{
               "extendReg64(Op264, extendType, shiftAmt, intWidth);"
 
     def buildDataWork(mnem, code, flagType, suffix, buildCc, buildNonCc,
-                      base, templateBase, overrideOpClass=None):
+                      base, templateBase):
         code = '''
         [[maybe_unused]] uint64_t resTemp = 0;
         ''' + code
@@ -100,14 +98,6 @@ let {{
         Name = mnem.capitalize() + suffix
         iop = ArmInstObjParams(mnem, Name, base, code)
         iopCc = ArmInstObjParams(mnem + "s", Name + "Cc", base, code + ccCode)
-        
-        if overrideOpClass:
-            iop = InstObjParams(mnem, Name, base, 
-                                { 'code': code, 'op_class': overrideOpClass})
-            iopCc = InstObjParams(mnem + "s", Name + "Cc", base, 
-                                  {'code': code + ccCode, 'op_class': overrideOpClass})
-        else:
-            iop = InstObjParams(mnem, Name, base, code)
 
         def subst(iop):
             global header_output, decoder_output, exec_output
@@ -122,27 +112,27 @@ let {{
 
     def buildXImmDataInst(mnem, code, flagType = "logic", \
                           buildCc = True, buildNonCc = True, \
-                          overrideOpClass=None, suffix = "XImm"):
+                          suffix = "XImm"):
         buildDataWork(mnem, immOp2 + code, flagType, suffix,
-                      buildCc, buildNonCc, "DataXImmOp", "DataXImm", overrideOpClass)
+                      buildCc, buildNonCc, "DataXImmOp", "DataXImm")
 
     def buildXSRegDataInst(mnem, code, flagType = "logic", \
                            buildCc = True, buildNonCc = True, \
-                           overrideOpClass=None, suffix = "XSReg"):
+                           suffix = "XSReg"):
         buildDataWork(mnem, sRegOp2 + code, flagType, suffix,
-                      buildCc, buildNonCc, "DataXSRegOp", "DataXSReg", overrideOpClass)
+                      buildCc, buildNonCc, "DataXSRegOp", "DataXSReg")
 
     def buildXERegDataInst(mnem, code, flagType = "logic", \
                            buildCc = True, buildNonCc = True, \
-                           overrideOpClass=None, suffix = "XEReg"):
+                           suffix = "XEReg"):
         buildDataWork(mnem, eRegOp2 + code, flagType, suffix,
-                      buildCc, buildNonCc, "DataXERegOp", "DataXEReg", overrideOpClass)
+                      buildCc, buildNonCc, "DataXERegOp", "DataXEReg")
 
     def buildDataInst(mnem, code, flagType = "logic",
-                      buildCc = True, buildNonCc = True, overrideOpClass=None):
-        buildXImmDataInst(mnem, code, flagType, buildCc, buildNonCc, overrideOpClass)
-        buildXSRegDataInst(mnem, code, flagType, buildCc, buildNonCc, overrideOpClass)
-        buildXERegDataInst(mnem, code, flagType, buildCc, buildNonCc, overrideOpClass)
+                      buildCc = True, buildNonCc = True):
+        buildXImmDataInst(mnem, code, flagType, buildCc, buildNonCc)
+        buildXSRegDataInst(mnem, code, flagType, buildCc, buildNonCc)
+        buildXERegDataInst(mnem, code, flagType, buildCc, buildNonCc)
 
     buildXImmDataInst("adr", "Dest64 = RawPC + imm", buildCc = False);
     buildXImmDataInst("adrp", "Dest64 = (RawPC & ~mask(12)) + imm",
@@ -187,55 +177,6 @@ let {{
         header_output += eval(templateBase + "Declare").subst(iop)
         decoder_output += eval(templateBase + "Constructor").subst(iop)
         exec_output += BasicExecute.subst(iop)
-
-	
-    buildDataXRegInst(
-        "add1", # mnem
-        1, # num of regs interfaced
-        """
-
-        gem5::MinorCPU* mcpu = (MinorCPU*)(xc->tcBase()->getCpuPtr());
-        gem5::MyFUPipeline* fup = mcpu->getMyFU();
-
-        int val = Op164;
-
-        Dest64 = fup->myadd(val);
-
-        """, # code
-        overrideOpClass="CusAluOp"
-    )
-
-    buildDataXRegInst(
-        "writeval", # mnem
-        1, # num of regs interfaced
-        """
-
-        gem5::MinorCPU* mcpu = (MinorCPU*)(xc->tcBase()->getCpuPtr());
-        gem5::MyFUPipeline* fup = mcpu->getMyFU();
-
-        int val = Op164;
-
-        fup->setStoredValue(val);
-
-        """, # code
-        overrideOpClass="CusAluOp"
-    )
-
-    buildDataXRegInst(
-        "readval", # mnem
-        1, # num of regs interfaced
-        """
-
-        gem5::MinorCPU* mcpu = (MinorCPU*)(xc->tcBase()->getCpuPtr());
-        gem5::MyFUPipeline* fup = mcpu->getMyFU();
-
-        Dest64 = fup->getStoredValue();
-
-        """, # code
-        overrideOpClass="CusAluOp"
-    )
-
-
 
     buildDataXRegInst("madd", 3, "Dest64 = Op164 + Op264 * Op364",
         overrideOpClass="IntMultOp")
@@ -693,10 +634,8 @@ let {{
         '''
 
     buildDataXCondImmInst("ccmn", condCompCode("add", "+", True))
-    buildDataXCondImmInst("ccmc", condCompCode("add1", "+", True))
     buildDataXCondImmInst("ccmp", condCompCode("sub", "-", True))
     buildDataXCondRegInst("ccmn", condCompCode("add", "+", False))
-    buildDataXCondRegInst("ccmc", condCompCode("add1", "+", False))
     buildDataXCondRegInst("ccmp", condCompCode("sub", "-", False))
 
     condSelCode = '''
