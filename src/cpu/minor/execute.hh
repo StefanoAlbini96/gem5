@@ -55,6 +55,7 @@
 #include "cpu/minor/lsq.hh"
 #include "cpu/minor/pipe_data.hh"
 #include "cpu/minor/scoreboard.hh"
+#include "cpu/minor/myadd.hh"
 
 namespace gem5
 {
@@ -129,6 +130,9 @@ class Execute : public Named
 
   public: /* Public for Pipeline to be able to pass it to Decode */
     std::vector<InputBuffer<ForwardInstData>> inputBuffer;
+
+
+    MyFUPipeline* myfup;
 
   protected:
     /** Stage cycle-by-cycle state */
@@ -356,6 +360,12 @@ class Execute : public Named
     /** Like the drain interface on SimObject */
     unsigned int drain();
     void drainResume();
+
+
+    MyFUPipeline* getMyFUP() { return myfup; }
+
+    void setMyFUPInMinorCPU();
+
 };
 
 } // namespace minor

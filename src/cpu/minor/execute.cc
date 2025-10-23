@@ -142,7 +142,25 @@ Execute::Execute(const std::string &name_,
 
         fu_name << name_ << ".fu." << i;
 
-        FUPipeline *fu = new FUPipeline(fu_name.str(), *fu_description, cpu);
+        // Identify the FU with the custom ALU operation class and instantiate the appropiate
+        // FU pipeline class.
+        bool hasCusAlu = false;
+        for(int opc=0; opc<fu_description->opClasses->opClasses.size(); opc++){
+            if(fu_description->opClasses->opClasses[opc]->opClass == enums::CusAlu){
+                hasCusAlu = true;
+                break;
+            }
+        }
+        
+        FUPipeline *fu;
+        if (hasCusAlu){
+            fu = new MyFUPipeline(fu_name.str(), *fu_description, cpu);
+            myfup = (MyFUPipeline*)fu;
+            setMyFUPInMinorCPU();
+
+        } else {
+            fu = new FUPipeline(fu_name.str(), *fu_description, cpu);
+        }
 
         funcUnits.push_back(fu);
     }
@@ -1890,6 +1908,14 @@ MinorCPU::MinorCPUPort &
 Execute::getDcachePort()
 {
     return lsq.getDcachePort();
+}
+
+
+
+void 
+Execute::setMyFUPInMinorCPU()
+{
+    this->cpu.setMyFUPipeline(this->myfup);
 }
 
 } // namespace minor

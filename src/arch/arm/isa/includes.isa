@@ -98,6 +98,10 @@ output decoder {{
 #include "base/loader/symtab.hh"
 #include "cpu/thread_context.hh"
 
+
+#include "cpu/minor/myadd.hh"
+
+
 namespace gem5::ArmISAInst
 {
 using namespace ArmISA;

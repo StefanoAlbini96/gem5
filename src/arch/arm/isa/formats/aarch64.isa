@@ -37,6 +37,7 @@ output header {{
 namespace Aarch64
 {
     StaticInstPtr decodeDataProcImm(ExtMachInst machInst);
+    StaticInstPtr decodeCusDataProcImm(ExtMachInst machInst);
     StaticInstPtr decodeBranchExcSys(const Decoder &dec, ExtMachInst machInst);
     StaticInstPtr decodeLoadsStores(ExtMachInst machInst);
     StaticInstPtr decodeDataProcReg(ExtMachInst machInst);
@@ -199,6 +200,59 @@ namespace Aarch64
     }
 }
 }};
+
+
+
+output decoder {{
+namespace Aarch64
+{
+    StaticInstPtr
+    decodeCusDataProcImm(ExtMachInst machInst)
+    {
+        RegIndex rd = (RegIndex)(uint32_t)bits(machInst, 4, 0);
+        RegIndex rdsp = makeSP(rd);
+       
+        RegIndex rn = (RegIndex)(uint32_t)bits(machInst, 9, 5);
+        RegIndex rnsp = makeSP(rn);
+
+	      uint8_t opc = bits(machInst, 30, 29);
+      	
+        switch (bits(machInst, 25, 23)) {
+          case 0:
+            return new Unknown64(machInst);
+          case 1:
+            return new Unknown64(machInst);
+          case 0x2:
+          case 0x3:
+            return new Unknown64(machInst);
+          case 4:
+          {
+            switch (opc) {
+              case 0x0:
+                return new Add164(machInst, rdsp, rnsp);
+              case 0x1:
+                return new Writeval64(machInst, rdsp, rnsp);
+              case 0x2:
+                return new Readval64(machInst, rdsp, rnsp);
+              default:
+                //M5_UNREACHABLE;
+                return new Unknown64(machInst);
+            }
+          }
+          case 5:
+            return new Unknown64(machInst);
+          case 6:
+            return new Unknown64(machInst);
+          case 7:
+            return new Unknown64(machInst);
+          default:
+            return new Unknown64(machInst);
+        }
+    }
+}
+}};
+
+
 
 output decoder {{
 namespace Aarch64
@@ -3699,7 +3753,7 @@ def format Aarch64() {{
                 if (bits(machInst, 26) == 0x1) {
                     if (bits(machInst, 31) == 0x0) {
                         if (bits(machInst, 25) == 0x1) {
-                            return new Unknown64(machInst);
+                            return decodeCusDataProcImm(machInst);
                         }
                         switch (bits(machInst, 30, 29)) {
                             case 0x0:
