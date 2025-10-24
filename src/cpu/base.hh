@@ -68,6 +68,8 @@ struct BaseCPUParams;
 class CheckerCPU;
 class ThreadContext;
 
+class MyFUPipeline;
+
 struct AddressMonitor
 {
     AddressMonitor();
@@ -105,6 +107,8 @@ class CPUProgressEvent : public Event
 class BaseCPU : public ClockedObject
 {
   protected:
+
+    MyFUPipeline *myfup;
 
     /// Instruction count used for SPARC misc register
     /// @todo unify this with the counters that cpus individually keep
@@ -846,6 +850,11 @@ class BaseCPU : public ClockedObject
     std::vector<std::unique_ptr<FetchCPUStats>> fetchStats;
     std::vector<std::unique_ptr<ExecuteCPUStats>> executeStats;
     std::vector<std::unique_ptr<CommitCPUStats>> commitStats;
+
+
+    void setMyFUPipeline(MyFUPipeline *fu) { this->myfup = fu; }
+
+    MyFUPipeline *getMyFU() { return this->myfup; }
 };
 
 } // namespace gem5

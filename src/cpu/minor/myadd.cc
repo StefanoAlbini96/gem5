@@ -18,13 +18,6 @@ MyFUPipeline::MyFUPipeline(const std::string &name,
 }
 
 
-void 
-MyFUPipeline::bindSysAndFU(ArmSystem *s){
-    this->sys = s;
-    // this->sys->setMyFUPipeline(this);
-}
-
-
 int
 MyFUPipeline::myadd(int x){
     int res = this->stored_value + x;
@@ -32,12 +25,12 @@ MyFUPipeline::myadd(int x){
 }
 
 
-int 
-MyFUPipeline::getStoredValue() { 
-    return stored_value; 
+int
+MyFUPipeline::getStoredValue() {
+    return stored_value;
 }
 
-void 
+void
 MyFUPipeline::setStoredValue(int v) {
     this->stored_value = v;
 }

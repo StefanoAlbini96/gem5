@@ -132,6 +132,8 @@ class Execute : public Named
     std::vector<InputBuffer<ForwardInstData>> inputBuffer;
 
 
+    /** Direct pointer to the Custom FU so that it can be returned back to execute
+    its instructions */
     MyFUPipeline* myfup;
 
   protected:

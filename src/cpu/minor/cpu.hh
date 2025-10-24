@@ -53,7 +53,7 @@
 #include "enums/ThreadPolicy.hh"
 #include "params/BaseMinorCPU.hh"
 
-#include "cpu/minor/myadd.hh"
+// #include "cpu/minor/myadd.hh"
 
 namespace gem5
 {
@@ -72,7 +72,7 @@ typedef SimpleThread MinorThread;
 } // namespace minor
 
 
-class MyFUPipeline;
+// class MyFUPipeline;
 
 /**
  *  MinorCPU is an in-order CPU model with four fixed pipeline stages:
@@ -94,7 +94,7 @@ class MinorCPU : public BaseCPU
      *  Elements of pipeline call TheISA to implement the model. */
     minor::Pipeline *pipeline;
 
-    MyFUPipeline *myfup;
+    // MyFUPipeline *myfup;
 
     Random::RandomPtr rng = Random::genRandom();
 
@@ -215,9 +215,9 @@ class MinorCPU : public BaseCPU
     EventFunctionWrapper *fetchEventWrapper;
 
 
-    void setMyFUPipeline(MyFUPipeline *fu) { this->myfup = fu; }
+    // void setMyFUPipeline(MyFUPipeline *fu) { this->myfup = fu; }
 
-    MyFUPipeline *getMyFU() { return this->myfup; }
+    // MyFUPipeline *getMyFU() { return this->myfup; }
 };
 
 } // namespace gem5

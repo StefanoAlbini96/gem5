@@ -211,12 +211,12 @@ namespace Aarch64
     {
         RegIndex rd = (RegIndex)(uint32_t)bits(machInst, 4, 0);
         RegIndex rdsp = makeSP(rd);
-       
+
         RegIndex rn = (RegIndex)(uint32_t)bits(machInst, 9, 5);
         RegIndex rnsp = makeSP(rn);
 
 	      uint8_t opc = bits(machInst, 30, 29);
-      	
+
         switch (bits(machInst, 25, 23)) {
           case 0:
             return new Unknown64(machInst);
@@ -229,9 +229,9 @@ namespace Aarch64
           {
             switch (opc) {
               case 0x0:
-                return new Add164(machInst, rdsp, rnsp);
+                //return new Add164(machInst, rdsp, rnsp);
               case 0x1:
-                return new Writeval64(machInst, rdsp, rnsp);
+                //return new Writeval64(machInst, rdsp, rnsp);
               case 0x2:
                 return new Readval64(machInst, rdsp, rnsp);
               default:

@@ -7,27 +7,23 @@
 
 
 
-#include "cpu/minor/func_unit.hh"
 #include "cpu/minor/cpu.hh"
+#include "cpu/minor/func_unit.hh"
 #include "base/types.hh"
 #include <iostream>
 
-
-using namespace gem5;
-using namespace minor;
-
 namespace gem5 {
 
-class ArmSystem;
+using namespace minor;
+
+class MinorCPU;
 
 
 class MyFUPipeline : public FUPipeline
 {
   private:
     int stored_value;
-  
 
-  ArmSystem *sys;
 
   public:
     MyFUPipeline(const std::string &name,
@@ -35,8 +31,7 @@ class MyFUPipeline : public FUPipeline
                  MinorCPU &cpu);
 
 
-    void bindSysAndFU(ArmSystem *s);
-                 
+
     int myadd(int x);
 
 
