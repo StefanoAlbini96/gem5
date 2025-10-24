@@ -187,7 +187,32 @@ let {{
         header_output += eval(templateBase + "Declare").subst(iop)
         decoder_output += eval(templateBase + "Constructor").subst(iop)
         exec_output += BasicExecute.subst(iop)
+    
+    
+    
+    buildDataXRegInst(
+        "addCus", # mnem
+        1, # num of regs interfaced
+        """
 
+        gem5::MyFUPipeline* fup = xc->tcBase()->getCpuPtr()->getMyFU();
+        Dest64 = fup->myadd(Op164);
+
+        """, # code
+        overrideOpClass="CusAluOp"
+    )
+
+    buildDataXRegInst(
+        "writeval", # mnem
+        1, # num of regs interfaced
+        """
+
+        gem5::MyFUPipeline* fup = xc->tcBase()->getCpuPtr()->getMyFU();
+        fup->setStoredValue(Op164);
+
+        """, # code
+        overrideOpClass="CusAluOp"
+    )
 
     buildDataXRegInst(
         "readval", # mnem
@@ -195,6 +220,7 @@ let {{
         """
 
         gem5::MyFUPipeline* fup = xc->tcBase()->getCpuPtr()->getMyFU();
+        Dest64 = fup->getStoredValue();
 
         """, # code
         overrideOpClass="CusAluOp"

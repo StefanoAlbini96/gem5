@@ -229,9 +229,9 @@ namespace Aarch64
           {
             switch (opc) {
               case 0x0:
-                //return new Add164(machInst, rdsp, rnsp);
+                return new AddCus64(machInst, rdsp, rnsp);
               case 0x1:
-                //return new Writeval64(machInst, rdsp, rnsp);
+                return new Writeval64(machInst, rdsp, rnsp);
               case 0x2:
                 return new Readval64(machInst, rdsp, rnsp);
               default:
