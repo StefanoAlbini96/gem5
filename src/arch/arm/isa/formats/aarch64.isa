@@ -220,7 +220,7 @@ namespace Aarch64
 
         switch (bits(machInst, 25, 23)) {
           case 0:
-            return new Loadcb64(machInst);
+            return new Unknown64(machInst);
           case 1:
             return new Unknown64(machInst);
           case 0x2:
