@@ -55,7 +55,7 @@
 #include "cpu/minor/lsq.hh"
 #include "cpu/minor/pipe_data.hh"
 #include "cpu/minor/scoreboard.hh"
-#include "cpu/minor/myadd.hh"
+#include "cpu/minor/cusFU_sve_tblMAC.hh"
 
 namespace gem5
 {
@@ -134,7 +134,7 @@ class Execute : public Named
 
     /** Direct pointer to the Custom FU so that it can be returned back to execute
     its instructions */
-    MyFUPipeline* myfup;
+    CusFU_SVE_tblMAC* tblmac_fu;
 
   protected:
     /** Stage cycle-by-cycle state */
@@ -364,7 +364,7 @@ class Execute : public Named
     void drainResume();
 
 
-    MyFUPipeline* getMyFUP() { return myfup; }
+    CusFU_SVE_tblMAC* getMyFUP() { return tblmac_fu; }
 
     void setMyFUPInMinorCPU();
 

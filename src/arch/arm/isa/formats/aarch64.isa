@@ -46,6 +46,7 @@ namespace Aarch64
     StaticInstPtr decodeFpAdvSIMD(ExtMachInst machInst);
 
     StaticInstPtr decodeSveInt(ExtMachInst machInst);
+    StaticInstPtr decodeCusSveInt(ExtMachInst machInst);
     StaticInstPtr decodeSveFp(ExtMachInst machInst);
     StaticInstPtr decodeSveMem(ExtMachInst machInst);
 
@@ -219,7 +220,7 @@ namespace Aarch64
 
         switch (bits(machInst, 25, 23)) {
           case 0:
-            return new Unknown64(machInst);
+            return new Loadcb64(machInst);
           case 1:
             return new Unknown64(machInst);
           case 0x2:
@@ -3772,7 +3773,7 @@ def format Aarch64() {{
                         // bit 31:25=1xx0000
                         return decodeSmeInst(machInst);
                     } else {
-                        return new Unknown64(machInst);
+                        return decodeCusSveInt(machInst);
                     }
                 }
             } else if (bits(machInst, 26) == 0)

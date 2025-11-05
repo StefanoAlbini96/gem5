@@ -245,6 +245,33 @@ namespace Aarch64
         return new Unknown64(machInst);
     }  // decodeSveIntMulAdd
 
+
+
+
+    StaticInstPtr
+    decodeCusSveIntAdd1(ExtMachInst machInst)
+    {
+        RegIndex zda = (RegIndex) (uint8_t) bits(machInst, 4, 0);
+        RegIndex zn = (RegIndex) (uint8_t) bits(machInst, 9, 5);
+        RegIndex pg = (RegIndex) (uint8_t) bits(machInst, 12, 10);
+
+        uint8_t size = bits(machInst, 23, 22);
+
+        uint8_t opc = (bits(machInst, 15) << 1) | bits(machInst, 13);
+        switch (opc) {
+          case 0x0:
+          case 0x1:
+          case 0x2:
+            return decodeSveUnaryPredU<SveAdd1Pred>(size, machInst, zda, zn, pg);
+          case 0x3:
+            break;
+        }
+        return new Unknown64(machInst);
+    }  // decodeSveIntMulAdd
+
+
+
+
     StaticInstPtr
     decodeSveMultiplyAccIndexed(ExtMachInst machInst)
     {

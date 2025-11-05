@@ -154,8 +154,8 @@ Execute::Execute(const std::string &name_,
         
         FUPipeline *fu;
         if (hasCusAlu){
-            fu = new MyFUPipeline(fu_name.str(), *fu_description, cpu);
-            myfup = (MyFUPipeline*)fu;
+            fu = new CusFU_SVE_tblMAC(fu_name.str(), *fu_description, cpu);
+            tblmac_fu = (CusFU_SVE_tblMAC*)fu;
             setMyFUPInMinorCPU();
 
         } else {
@@ -761,6 +761,10 @@ Execute::issue(ThreadID thread_id)
                                 *inst);
                             thread.inFUMemInsts->push(fu_inst);
                         }
+
+                        // if(inst->staticInst->getName() == "sveCusAdd"){
+                        //     printf("TIME START = %ld\n", curTick());
+                        // }
 
                         /* Issue to FU */
                         fu->push(fu_inst);
@@ -1385,6 +1389,9 @@ Execute::commit(ThreadID thread_id, bool only_commit_microops, bool discard,
             /* Finished with the inst, remove it from the inst queue and
              *  clear its dependencies */
             ex_info.inFlightInsts->pop();
+            // if(inst->staticInst->getName() == "sveCusAdd"){
+            //     printf("TIME END = %ld\n", curTick());
+            // }
 
             /* Complete barriers in the LSQ/move to store buffer */
             if (inst->isInst() && inst->staticInst->isFullMemBarrier()) {
@@ -1915,7 +1922,7 @@ Execute::getDcachePort()
 void 
 Execute::setMyFUPInMinorCPU()
 {
-    this->cpu.setMyFUPipeline(this->myfup);
+    this->cpu.setCusFU_SVE_tblMAC(this->tblmac_fu);
 }
 
 } // namespace minor

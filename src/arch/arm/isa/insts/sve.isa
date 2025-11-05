@@ -3498,10 +3498,19 @@ let {{
     sveLongCarryInst('adclt', 'Adclt', 'SimdAluOp', uptTop = True)
     # ADD (immediate)
     sveWideImmInst('add', 'AddImm', 'SimdAddOp', unsignedTypes, addCode, False)
+
+
     # ADD (vectors, predicated)
     addCode = 'destElem = srcElem1 + srcElem2;'
     sveBinInst('add', 'AddPred', 'SimdAddOp', unsignedTypes, addCode,
                PredType.MERGE, True)
+
+    # Custom SVADD1 (fixed value and predicated)
+    add1Code =  'gem5::CusFU_SVE_tblMAC* fup = xc->tcBase()->getCpuPtr()->getCusFU_SVE_tblMAC();\n'
+    add1Code += 'destElem = fup->myadd(srcElem1);'
+    sveBinInst('sveCusAdd', 'Add1Pred', 'SimdAddOpCus', unsignedTypes, add1Code,
+               PredType.MERGE, True)
+
     # ADD (vectors, unpredicated)
     addCode = 'destElem = srcElem1 + srcElem2;'
     sveBinInst('add', 'AddUnpred', 'SimdAddOp', unsignedTypes, addCode)

@@ -141,6 +141,8 @@ static const OpClass SimdConfigOp = enums::SimdConfig;
 
 static const OpClass CusAluOp = enums::CusAlu;
 
+static const OpClass SimdAddOpCus = enums::SimdAddCus;
+
 static const OpClass Num_OpClasses = enums::Num_OpClass;
 
 

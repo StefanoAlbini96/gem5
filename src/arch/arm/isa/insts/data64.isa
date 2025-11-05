@@ -195,7 +195,9 @@ let {{
         1, # num of regs interfaced
         """
 
-        gem5::MyFUPipeline* fup = xc->tcBase()->getCpuPtr()->getMyFU();
+        Dest64 = Op164 + 1;
+
+        gem5::CusFU_SVE_tblMAC* fup = xc->tcBase()->getCpuPtr()->getCusFU_SVE_tblMAC();
         Dest64 = fup->myadd(Op164);
 
         """, # code
@@ -207,7 +209,7 @@ let {{
         1, # num of regs interfaced
         """
 
-        gem5::MyFUPipeline* fup = xc->tcBase()->getCpuPtr()->getMyFU();
+        gem5::CusFU_SVE_tblMAC* fup = xc->tcBase()->getCpuPtr()->getCusFU_SVE_tblMAC();
         fup->setStoredValue(Op164);
 
         """, # code
@@ -219,7 +221,7 @@ let {{
         1, # num of regs interfaced
         """
 
-        gem5::MyFUPipeline* fup = xc->tcBase()->getCpuPtr()->getMyFU();
+        gem5::CusFU_SVE_tblMAC* fup = xc->tcBase()->getCpuPtr()->getCusFU_SVE_tblMAC();
         Dest64 = fup->getStoredValue();
 
         """, # code
