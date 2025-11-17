@@ -3511,6 +3511,14 @@ let {{
     sveBinInst('sveCusAdd', 'Add1Pred', 'SimdAddOpCus', unsignedTypes, add1Code,
                PredType.MERGE, True)
 
+
+    # Custom SV MAC (predicated)
+    cusMacCode =  'gem5::CusFU_SVE_tblMAC* fup = xc->tcBase()->getCpuPtr()->getCusFU_SVE_tblMAC();\n'
+    cusMacCode += 'fup->tbl_MAC_lane(srcElem1, i);'
+    sveBinInst('sveCusMac', 'CusMacPred', 'SimdAddOpCus', unsignedTypes, cusMacCode,
+               PredType.MERGE, True)
+    
+
     # ADD (vectors, unpredicated)
     addCode = 'destElem = srcElem1 + srcElem2;'
     sveBinInst('add', 'AddUnpred', 'SimdAddOp', unsignedTypes, addCode)

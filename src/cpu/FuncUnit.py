@@ -120,7 +120,7 @@ class OpClass(Enum):
         "SimdFloatExt",
         "SimdConfig",
         "CusAlu",
-        "SimdAddCus"
+        "SimdAddCus",
     ]
 
 

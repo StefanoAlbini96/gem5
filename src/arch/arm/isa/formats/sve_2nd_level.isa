@@ -267,7 +267,33 @@ namespace Aarch64
             break;
         }
         return new Unknown64(machInst);
-    }  // decodeSveIntMulAdd
+    }  // decodeCusSveIntAdd1
+
+
+
+
+
+    StaticInstPtr
+    decodeCusSveMac(ExtMachInst machInst)
+    {
+        RegIndex zda = (RegIndex) (uint8_t) bits(machInst, 4, 0);
+        RegIndex zn = (RegIndex) (uint8_t) bits(machInst, 9, 5);
+        RegIndex pg = (RegIndex) (uint8_t) bits(machInst, 12, 10);
+
+        uint8_t size = bits(machInst, 23, 22);
+
+        uint8_t opc = (bits(machInst, 15) << 1) | bits(machInst, 13);
+        switch (opc) {
+          case 0x0:
+          case 0x1:
+          case 0x2:
+            return decodeSveUnaryPredU<SveCusMacPred>(size, machInst, zda, zn, pg);
+          case 0x3:
+            break;
+        }
+        return new Unknown64(machInst);
+    }  // decodeCusSveMac
+
 
 
 
@@ -3761,6 +3787,52 @@ namespace Aarch64
         return new Unknown64(machInst);
     }  // decodeSveLoadStructsSI
 
+
+    StaticInstPtr
+    decodeSveLoadStructsSICus(ExtMachInst machInst)
+    {
+        RegIndex zt = (RegIndex) (uint8_t) bits(machInst, 4, 0);
+        RegIndex rn = makeSP(
+                (RegIndex) (uint8_t) bits(machInst, 9, 5));
+        int64_t imm = sext<4>(bits(machInst, 19, 16));
+        RegIndex pg = (RegIndex) (uint8_t) bits(machInst, 12, 10);
+        uint8_t msz = bits(machInst, 24, 23);
+        uint8_t num = bits(machInst, 22, 21);
+
+        if (num != 0) {
+            num++;
+            imm *= num;
+            return decodeSveStructLoadSIInstsCus(msz, machInst,
+                    zt, pg, rn, imm, num);
+        }
+        return new Unknown64(machInst);
+    }  // decodeSveLoadStructsSI
+
+
+
+    StaticInstPtr
+    decodeSveLoadStructsSICusLoadInputs(ExtMachInst machInst)
+    {
+        RegIndex zt = (RegIndex) (uint8_t) bits(machInst, 4, 0);
+        RegIndex rn = makeSP(
+                (RegIndex) (uint8_t) bits(machInst, 9, 5));
+        int64_t imm = sext<4>(bits(machInst, 19, 16));
+        RegIndex pg = (RegIndex) (uint8_t) bits(machInst, 12, 10);
+        uint8_t msz = bits(machInst, 24, 23);
+        uint8_t num = bits(machInst, 22, 21);
+
+        if (num != 0) {
+            num++;
+            imm *= num;
+            return decodeSveStructLoadSIInstsCusLoadInputs(msz, machInst,
+                    zt, pg, rn, imm, num);
+        }
+        return new Unknown64(machInst);
+    }  // decodeSveLoadStructsSI
+
+
+
+
     StaticInstPtr
     decodeSveMemContigLoad(ExtMachInst machInst)
     {
@@ -3800,6 +3872,27 @@ namespace Aarch64
         }
         return new Unknown64(machInst);
     }  // decodeSveMemContigLoad
+
+
+
+    StaticInstPtr
+    decodeSveMemContigLoadCus(ExtMachInst machInst)
+    {
+        switch (bits(machInst, 15, 13)) {
+          case 0x0:
+            return decodeSveLoadStructsSICus(machInst);
+          case 0x1:
+            return decodeSveLoadStructsSICusLoadInputs(machInst);
+          case 0x2:
+          case 0x3:
+          case 0x5:
+          case 0x6:
+          case 0x7:
+            break;
+        }
+        return new Unknown64(machInst);
+    }  // decodeSveMemContigLoad
+
 
     StaticInstPtr
     decodeSveMemGather64(ExtMachInst machInst)
@@ -3929,6 +4022,26 @@ namespace Aarch64
             bits(machInst, 24, 21), machInst, zt, pg, rn, rm);
     }  // decodeSveContigStoreSS
 
+
+
+
+    StaticInstPtr
+    decodeSveContigStoreSSCus(ExtMachInst machInst)
+    {
+        RegIndex zt = (RegIndex) (uint8_t) bits(machInst, 4, 0);
+        RegIndex rn = makeSP((RegIndex) (uint8_t) bits(machInst, 9, 5));
+        RegIndex rm = (RegIndex) (uint8_t) bits(machInst, 20, 16);
+        RegIndex pg = (RegIndex) (uint8_t) bits(machInst, 12, 10);
+
+        if (rm == 0x1f) {
+            return new Unknown64(machInst);
+        }
+
+        return decodeSveContigStoreSSInstsCus<SveContigStoreSSCus>(
+            bits(machInst, 24, 21), machInst, zt, pg, rn, rm);
+    }  // decodeSveContigStoreSSCus
+
+
     StaticInstPtr
     decodeSveContigStoreSI(ExtMachInst machInst)
     {
@@ -3940,6 +4053,23 @@ namespace Aarch64
         return decodeSveContigStoreSIInsts<SveContigStoreSI>(
             bits(machInst, 24, 21), machInst, zt, pg, rn, imm);
     }  // decodeSveContigStoreSI
+
+
+
+
+    StaticInstPtr
+    decodeSveContigStoreSICus(ExtMachInst machInst)
+    {
+        RegIndex zt = (RegIndex) (uint8_t) bits(machInst, 4, 0);
+        RegIndex rn = makeSP((RegIndex) (uint8_t) bits(machInst, 9, 5));
+        int8_t imm = sext<4>(bits(machInst, 19, 16));
+        RegIndex pg = (RegIndex) (uint8_t) bits(machInst, 12, 10);
+
+        return decodeSveContigStoreSIInstsCus<SveContigStoreSICus>(
+            bits(machInst, 24, 21), machInst, zt, pg, rn, imm);
+    }  // decodeSveContigStoreSICus
+
+
 
     StaticInstPtr
     decodeSveContigNTStoreSS(ExtMachInst machInst)
@@ -4154,6 +4284,75 @@ namespace Aarch64
         }
         return new Unknown64(machInst);
     }  // decodeSveMemStore
+
+
+
+
+
+
+
+
+
+
+
+
+
+    StaticInstPtr
+    decodeSveMemStoreCus(ExtMachInst machInst)
+    {
+        switch (bits(machInst, 15, 13)) {
+          case 0x0:
+            if (bits(machInst, 24, 22) == 0x6 && bits(machInst, 4) == 0x0) {
+                RegIndex pt = (RegIndex) (uint8_t) bits(machInst, 3, 0);
+                RegIndex rn = makeSP(
+                    (RegIndex) (uint8_t) bits(machInst, 9, 5));
+                int16_t imm = sext<9>((bits(machInst, 21, 16) << 3) |
+                                      bits(machInst, 12, 10));
+                return new SveStrPred(machInst, pt, rn, imm);
+            }
+            break;
+          case 0x2:
+            if (bits(machInst, 24, 22) == 0x6) {
+                RegIndex zt = (RegIndex) (uint8_t) bits(machInst, 4, 0);
+                RegIndex rn = makeSP(
+                    (RegIndex) (uint8_t) bits(machInst, 9, 5));
+                int16_t imm = sext<9>((bits(machInst, 21, 16) << 3) |
+                                      bits(machInst, 12, 10));
+                return new SveStrVec(machInst, zt, rn, imm);
+            } else {
+                return decodeSveContigStoreSSCus(machInst);
+            }
+            break;
+          case 0x3:
+          case 0x4:
+          case 0x6:
+          case 0x5:
+          case 0x7:
+            if (bits(machInst, 20) == 0x0) {
+                return decodeSveContigStoreSICus(machInst);
+            } else if (bits(machInst, 22, 21) == 0x0) {
+                return decodeSveContigNTStoreSI(machInst);
+            } else {
+                return decodeSveStoreStructsSI(machInst);
+            }
+        }
+        return new Unknown64(machInst);
+    }  // decodeSveMemStore
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     StaticInstPtr
     decodeSveMisc(ExtMachInst machInst)

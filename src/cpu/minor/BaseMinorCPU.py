@@ -173,14 +173,14 @@ class MinorDefaultCusFU(MinorFU):
     opClasses = minorMakeOpClassSet(['CusAlu'])
     timings = [MinorFUTiming(description="Cus",
         srcRegsRelativeLats=[2])]
-    opLat = 6
+    opLat = 1
 
 
 class MinorDefaultCusSVEFU(MinorFU):
     opClasses = minorMakeOpClassSet(['SimdAddCus'])
     timings = [MinorFUTiming(description="CusSVE",
         srcRegsRelativeLats=[2])]
-    opLat = 6
+    opLat = 1
 
 
 

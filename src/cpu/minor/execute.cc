@@ -154,7 +154,8 @@ Execute::Execute(const std::string &name_,
         
         FUPipeline *fu;
         if (hasCusAlu){
-            fu = new CusFU_SVE_tblMAC(fu_name.str(), *fu_description, cpu);
+            int n_codebooks = 4;
+            fu = new CusFU_SVE_tblMAC(fu_name.str(), *fu_description, cpu, n_codebooks);
             tblmac_fu = (CusFU_SVE_tblMAC*)fu;
             setMyFUPInMinorCPU();
 

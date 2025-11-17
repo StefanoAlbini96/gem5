@@ -232,20 +232,22 @@ namespace Aarch64
               case 0x0:
                 return new AddCus64(machInst, rdsp, rnsp);
               case 0x1:
-                return new Writeval64(machInst, rdsp, rnsp);
+                return new Reset64(machInst, rdsp, rnsp);
               case 0x2:
-                return new Readval64(machInst, rdsp, rnsp);
+                return new PrintOutVals64(machInst, rdsp, rnsp);
+              case 0x3:
+                return new Reduce64(machInst, rdsp, rnsp);
               default:
                 //M5_UNREACHABLE;
                 return new Unknown64(machInst);
             }
           }
           case 5:
-            return new Unknown64(machInst);
+            return new PrintCodebook64(machInst, rdsp, rnsp);
           case 6:
-            return new Unknown64(machInst);
+            return new PrintIn64(machInst, rdsp, rnsp);
           case 7:
-            return new Unknown64(machInst);
+            return new PrintAcc64(machInst, rdsp, rnsp);
           default:
             return new Unknown64(machInst);
         }
