@@ -170,18 +170,29 @@ class MinorDefaultIntDivFU(MinorFU):
 
 
 class MinorDefaultCusFU(MinorFU):
-    opClasses = minorMakeOpClassSet(['CusAlu'])
-    timings = [MinorFUTiming(description="Cus",
-        srcRegsRelativeLats=[2])]
+    opClasses = minorMakeOpClassSet(["CusAlu"])
+    timings = [MinorFUTiming(description="Cus", srcRegsRelativeLats=[2])]
     opLat = 1
 
 
 class MinorDefaultCusSVEFU(MinorFU):
-    opClasses = minorMakeOpClassSet(['SimdAddCus'])
-    timings = [MinorFUTiming(description="CusSVE",
-        srcRegsRelativeLats=[2])]
+    opClasses = minorMakeOpClassSet(["SimdAddCus"])
+    timings = [MinorFUTiming(description="CusSVE", srcRegsRelativeLats=[2])]
     opLat = 1
 
+
+class MinorDefaultCUSreduce(MinorFU):
+    opClasses = minorMakeOpClassSet(["CusFUreduce"])
+    timings = [MinorFUTiming(description="CusReduce", srcRegsRelativeLats=[2])]
+    # opLat = 18
+    opLat = 3
+
+
+class MinorDefaultCUSstep(MinorFU):
+    opClasses = minorMakeOpClassSet(["CusFUstep"])
+    timings = [MinorFUTiming(description="CusStep", srcRegsRelativeLats=[2])]
+    # opLat = 30
+    opLat = 5
 
 
 class MinorDefaultFloatSimdFU(MinorFU):
@@ -295,7 +306,9 @@ class MinorDefaultFUPool(MinorFUPool):
         MinorDefaultMemFU(),
         MinorDefaultMiscFU(),
         MinorDefaultCusFU(),
-        MinorDefaultCusSVEFU()
+        MinorDefaultCusSVEFU(),
+        MinorDefaultCUSreduce(),
+        MinorDefaultCUSstep(),
     ]
 
 

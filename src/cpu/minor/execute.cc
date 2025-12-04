@@ -151,11 +151,20 @@ Execute::Execute(const std::string &name_,
                 break;
             }
         }
-        
+
         FUPipeline *fu;
         if (hasCusAlu){
-            int n_codebooks = 4;
-            fu = new CusFU_SVE_tblMAC(fu_name.str(), *fu_description, cpu, n_codebooks);
+
+            uint8_t vector_len = 4;
+            uint8_t n_codebooks = 4;
+            uint8_t cb_len = 4;
+
+            uint8_t bits_per_idx = static_cast<int>(std::log2(cb_len));
+            uint8_t mask = (1u << bits_per_idx) - 1u;
+            uint8_t idx_per_lane = 32 / bits_per_idx;   // TODO: put 32 as parametric
+
+
+            fu = new CusFU_SVE_tblMAC(fu_name.str(), *fu_description, cpu, vector_len, idx_per_lane, n_codebooks, bits_per_idx, mask);
             tblmac_fu = (CusFU_SVE_tblMAC*)fu;
             setMyFUPInMinorCPU();
 
@@ -763,7 +772,7 @@ Execute::issue(ThreadID thread_id)
                             thread.inFUMemInsts->push(fu_inst);
                         }
 
-                        // if(inst->staticInst->getName() == "sveCusAdd"){
+                        // if(inst->staticInst->getName() == "computeStep"){
                         //     printf("TIME START = %ld\n", curTick());
                         // }
 
@@ -1390,7 +1399,7 @@ Execute::commit(ThreadID thread_id, bool only_commit_microops, bool discard,
             /* Finished with the inst, remove it from the inst queue and
              *  clear its dependencies */
             ex_info.inFlightInsts->pop();
-            // if(inst->staticInst->getName() == "sveCusAdd"){
+            // if(inst->staticInst->getName() == "computeStep"){
             //     printf("TIME END = %ld\n", curTick());
             // }
 
@@ -1920,7 +1929,7 @@ Execute::getDcachePort()
 
 
 
-void 
+void
 Execute::setMyFUPInMinorCPU()
 {
     this->cpu.setCusFU_SVE_tblMAC(this->tblmac_fu);

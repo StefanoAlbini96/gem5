@@ -143,6 +143,9 @@ static const OpClass CusAluOp = enums::CusAlu;
 
 static const OpClass SimdAddOpCus = enums::SimdAddCus;
 
+static const OpClass CusFUreduceOp = enums::CusFUreduce;
+static const OpClass CusFUstepOp = enums::CusFUstep;
+
 static const OpClass Num_OpClasses = enums::Num_OpClass;
 
 

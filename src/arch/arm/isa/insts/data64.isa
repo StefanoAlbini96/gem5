@@ -187,17 +187,18 @@ let {{
         header_output += eval(templateBase + "Declare").subst(iop)
         decoder_output += eval(templateBase + "Constructor").subst(iop)
         exec_output += BasicExecute.subst(iop)
-        
+
+
     buildDataXRegInst(
-        "reset", # mnem
+        "computeStep", # mnem
         1, # num of regs interfaced
         """
 
         gem5::CusFU_SVE_tblMAC* fup = xc->tcBase()->getCpuPtr()->getCusFU_SVE_tblMAC();
-        fup->reset_acc_out();
+        fup->compute_step(Op164);
 
         """, # code
-        overrideOpClass="CusAluOp"
+        overrideOpClass="CusFUstepOp"
     )
 
     buildDataXRegInst(
@@ -209,97 +210,8 @@ let {{
         fup->reduce_acc();
 
         """, # code
-        overrideOpClass="CusAluOp"
+        overrideOpClass="CusFUreduceOp"
     )
-        
-    buildDataXRegInst(
-        "printOutVals", # mnem
-        1, # num of regs interfaced
-        """
-
-        gem5::CusFU_SVE_tblMAC* fup = xc->tcBase()->getCpuPtr()->getCusFU_SVE_tblMAC();
-        fup->print_all_out();
-
-        """, # code
-        overrideOpClass="CusAluOp"
-    )
-
-    buildDataXRegInst(
-        "printCodebook", # mnem
-        1, # num of regs interfaced
-        """
-
-        gem5::CusFU_SVE_tblMAC* fup = xc->tcBase()->getCpuPtr()->getCusFU_SVE_tblMAC();
-        fup->get_CB_by_index(Op164)->print_cb();
-
-        """, # code
-        overrideOpClass="CusAluOp"
-    )
-        
-
-    buildDataXRegInst(
-        "printIn", # mnem
-        1, # num of regs interfaced
-        """
-
-        gem5::CusFU_SVE_tblMAC* fup = xc->tcBase()->getCpuPtr()->getCusFU_SVE_tblMAC();
-        fup->print_in_by_idx(Op164);
-
-        """, # code
-        overrideOpClass="CusAluOp"
-    )
-
-
-    buildDataXRegInst(
-        "printAcc", # mnem
-        1, # num of regs interfaced
-        """
-
-        gem5::CusFU_SVE_tblMAC* fup = xc->tcBase()->getCpuPtr()->getCusFU_SVE_tblMAC();
-        fup->print_acc_by_idx(Op164);
-
-        """, # code
-        overrideOpClass="CusAluOp"
-    )
-    
-    buildDataXRegInst(
-        "addCus", # mnem
-        1, # num of regs interfaced
-        """
-
-        Dest64 = Op164 + 1;
-
-        gem5::CusFU_SVE_tblMAC* fup = xc->tcBase()->getCpuPtr()->getCusFU_SVE_tblMAC();
-        Dest64 = fup->myadd(Op164);
-
-        """, # code
-        overrideOpClass="CusAluOp"
-    )
-
-    buildDataXRegInst(
-        "writeval", # mnem
-        1, # num of regs interfaced
-        """
-
-        gem5::CusFU_SVE_tblMAC* fup = xc->tcBase()->getCpuPtr()->getCusFU_SVE_tblMAC();
-        fup->setStoredValue(Op164);
-
-        """, # code
-        overrideOpClass="CusAluOp"
-    )
-
-    buildDataXRegInst(
-        "readval", # mnem
-        1, # num of regs interfaced
-        """
-
-        gem5::CusFU_SVE_tblMAC* fup = xc->tcBase()->getCpuPtr()->getCusFU_SVE_tblMAC();
-        Dest64 = fup->getStoredValue();
-
-        """, # code
-        overrideOpClass="CusAluOp"
-    )
-
 
 
     buildDataXRegInst("madd", 3, "Dest64 = Op164 + Op264 * Op364",

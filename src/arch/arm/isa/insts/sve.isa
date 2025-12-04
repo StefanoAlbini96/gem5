@@ -3507,17 +3507,17 @@ let {{
 
     # Custom SVADD1 (fixed value and predicated)
     add1Code =  'gem5::CusFU_SVE_tblMAC* fup = xc->tcBase()->getCpuPtr()->getCusFU_SVE_tblMAC();\n'
-    add1Code += 'destElem = fup->myadd(srcElem1);'
+    # add1Code += 'destElem = fup->myadd(srcElem1);'
     sveBinInst('sveCusAdd', 'Add1Pred', 'SimdAddOpCus', unsignedTypes, add1Code,
                PredType.MERGE, True)
 
 
-    # Custom SV MAC (predicated)
-    cusMacCode =  'gem5::CusFU_SVE_tblMAC* fup = xc->tcBase()->getCpuPtr()->getCusFU_SVE_tblMAC();\n'
-    cusMacCode += 'fup->tbl_MAC_lane(srcElem1, i);'
-    sveBinInst('sveCusMac', 'CusMacPred', 'SimdAddOpCus', unsignedTypes, cusMacCode,
-               PredType.MERGE, True)
-    
+    # # Custom SV MAC (predicated)
+    # cusMacCode =  'gem5::CusFU_SVE_tblMAC* fup = xc->tcBase()->getCpuPtr()->getCusFU_SVE_tblMAC();\n'
+    # cusMacCode += 'fup->tbl_MAC_lane(srcElem1, i);'
+    # sveBinInst('sveCusMac', 'CusMacPred', 'SimdAddOpCus', unsignedTypes, cusMacCode,
+    #            PredType.MERGE, True)
+
 
     # ADD (vectors, unpredicated)
     addCode = 'destElem = srcElem1 + srcElem2;'

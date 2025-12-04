@@ -104,10 +104,16 @@ namespace Aarch64
     StaticInstPtr decodeSveMemGather32(ExtMachInst machInst);
     StaticInstPtr decodeSveMemContigLoad(ExtMachInst machInst);
     StaticInstPtr decodeSveMemContigLoadCus(ExtMachInst machInst);
-    StaticInstPtr decodeCusSveMac(ExtMachInst machInst);
+    //StaticInstPtr decodeCusSveMac(ExtMachInst machInst);
     StaticInstPtr decodeSveContigStoreSICus(ExtMachInst machInst);
     StaticInstPtr decodeSveMemGather64(ExtMachInst machInst);
     StaticInstPtr decodeSveMemStore(ExtMachInst machInst);
+
+
+    StaticInstPtr decodeSveLoadStructsSICusLoadCodebooks(ExtMachInst machInst);
+    StaticInstPtr decodeSveLoadStructsSICusLoadInputs(ExtMachInst machInst);
+    StaticInstPtr decodeSveContigLoadSICusLDIDX(ExtMachInst machInst);
+    StaticInstPtr decodeSveContigStoreSICus(ExtMachInst machInst);
 
     StaticInstPtr decodeCusSveIntAdd1(ExtMachInst machInst);
 
@@ -400,43 +406,27 @@ namespace Aarch64
     StaticInstPtr
     decodeCusSveInt(ExtMachInst machInst)
     {
-
-        switch(bits(machInst, 31, 29)) {
+        switch(bits(machInst, 15, 13)) {
 
             case 0x0:
-                return decodeSveMemContigLoadCus(machInst);
+                return decodeSveLoadStructsSICusLoadCodebooks(machInst);
+
             case 0x1:
-                return decodeSveContigStoreSICus(machInst);
-            case 0x2: {
-                uint8_t op1 = bits(machInst, 24, 23);
-                switch (op1) {
-                    case 0b00:
-                    case 0b01:
-                        if (bits(machInst, 21) == 0b0) {
-                            if (bits(machInst, 15) == 0b0) {
-                                return new Unknown64(machInst);
-                            } else {
-                                return decodeCusSveIntAdd1(machInst);
-                            }
-                        } else {
-                            return decodeCusSveMac(machInst);
-                        }
-                        break;
-                    case 0b10:
-                    case 0b11:
-                    default:
-                        return new Unknown64(machInst);
-                }
-            }
+                return decodeSveLoadStructsSICusLoadInputs(machInst);
+
+            case 0x2:
+                return decodeSveContigLoadSICusLDIDX(machInst);
+
             case 0x3:
+                return decodeSveContigStoreSICus(machInst);
+
             case 0x4:
             case 0x5:
             case 0x6:
             case 0x7:
-            case 0x8:
-                break;
             default:
                 return new Unknown64(machInst);
+
         }
         return new Unknown64(machInst);
     }

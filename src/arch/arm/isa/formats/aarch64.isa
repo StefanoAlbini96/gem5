@@ -45,6 +45,7 @@ namespace Aarch64
     template <typename DecoderFeatures>
     StaticInstPtr decodeFpAdvSIMD(ExtMachInst machInst);
 
+    StaticInstPtr decodeCusFUInstr(ExtMachInst machInst);
     StaticInstPtr decodeSveInt(ExtMachInst machInst);
     StaticInstPtr decodeCusSveInt(ExtMachInst machInst);
     StaticInstPtr decodeSveFp(ExtMachInst machInst);
@@ -208,7 +209,7 @@ output decoder {{
 namespace Aarch64
 {
     StaticInstPtr
-    decodeCusDataProcImm(ExtMachInst machInst)
+    decodeCusFUInstr(ExtMachInst machInst)
     {
         RegIndex rd = (RegIndex)(uint32_t)bits(machInst, 4, 0);
         RegIndex rdsp = makeSP(rd);
@@ -216,39 +217,23 @@ namespace Aarch64
         RegIndex rn = (RegIndex)(uint32_t)bits(machInst, 9, 5);
         RegIndex rnsp = makeSP(rn);
 
-	      uint8_t opc = bits(machInst, 30, 29);
+        // Used to discriminate if it is a mem or compute instruction
+        uint8_t opc = bits(machInst, 30, 29);
 
-        switch (bits(machInst, 25, 23)) {
-          case 0:
-            return new Unknown64(machInst);
-          case 1:
-            return new Unknown64(machInst);
-          case 0x2:
+        switch (opc) {
+          case 0x0: // SVE memory instructions
+            return decodeCusSveInt(machInst);
+
+          case 0x1: // Compute instruction
+            return new ComputeStep64(machInst, rdsp, rnsp);
+
+          case 0x2: // Reduce instruction
+            return new Reduce64(machInst, rdsp, rnsp);
+
           case 0x3:
             return new Unknown64(machInst);
-          case 4:
-          {
-            switch (opc) {
-              case 0x0:
-                return new AddCus64(machInst, rdsp, rnsp);
-              case 0x1:
-                return new Reset64(machInst, rdsp, rnsp);
-              case 0x2:
-                return new PrintOutVals64(machInst, rdsp, rnsp);
-              case 0x3:
-                return new Reduce64(machInst, rdsp, rnsp);
-              default:
-                //M5_UNREACHABLE;
-                return new Unknown64(machInst);
-            }
-          }
-          case 5:
-            return new PrintCodebook64(machInst, rdsp, rnsp);
-          case 6:
-            return new PrintIn64(machInst, rdsp, rnsp);
-          case 7:
-            return new PrintAcc64(machInst, rdsp, rnsp);
           default:
+            //M5_UNREACHABLE;
             return new Unknown64(machInst);
         }
     }
@@ -3756,7 +3741,7 @@ def format Aarch64() {{
                 if (bits(machInst, 26) == 0x1) {
                     if (bits(machInst, 31) == 0x0) {
                         if (bits(machInst, 25) == 0x1) {
-                            return decodeCusDataProcImm(machInst);
+                            return decodeCusFUInstr(machInst);
                         }
                         switch (bits(machInst, 30, 29)) {
                             case 0x0:
