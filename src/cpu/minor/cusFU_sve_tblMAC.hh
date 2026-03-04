@@ -185,6 +185,12 @@ class Compute {
 
 
     /**
+     * These are the already computed values that are read from memory.
+     * They are used to update the final value, adding them to the current out_vals and storing back
+     */
+    vector<float> out_mem_tmp;
+
+    /**
      * Final results of a chain of operations. The basically contain the reduced accumulators.
      * One element per each learner (interleaved)
      */
@@ -196,6 +202,11 @@ class Compute {
 
 
     void set_inputs_lane(uint8_t in_idx, uint8_t lane_idx, float value);
+
+
+    void set_out_mem_tmp(uint8_t in_idx, float value);
+
+    void add_outputs();
 
     float get_out_val(uint8_t lane_idx);
 
@@ -232,6 +243,11 @@ class CusFU_SVE_tblMAC : public FUPipeline
     vector<bool> predicate;
 
 
+
+    vector<uint32_t> unpkd_idxs;
+    vector<vector<float>> w;
+
+
   public:
     CusFU_SVE_tblMAC(const std::string &name,
                      const MinorFU &description,
@@ -252,6 +268,18 @@ class CusFU_SVE_tblMAC : public FUPipeline
     void load_inputs(uint8_t in_idx, uint8_t lane_idx, float value);
 
 
+    /**
+     * Load the previously computed output into the proper lane of the register
+     */
+    void load_out_tmp(uint8_t in_idx, float value);
+
+
+    /**
+     * Updates the output by summing the current value with the one loaded from memory.
+     */
+    void acc_out();
+
+
     float get_out_val(uint8_t lane_idx);
 
 
@@ -262,6 +290,13 @@ class CusFU_SVE_tblMAC : public FUPipeline
 
 
     void reset_out_vals();
+
+
+
+
+    void getIdxs(uint8_t pred_upper_bound);
+    void doTbl();
+    void doMac();
 
 };
 

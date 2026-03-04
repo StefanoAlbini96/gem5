@@ -314,6 +314,10 @@ def operands {{
     'PInt2': PIntReg('reg2'),
     'PInt3': PIntReg('reg3'),
 
+    'UpPredLane' : IntReg('upPredLane'),
+    'Tmp' : IntReg('tmpDestReg'),
+
+
     #Fixed index integer reg operands
     'SpMode': IntRegNPC('int_reg::regInMode((OperatingMode)regMode, '
                         'int_reg::Sp)'),

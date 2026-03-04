@@ -214,6 +214,46 @@ let {{
     )
 
 
+
+    buildDataXRegInst(
+        "getIdxs", # mnem
+        1, # num of regs interfaced
+        """
+
+        gem5::CusFU_SVE_tblMAC* fup = xc->tcBase()->getCpuPtr()->getCusFU_SVE_tblMAC();
+        fup->getIdxs(Op164);
+
+        """, # code
+        overrideOpClass="CusFUgetIdxsOp"
+    )
+
+    buildDataXRegInst(
+        "doTbl", # mnem
+        1, # num of regs interfaced
+        """
+        gem5::CusFU_SVE_tblMAC* fup = xc->tcBase()->getCpuPtr()->getCusFU_SVE_tblMAC();
+        fup->doTbl();
+
+        """, # code
+        overrideOpClass="CusFUtblOp"
+    )
+
+    buildDataXRegInst(
+        "doMac", # mnem
+        1, # num of regs interfaced
+        """
+
+        gem5::CusFU_SVE_tblMAC* fup = xc->tcBase()->getCpuPtr()->getCusFU_SVE_tblMAC();
+        fup->doMac();
+
+        """, # code
+        overrideOpClass="CusFUmacOp"
+    )
+
+
+
+
+
     buildDataXRegInst("madd", 3, "Dest64 = Op164 + Op264 * Op364",
         overrideOpClass="IntMultOp")
     buildDataXRegInst("msub", 3, "Dest64 = Op164 - Op264 * Op364",

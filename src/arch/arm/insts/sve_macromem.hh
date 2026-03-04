@@ -265,6 +265,224 @@ class SveLdStructSI : public PredMacroOp
     }
 };
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+template <typename Element,
+         template <typename> class MicroopLdMemType,
+         template <typename> class MicroopDeIntrlvType>
+class SveLdStructSICus : public PredMacroOp
+{
+  protected:
+    uint8_t upPredLane;
+    RegIndex base;
+    int64_t imm;
+    uint8_t numregs;
+
+  public:
+    SveLdStructSICus(const char* mnem, ExtMachInst machInst, OpClass __opClass,
+            uint8_t _upPredLane, RegIndex _base,
+            int64_t _imm, uint8_t _numregs)
+        : PredMacroOp(mnem, machInst, __opClass),
+          upPredLane(_upPredLane),      // Here I pass a immediate the index of the last active lane
+          base(_base),
+          imm(_imm),
+          numregs(_numregs)
+    {
+        numMicroops = numregs * 2;
+
+        microOps = new StaticInstPtr[numMicroops];
+
+        for (int i = 0; i < numregs; ++i) {
+            microOps[i] = new MicroopLdMemType<Element>(
+                    mnem, machInst, static_cast<RegIndex>(INTRLVREG0 + i),
+                    _upPredLane, _base, _imm, _numregs, i);
+        }
+        for (int i = 0; i < numregs; ++i) {
+            microOps[i + numregs] = new MicroopDeIntrlvType<Element>(
+                    mnem, machInst,
+                    _numregs, i, this);
+        }
+
+        microOps[0]->setFirstMicroop();
+        microOps[numMicroops - 1]->setLastMicroop();
+
+        for (StaticInstPtr *uop = microOps; !(*uop)->isLastMicroop(); uop++) {
+            (*uop)->setDelayedCommit();
+        }
+    }
+
+    Fault
+    execute(ExecContext *, trace::InstRecord *) const override
+    {
+        panic("Execute method called when it shouldn't!");
+        return NoFault;
+    }
+
+    std::string
+    generateDisassembly(Addr pc,
+                        const loader::SymbolTable *symtab) const override
+    {
+        std::stringstream ss;
+        printMnemonic(ss, "", false);
+        ccprintf(ss, "{");
+        for (int i = 0; i < numregs; ++i) {
+            // printVecReg(ss, (dest + i) % 32, true);
+            if (i < numregs - 1)
+                ccprintf(ss, ", ");
+        }
+        ccprintf(ss, "}, ");
+        ccprintf(ss, "/z, [");
+        printIntReg(ss, base);
+        if (imm != 0) {
+            ccprintf(ss, ", #%d, MUL VL", imm);
+        }
+        ccprintf(ss, "]");
+        return ss.str();
+    }
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+template <typename Element,
+         template <typename> class MicroopLdMemType,
+         template <typename> class MicroopAddType,
+         template <typename, typename> class MicroopStMemType>
+class SveLdAddStStructSICus : public PredMacroOp
+{
+  protected:
+    uint8_t upPredLane;
+    RegIndex base;
+    int64_t imm;
+    uint8_t numregs;
+
+  public:
+    SveLdAddStStructSICus(const char* mnem, ExtMachInst machInst, OpClass __opClass,
+            RegIndex _dest, uint8_t _upPredLane, RegIndex _base, int64_t _imm)
+        : PredMacroOp(mnem, machInst, __opClass),
+          upPredLane(_upPredLane),      // Here I pass a immediate the index of the last active lane
+          base(_base),
+          imm(_imm)
+    {
+        // For each register, I need a LD + ADD + ST
+        numMicroops = 3;
+
+        microOps = new StaticInstPtr[numMicroops];
+
+        // Add the LD micro-op
+        // Loads one out value per lane
+        // static const char* dbg_mnem = "testLD";
+        microOps[0] = new MicroopLdMemType<Element>(
+                    mnem, machInst, _dest, upPredLane,
+                    _base, _imm);
+
+        // Add the ADD micro-op
+        // dbg_mnem = "testADD";
+        microOps[1] = new MicroopAddType<Element>(
+                    mnem, machInst, _dest, _dest);
+
+        // Add the ST micro-op
+        // dbg_mnem = "testST";
+        microOps[2] = new MicroopStMemType<float, float>(
+                    mnem, machInst, _dest, upPredLane,
+                    _base, _imm);
+
+        // printf("MICROOPS adr: \n");
+        // std::cout << microOps[0] << std::endl;
+        // std::cout << microOps[1] << std::endl;
+        // std::cout << microOps[2] << std::endl;
+
+        microOps[0]->setFirstMicroop();
+        microOps[numMicroops - 1]->setLastMicroop();
+
+        for (StaticInstPtr *uop = microOps; !(*uop)->isLastMicroop(); uop++) {
+            (*uop)->setDelayedCommit();
+        }
+    }
+
+    Fault
+    execute(ExecContext *, trace::InstRecord *) const override
+    {
+        panic("Execute method called when it shouldn't!");
+        return NoFault;
+    }
+
+    std::string
+    generateDisassembly(Addr pc,
+                        const loader::SymbolTable *symtab) const override
+    {
+        std::stringstream ss;
+        printMnemonic(ss, "", false);
+        ccprintf(ss, "{");
+        for (int i = 0; i < numregs; ++i) {
+            // printVecReg(ss, (dest + i) % 32, true);
+            if (i < numregs - 1)
+                ccprintf(ss, ", ");
+        }
+        ccprintf(ss, "}, ");
+        ccprintf(ss, "/z, [");
+        printIntReg(ss, base);
+        if (imm != 0) {
+            ccprintf(ss, ", #%d, MUL VL", imm);
+        }
+        ccprintf(ss, "]");
+        return ss.str();
+    }
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 template <typename Element,
          template <typename> class MicroopStMemType,
          template <typename> class MicroopIntrlvType>

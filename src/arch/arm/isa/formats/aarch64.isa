@@ -230,8 +230,28 @@ namespace Aarch64
           case 0x2: // Reduce instruction
             return new Reduce64(machInst, rdsp, rnsp);
 
-          case 0x3:
-            return new Unknown64(machInst);
+          case 0x3: {
+
+            // Bits to discriminate which of the "split-step" operations to do
+            uint8_t split_op = bits(machInst, 24, 23);
+
+            switch(split_op) {
+              case 0x0:
+                return new GetIdxs64(machInst, rdsp, rnsp);
+
+              case 0x1:
+                return new DoTbl64(machInst, rdsp, rnsp);
+
+              case 0x2:
+                return new DoMac64(machInst, rdsp, rnsp);
+
+              case 0x3:
+                return new Unknown64(machInst);
+
+              default:
+                return new Unknown64(machInst);
+            }
+          }
           default:
             //M5_UNREACHABLE;
             return new Unknown64(machInst);
@@ -3741,7 +3761,7 @@ def format Aarch64() {{
                 if (bits(machInst, 26) == 0x1) {
                     if (bits(machInst, 31) == 0x0) {
                         if (bits(machInst, 25) == 0x1) {
-                            return decodeCusFUInstr(machInst);
+                            return decodeCusFUInstr(machInst);  // this is the final one
                         }
                         switch (bits(machInst, 30, 29)) {
                             case 0x0:

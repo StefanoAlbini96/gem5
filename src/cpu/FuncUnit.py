@@ -123,6 +123,9 @@ class OpClass(Enum):
         "SimdAddCus",
         "CusFUreduce",
         "CusFUstep",
+        "CusFUgetIdxs",
+        "CusFUtbl",
+        "CusFUmac",
     ]
 
 

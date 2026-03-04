@@ -169,30 +169,58 @@ class MinorDefaultIntDivFU(MinorFU):
     opLat = 9
 
 
-class MinorDefaultCusFU(MinorFU):
-    opClasses = minorMakeOpClassSet(["CusAlu"])
-    timings = [MinorFUTiming(description="Cus", srcRegsRelativeLats=[2])]
-    opLat = 1
+# class MinorDefaultCusFU(MinorFU):
+#     opClasses = minorMakeOpClassSet(["CusAlu"])
+#     timings = [MinorFUTiming(description="Cus", srcRegsRelativeLats=[2])]
+#     opLat = 16
 
 
-class MinorDefaultCusSVEFU(MinorFU):
-    opClasses = minorMakeOpClassSet(["SimdAddCus"])
-    timings = [MinorFUTiming(description="CusSVE", srcRegsRelativeLats=[2])]
-    opLat = 1
+# class MinorDefaultCusSVEFU(MinorFU):
+#     opClasses = minorMakeOpClassSet(["SimdAddCus"])
+#     timings = [MinorFUTiming(description="CusSVE", srcRegsRelativeLats=[2])]
+#     opLat = 17
 
 
 class MinorDefaultCUSreduce(MinorFU):
     opClasses = minorMakeOpClassSet(["CusFUreduce"])
     timings = [MinorFUTiming(description="CusReduce", srcRegsRelativeLats=[2])]
-    # opLat = 18
-    opLat = 3
+    opLat = 18
+    # opLat = 1
+    # opLat = 25
 
 
 class MinorDefaultCUSstep(MinorFU):
     opClasses = minorMakeOpClassSet(["CusFUstep"])
     timings = [MinorFUTiming(description="CusStep", srcRegsRelativeLats=[2])]
     # opLat = 30
-    opLat = 5
+    opLat = 3
+    # opLat = 13
+
+
+class MinorDefaultCUSgetIdxs(MinorFU):
+    opClasses = minorMakeOpClassSet(["CusFUgetIdxs"])
+    timings = [
+        MinorFUTiming(description="CusGetIdxs", srcRegsRelativeLats=[2])
+    ]
+    # opLat = 18
+    opLat = 1
+    # opLat = 12
+
+
+class MinorDefaultCUStbl(MinorFU):
+    opClasses = minorMakeOpClassSet(["CusFUtbl"])
+    timings = [MinorFUTiming(description="CusTbl", srcRegsRelativeLats=[2])]
+    # opLat = 6
+    opLat = 1
+    # opLat = 26
+
+
+class MinorDefaultCUSmac(MinorFU):
+    opClasses = minorMakeOpClassSet(["CusFUmac"])
+    timings = [MinorFUTiming(description="CusMac", srcRegsRelativeLats=[2])]
+    # opLat = 6
+    opLat = 1
+    # opLat = 15
 
 
 class MinorDefaultFloatSimdFU(MinorFU):
@@ -305,10 +333,13 @@ class MinorDefaultFUPool(MinorFUPool):
         MinorDefaultPredFU(),
         MinorDefaultMemFU(),
         MinorDefaultMiscFU(),
-        MinorDefaultCusFU(),
-        MinorDefaultCusSVEFU(),
         MinorDefaultCUSreduce(),
         MinorDefaultCUSstep(),
+        MinorDefaultCUSgetIdxs(),
+        MinorDefaultCUStbl(),
+        MinorDefaultCUSmac(),
+        # MinorDefaultCusFU(),
+        # MinorDefaultCusSVEFU(),
     ]
 
 

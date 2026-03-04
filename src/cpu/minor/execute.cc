@@ -146,7 +146,7 @@ Execute::Execute(const std::string &name_,
         // FU pipeline class.
         bool hasCusAlu = false;
         for(int opc=0; opc<fu_description->opClasses->opClasses.size(); opc++){
-            if(fu_description->opClasses->opClasses[opc]->opClass == enums::CusAlu){
+            if(fu_description->opClasses->opClasses[opc]->opClass == enums::CusFUtbl){
                 hasCusAlu = true;
                 break;
             }
@@ -571,6 +571,18 @@ cyclicIndexDec(unsigned int index, unsigned int cycle_size)
     return ret;
 }
 
+
+
+
+/* Issue *cycle* (not tick) recorded when each microop enters its FU.
+ * We compare against cpu.curCycle() at commit time to get the exact
+ * number of cycles the instruction spent inside the FU pipeline,
+ * which equals opLat (+ extraCommitDelay if any).
+ * Using cycles instead of ticks avoids multiplying by the clock period. */
+Cycles issue_cycle_ld   = Cycles(0);
+Cycles issue_cycle_add  = Cycles(0);
+Cycles issue_cycle_st   = Cycles(0);
+
 unsigned int
 Execute::issue(ThreadID thread_id)
 {
@@ -772,12 +784,33 @@ Execute::issue(ThreadID thread_id)
                             thread.inFUMemInsts->push(fu_inst);
                         }
 
-                        // if(inst->staticInst->getName() == "computeStep"){
-                        //     printf("TIME START = %ld\n", curTick());
-                        // }
+                        // printf("Instruction %s in %d\n", inst->staticInst->getName().c_str(), fu_index);
 
                         /* Issue to FU */
                         fu->push(fu_inst);
+
+                        // /* Record the cycle at which this microop entered
+                        //  * the FU pipeline.  We do this AFTER fu->push() so
+                        //  * the measurement starts at the first FU stage, not
+                        //  * at the scoreboard-wait or issue-arbitration stage.
+                        //  * cpu.curCycle() + 1 because push() makes the inst
+                        //  * available from the *next* cycle onward. */
+                        // if (inst->staticInst->getName() == "testLD") {
+                        //     issue_cycle_ld = cpu.curCycle() + Cycles(1);
+                        //     printf("[TIMING] testLD  entered FU at cycle %lu\n",
+                        //            (uint64_t)issue_cycle_ld);
+                        // } else if (inst->staticInst->getName() == "testADD") {
+                        //     issue_cycle_add = cpu.curCycle() + Cycles(1);
+                        //     printf("[TIMING] testADD entered FU at cycle %lu\n",
+                        //            (uint64_t)issue_cycle_add);
+                        // } else if (inst->staticInst->getName() == "testST") {
+                        //     issue_cycle_st = cpu.curCycle() + Cycles(1);
+                        //     printf("[TIMING] testST  entered FU at cycle %lu\n",
+                        //            (uint64_t)issue_cycle_st);
+                        // }
+
+
+
                         /* And start the countdown on activity to allow
                          *  this instruction to get to the end of its FU */
                         cpu.activityRecorder->activity();
@@ -1399,8 +1432,25 @@ Execute::commit(ThreadID thread_id, bool only_commit_microops, bool discard,
             /* Finished with the inst, remove it from the inst queue and
              *  clear its dependencies */
             ex_info.inFlightInsts->pop();
-            // if(inst->staticInst->getName() == "computeStep"){
-            //     printf("TIME END = %ld\n", curTick());
+
+            // /* FU latency = commit cycle - first FU cycle.
+            //  * At this point the instruction has just exited the FU and
+            //  * is being retired.  cpu.curCycle() is the commit cycle.
+            //  * The difference is exactly the number of cycles the
+            //  * instruction occupied the FU pipeline (== opLat +
+            //  * extraCommitDelay, with no RAW-stall contamination). */
+            // if (inst->staticInst->getName() == "testLD" && issue_cycle_ld != Cycles(0)) {
+            //     Cycles fu_lat = cpu.curCycle() - issue_cycle_ld;
+            //     printf("[TIMING] testLD  commit cycle %lu  FU latency = %lu cycles\n",
+            //            (uint64_t)cpu.curCycle(), (uint64_t)fu_lat);
+            // } else if (inst->staticInst->getName() == "testADD" && issue_cycle_add != Cycles(0)) {
+            //     Cycles fu_lat = cpu.curCycle() - issue_cycle_add;
+            //     printf("[TIMING] testADD commit cycle %lu  FU latency = %lu cycles\n",
+            //            (uint64_t)cpu.curCycle(), (uint64_t)fu_lat);
+            // } else if (inst->staticInst->getName() == "testST" && issue_cycle_st != Cycles(0)) {
+            //     Cycles fu_lat = cpu.curCycle() - issue_cycle_st;
+            //     printf("[TIMING] testST  commit cycle %lu  FU latency = %lu cycles\n",
+            //            (uint64_t)cpu.curCycle(), (uint64_t)fu_lat);
             // }
 
             /* Complete barriers in the LSQ/move to store buffer */

@@ -10,92 +10,6 @@ using namespace gem5;
 
 
 
-// //////////////////////////////////
-// //        Vector_register       //
-
-
-// template <typename elem_type>
-// Vector_register<elem_type>::Vector_register(uint8_t n_lanes)
-//     : n_lanes(n_lanes),
-//       values(n_lanes)
-// {}
-
-
-
-// template <typename elem_type>
-// vector<elem_type>*
-// Vector_register<elem_type>::get_values()
-// {
-//     return &(this->values();)
-// }
-
-
-
-// uint8_t get_vect_len();
-
-
-// //                              //
-// //////////////////////////////////
-
-
-// ------------------------------------------------------ //
-
-
-// //////////////////////////////////
-// //        Codebook class        //
-
-
-// Codebook::Codebook(int size = 4){
-//     this->cb_size = size;
-//     this->values.resize(this->cb_size, 0);
-// }
-
-// void
-// Codebook::load_codebook(float *cb_ptr){
-
-//     for(int i=0; i<this->cb_size; i++){
-//         this->values[i] = cb_ptr[i];
-//     }
-// }
-
-// void
-// Codebook::load_value(int idx, float val){
-//     this->values[idx] = val;
-// }
-
-
-// vector<float>
-// Codebook::get_values(){
-// return this->values;
-// }
-
-
-// vector<float>
-// Codebook::tbl(vector<uint32_t> indexes){
-
-//     vector<float> res(indexes.size());
-
-//     for(int i=0; i<indexes.size(); i++){
-//         res[i] = this->values[indexes[i]];
-//     }
-//     return res;
-// }
-
-// void
-// Codebook::print_cb(){
-//     printf("\nPrinting CB:\n");
-//     for(int i=0; i<this->cb_size; i++){
-//         printf("[%d]  %f\n", i, this->values[i]);
-//     }
-// }
-
-// //                              //
-// //////////////////////////////////
-
-
-// ------------------------------------------------------ //
-
-
 
 //////////////////////////////////
 //       Index_retrieval        //
@@ -215,7 +129,9 @@ Table_lookup::Table_lookup(uint8_t vect_len, uint8_t n_codebooks)
     n_codebooks(n_codebooks),
     codebooks(n_codebooks, vector<float>(vect_len, 0.0)),
     weights(n_codebooks, vector<float>(vect_len, 0.0))
-{}
+{
+    printf("N codebooks = %d\n", this->n_codebooks);
+}
 
 
 void
@@ -260,6 +176,7 @@ Table_lookup::do_tbl(vector<uint32_t> indexes, vector<bool> pred)
 
             if(pred[lane]){
                 this->weights[n_cb][lane] = this->codebooks[n_cb][indexes[lane]];
+                // printf("indexes[lane] = indexes[%d] = %d --> [%d]%f\n", lane, indexes[lane], n_cb, this->weights[n_cb][lane]);
             } else {
                 this->weights[n_cb][lane] = 0.0;
             }
@@ -285,6 +202,7 @@ Compute::Compute(uint8_t vect_len, uint8_t n_inputs)
     n_inputs(n_inputs),
     inputs(n_inputs, vector<float>(vect_len, 0.0)),
     accumulators(n_inputs, vector<float>(vect_len, 0.0)),
+    out_mem_tmp(n_inputs, 0.0),
     out_vals(n_inputs, 0.0)
     {}
 
@@ -298,8 +216,47 @@ Compute::set_inputs_lane(uint8_t in_idx, uint8_t lane_idx, float value)
         printf("ERROR! --> input idx > n_inputs in Compute::set_inputs_lane. in_idx = %d\n", in_idx);
         exit(1);
     } else {
+        // printf("Setting IN[%d][%d] = %f\n", in_idx, lane_idx, value);
         this->inputs[in_idx][lane_idx] = value;
     }
+}
+
+
+
+void
+Compute::set_out_mem_tmp(uint8_t in_idx, float value)
+{
+    // printf("Loading values TMP\n");
+    if(in_idx >= this->n_inputs){
+        printf("ERROR! --> in_idx > n_inputs in Compute::set_out_mem_tmp. lane_idx = %d\n", in_idx);
+        exit(1);
+    } else {
+        this->out_mem_tmp[in_idx] = value;
+        // printf("outTMP[%d] = %f\n", in_idx, this->out_mem_tmp[in_idx]);
+    }
+
+    // printf("Current values LD\n");
+    // for(int i=0; i<this->n_inputs; i++){
+    //     printf("[%d] %f\n", i, this->out_vals[i]);
+    // }
+}
+
+void
+Compute::add_outputs()
+{
+    // printf("Current values ADD\n");
+    // for(int i=0; i<this->n_inputs; i++){
+    //     printf("[%d] %f\n", i, this->out_vals[i]);
+    // }
+
+    // printf("Adding values...\n");
+    for(int i=0; i<this->n_inputs; i++){
+        // printf("[%d] %f + %f = ", i, this->out_vals[i], this->out_mem_tmp[i]);
+        this->out_vals[i] += this->out_mem_tmp[i];
+        // printf("%f\n", this->out_vals[i]);
+    }
+
+    // printf("DONE adding values!\n");
 }
 
 
@@ -307,12 +264,21 @@ Compute::set_inputs_lane(uint8_t in_idx, uint8_t lane_idx, float value)
 float
 Compute::get_out_val(uint8_t lane_idx)
 {
+
+    // printf("Current values ST\n");
+    // for(int i=0; i<this->n_inputs; i++){
+    //     printf("[%d] %f\n", i, this->out_vals[i]);
+    // }
+
     if(lane_idx >= this->n_inputs){
         printf("ERROR! --> lane_idx > n_inputs in Compute::get_out_val. lane_idx = %d\n", lane_idx);
         exit(1);
     } else {
+
+        // printf("Getting value [%d] --> %f\n", lane_idx, this->out_vals[lane_idx]);
         return this->out_vals[lane_idx];
     }
+
 }
 
 
@@ -335,6 +301,12 @@ Compute::vect_mult(vector<vector<float>> weights, vector<bool> pred)
             }
         }
     }
+
+    // printf("\n");
+    // for(int lane=0; lane<this->vect_len; lane++){
+    //     printf("[%d] %f\n", lane, this->accumulators[0][lane]);
+    // }
+
 }
 
 
@@ -343,17 +315,32 @@ void
 Compute::reduce()
 {
 
-    // printf("\nReduced:\n");
+    // printf("\n-- Reducing --\n");
+
+    // for(int i=0; i<n_inputs; i++){
+    //     printf("----\n");
+    //     for(int lane=0; lane<this->vect_len; lane++){
+    //         printf("%f\n", this->accumulators[i][lane]);
+    //     }
+    // }
+
+    // printf("Accumulators:\n");
     for(int i=0; i<this->n_inputs; i++){
         for(int lane=0; lane<this->vect_len; lane++){
             this->out_vals[i] += this->accumulators[i][lane];
-            // printf("%f + ", this->accumulators[i][lane]);
+            // printf("[%d] %f\n", lane, this->accumulators[i][lane]);
         }
         // printf("%f\n", this->out_vals[i]);
+        // printf("\n");
 
         // Reset the accumulators
         fill(this->accumulators[i].begin(), this->accumulators[i].end(), 0.0);
     }
+
+    // printf("Final out:\n");
+    // for(int i=0; i<this->n_inputs; i++){
+    //     printf("Out %d --> %f\n", i, this->out_vals[i]);
+    // }
 }
 
 
@@ -387,7 +374,10 @@ CusFU_SVE_tblMAC::CusFU_SVE_tblMAC( const std::string &name,
     vect_len(vect_len),
     idx_ret(vect_len, idx_per_lane, bits_per_idx, mask),
     tbl_lu(vect_len, n_cb),
-    cmpt(vect_len, n_cb)
+    cmpt(vect_len, n_cb),
+    predicate(vect_len),
+    unpkd_idxs(vect_len),
+    w(n_cb, vector<float>(vect_len, 0.0))
     {}
 
 
@@ -412,6 +402,20 @@ void
 CusFU_SVE_tblMAC::load_inputs(uint8_t in_idx, uint8_t lane_idx, float value)
 {
     this->cmpt.set_inputs_lane(in_idx, lane_idx, value);
+}
+
+
+
+void
+CusFU_SVE_tblMAC::load_out_tmp(uint8_t in_idx, float value)
+{
+    this->cmpt.set_out_mem_tmp(in_idx, value);
+}
+
+void
+CusFU_SVE_tblMAC::acc_out()
+{
+    this->cmpt.add_outputs();
 }
 
 
@@ -471,270 +475,50 @@ CusFU_SVE_tblMAC::reset_out_vals()
     this->cmpt.reset_out();
 }
 
+
+
+
+void
+CusFU_SVE_tblMAC::getIdxs(uint8_t pred_upper_bound)
+{
+    // Compute the predicate
+    for(int lane=0; lane<this->vect_len; lane++){
+        if(lane<pred_upper_bound){
+            this->predicate[lane] = true;
+        } else {
+            this->predicate[lane] = false;
+        }
+    }
+
+    // Unpack the next group of indexes
+    this->idx_ret.mask_next_idxs(this->predicate);
+
+    // Get the new unpacked indexes
+    this->unpkd_idxs = this->idx_ret.get_unpacked_idx();
+}
+
+void
+CusFU_SVE_tblMAC::doTbl()
+{
+    // printf(">>>TBL\n");
+
+    // Do the TBL on the codebooks (predicated)
+    this->tbl_lu.do_tbl(this->unpkd_idxs, this->predicate);
+
+    // Get the weights
+    this->w = this->tbl_lu.get_weights();
+}
+
+void
+CusFU_SVE_tblMAC::doMac()
+{
+    // printf(">>>MAC\n");
+    // Do the weights-inputs multiplication
+    this->cmpt.vect_mult(this->w, this->predicate);
+}
+
+
+
+
 //                              //
 //////////////////////////////////
-
-
-
-
-
-
-
-
-
-// //////////////////////////////////
-// //       Custom FU              //
-
-
-// CusFU_SVE_tblMAC::CusFU_SVE_tblMAC(const std::string &name,
-//                                     const MinorFU &description,
-//                                     MinorCPU &cpu,
-//                                     int n_cb,
-//                                     int vector_len)
-//   : FUPipeline(name, description, cpu),
-//     n_codebooks(n_cb),
-//     vec_len(vector_len),
-//     codebooks(vector_len),  // each codebook has a size equal to the VL
-//     packed_indexes(vector_len, 0),
-//     current_indexes_lane(0),
-//     predicate(vector_len, false),
-//     idx_ptr(0),
-//     cur_unpacked_idxs(vector_len, 0),
-//     inputs(n_cb, vector<float>(vector_len, 0.0f)),
-//     accumulators(n_cb, vector<float>(vector_len, 0.0f)),
-//     out_vals(n_cb, 0.0f) {
-
-//         bits_per_idx = (uint32_t) log(n_cb);
-//         mask = (uint32_t) ((1 << bits_per_idx) - 1);
-//     }
-
-
-
-
-// Codebook*
-// CusFU_SVE_tblMAC::get_CB_by_index(int idx){
-
-//     if(idx >= this->n_codebooks){
-//         printf("Error (get_CB_by_index)! idx > n_codebooks in FU! (%d > %d)\n", idx, this->n_codebooks);
-//         exit(1);
-//     }
-
-//     return &(this->codebooks[idx]);
-// }
-
-
-// vector<float>*
-// CusFU_SVE_tblMAC::get_input_reg_by_index(int idx){
-
-//     if(idx >= this->n_codebooks){
-//         printf("Error (get_input_reg_by_index)! idx > n_codebooks in FU! (%d > %d)\n", idx, this->n_codebooks);
-//         exit(1);
-//     }
-
-//     return &(this->inputs[idx]);
-// }
-
-
-// vector<float>*
-// CusFU_SVE_tblMAC::get_acc_by_index(int idx){
-
-//     if(idx >= this->n_codebooks){
-//         printf("Error (get_input_reg_by_index)! idx > n_codebooks in FU! (%d > %d)\n", idx, this->n_codebooks);
-//         exit(1);
-//     }
-
-//     return &(this->accumulators[idx]);
-// }
-
-
-
-// vector<uint32_t>*
-// CusFU_SVE_tblMAC::get_packed_indexes(){
-
-//     return &(this->packed_indexes);
-// }
-
-
-
-
-// void
-// CusFU_SVE_tblMAC::process(uint32_t missing_lane, uint32_t missing_total){
-
-//     uint32_t upper_pred = 0;
-
-//     if(missing_lane <= missing_total){
-//         upper_pred = missing_lane;
-//     } else {
-//         upper_pred = missing_total;
-//     }
-
-//     // Update pred
-//     uint8_t n_processed = 0;
-//     for(int i=0; i<this->vec_len; i++){
-//         if(i < upper_pred){
-//             this->predicate[i] = true;
-//             n_processed++;
-//         }
-//         else{
-//             this->predicate[i] = false;
-//         }
-//     }
-
-//     // Indexes retrieval
-//     this->mask_next_idxs();
-
-//     // TBL
-//     this->tbl_MAC();
-
-//     // Update the index pointer for the current lane
-//     this->idx_ptr += n_processed;
-// }
-
-
-// void
-// CusFU_SVE_tblMAC::advance_cur_packed_idxs(){
-
-//     if(this->current_indexes_lane < this->vec_len){
-//         this->current_indexes_lane++;
-//         this->idx_ptr = 0;
-//     } else {
-//         printf("ERROR! Last lane reached, need to load more indexes!\n");
-//         exit(1);
-//     }
-
-// }
-
-
-
-// void
-// CusFU_SVE_tblMAC::mask_next_idxs(){
-
-//     uint32_t current_packed_idxs = this->packed_indexes[this->current_indexes_lane];
-//     printf("Cur: %d\n", current_packed_idxs);
-
-//     vector<uint32_t> masked_idxs(4, 0);
-
-//     for(int i=0; i<this->vec_len; i++){
-
-//         // predication
-//         if(this->predicate[i]){
-//             masked_idxs[i] = (current_packed_idxs >> ((this->idx_ptr * this->bits_per_idx) + (i * this->bits_per_idx)));
-//             masked_idxs[i] &= this->mask;
-//         }
-//     }
-
-//     printf("INDEXES: \n");
-//     for(int i=0; i<this->vec_len; i++){
-//         printf("--> %d\n", masked_idxs[i]);
-//     }
-
-//     this->cur_unpacked_idxs = masked_idxs;
-// }
-
-
-
-
-
-
-// void
-// CusFU_SVE_tblMAC::tbl_MAC(){
-
-//     for(int i=0; i<this->n_codebooks; i++){
-
-//         vector<float> weights = this->codebooks[i].tbl(this->cur_unpacked_idxs);
-
-//         for(int j=0; j<weights.size(); j++){
-//             this->accumulators[i][j] += (this->inputs[i][j] * weights[j]);
-//         }
-//     }
-// }
-
-
-// void
-// CusFU_SVE_tblMAC::tbl_MAC_lane(int index, int lane_num){
-
-//     for(int i=0; i<this->n_codebooks; i++){
-
-//         float weight = this->codebooks[i].get_values()[index];
-
-//         this->accumulators[i][lane_num] += (this->inputs[i][lane_num] * weight);
-//     }
-// }
-
-
-
-// void
-// CusFU_SVE_tblMAC::reduce_acc(){
-
-//     for(int i=0; i<this->n_codebooks; i++){
-
-//         for(int j=0; j<this->accumulators[i].size(); j++){
-//             this->out_vals[i] += this->accumulators[i][j];
-//         }
-//     }
-// }
-
-
-
-// float
-// CusFU_SVE_tblMAC::get_out_by_index(int idx){
-
-//     return this->out_vals[idx];
-// }
-
-
-// void
-// CusFU_SVE_tblMAC::reset_acc_out(){
-
-//     for(int i=0; i<this->n_codebooks; i++){
-//         this->out_vals[i] = 0.0;
-
-//         for(int j=0; j<this->accumulators[i].size(); j++){
-//             this->accumulators[i][j] = 0.0;
-//         }
-//     }
-// }
-
-
-
-// void
-// CusFU_SVE_tblMAC::print_in_by_idx(int idx){
-//     printf("\nPrinting In[%d]:\n", idx);
-
-//     for(int i=0; i<this->inputs[idx].size(); i++){
-//         printf("[%d] %f\n", i, this->inputs[idx].at(i));
-//     }
-// }
-
-// void
-// CusFU_SVE_tblMAC::print_acc_by_idx(int idx){
-//     printf("\nPrinting Acc[%d]:\n", idx);
-
-//     for(int i=0; i<this->accumulators[idx].size(); i++){
-//         printf("[%d] %f\n", i, this->accumulators[idx].at(i));
-//     }
-// }
-
-// void
-// CusFU_SVE_tblMAC::print_all_out(){
-//     printf("\nPrinting Out Vals:\n");
-
-//     for(int i=0; i<this->out_vals.size(); i++){
-//         printf("[%d] %f\n", i, this->out_vals.at(i));
-//     }
-// }
-
-
-// void
-// CusFU_SVE_tblMAC::print_cur_unpkd_idxs(){
-//     printf("\nPrinting current unpacked indexes:\n");
-
-//     for(int i=0; i<this->vec_len; i++){
-//         printf("[%d] %d\n", i, this->cur_unpacked_idxs.at(i));
-//     }
-// }
-
-
-
-// //                              //
-// //////////////////////////////////
