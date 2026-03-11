@@ -221,7 +221,7 @@ let {{
         """
 
         gem5::CusFU_SVE_tblMAC* fup = xc->tcBase()->getCpuPtr()->getCusFU_SVE_tblMAC();
-        fup->getIdxs(Op164);
+        fup->getIdxs();
 
         """, # code
         overrideOpClass="CusFUgetIdxsOp"
@@ -251,6 +251,19 @@ let {{
     )
 
 
+
+    buildDataXRegInst(
+        "setPtr", # mnem
+        1, # num of regs interfaced
+        """
+        // cout << \"Starting settig the PTR\" << endl; 
+
+        gem5::CusFU_SVE_tblMAC* fup = xc->tcBase()->getCpuPtr()->getCusFU_SVE_tblMAC();
+        fup->set_input_ptr(reinterpret_cast<float*>(Op164));
+
+        """, # code
+        overrideOpClass="CusFUsetPtrOp"
+    )
 
 
 

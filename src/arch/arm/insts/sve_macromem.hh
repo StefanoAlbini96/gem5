@@ -483,6 +483,158 @@ class SveLdAddStStructSICus : public PredMacroOp
 
 
 
+
+template <typename Element,
+         template <typename> class MicroopSetMissLane,
+         template <typename> class MicroopLdMemType,
+         template <typename> class MicroopDeIntrlvType,
+         template <typename> class MicroopGetIdxType,
+         template <typename> class MicroopDoTblType,
+         template <typename> class MicroopDoMacType>
+class IdxPtrLoopCus : public PredMacroOp
+{
+  protected:
+    uint8_t numregs;
+    uint8_t n_iters;
+
+  public:
+    IdxPtrLoopCus(const char* mnem, ExtMachInst machInst, OpClass __opClass,
+            RegIndex _dest, RegIndex _missingLane, RegIndex _base, 
+            uint8_t _numregs, uint8_t _n_iters)
+        : PredMacroOp(mnem, machInst, __opClass),
+          numregs(_numregs),
+          n_iters(_n_iters)
+    {
+
+        uint8_t ld_imm = 0;
+
+        // uint8_t n_microOps_per_iter = (numregs * 2) + 3;
+        // numMicroops = n_microOps_per_iter * n_iters;
+
+
+        uint8_t n_microOps_per_iter = (numregs * 2) + 3;
+        numMicroops = 1 + (n_microOps_per_iter * n_iters);
+
+        microOps = new StaticInstPtr[numMicroops];
+
+
+        microOps[0] = new MicroopSetMissLane<Element>(
+                mnem, machInst, _dest, _dest, _missingLane, CusFUsetPtrOp
+            );
+        // microOps[0] = new gem5::ArmISAInst::SetPtr64(machInst, _missingLane, _missingLane);
+
+        // printf("N-ITERS = %d --> N-uOP = %d\n", n_iters, numMicroops);
+        // printf("N regs = %d\n", numregs);
+        // printf("N-ITERS = %d --> N-uOP = %d\n", n_iters, numMicroops);
+
+
+        for(int it=0; it<n_iters; it++){
+            // printf("=====  ADDING instructions for IT = %d =====\n", it);
+            uint8_t base_uop_idx = 1 + (it * n_microOps_per_iter);
+
+            // LOAD
+            // printf("Adding LD from %d\n", base_uop_idx);
+            for(int i=0; i<numregs; i++){
+                microOps[base_uop_idx + i] = new MicroopLdMemType<Element>(
+                        mnem, machInst, static_cast<RegIndex>(INTRLVREG0 + i),
+                        _base, ld_imm, _numregs, i);
+            }
+
+            // DEINTERLEAVE
+            // printf("Adding DEINTER from %d\n", base_uop_idx+numregs);
+            for (int i = 0; i < numregs; ++i) {
+                microOps[base_uop_idx + (i + numregs)] = new MicroopDeIntrlvType<Element>(
+                        mnem, machInst,
+                        _numregs, i, this);
+            }
+
+            // GET IDX
+            // printf("Adding GETIDX from %d\n", base_uop_idx+(numregs * 2));
+            microOps[base_uop_idx + (numregs * 2)] = new MicroopGetIdxType<Element>(
+                mnem, machInst, _dest, _dest, _missingLane, CusFUgetIdxsOp
+            );
+
+            // DO TBL
+            // printf("Adding DOTBL from %d\n", base_uop_idx+((numregs * 2)+1));
+            microOps[base_uop_idx + ((numregs * 2)+1)] = new MicroopDoTblType<Element>(
+                mnem, machInst, _dest, _dest, _missingLane, CusFUtblOp
+            );
+
+            // DO MAC
+            // printf("Adding DOMAC from %d\n", base_uop_idx+((numregs * 2)+2));
+            microOps[base_uop_idx + ((numregs * 2)+2)] = new MicroopDoMacType<Element>(
+                mnem, machInst, _dest, _dest, _missingLane, CusFUmacOp
+            );
+
+        }
+
+        microOps[0]->setFirstMicroop();
+        microOps[numMicroops - 1]->setLastMicroop();
+
+        for (StaticInstPtr *uop = microOps; !(*uop)->isLastMicroop(); uop++) {
+            (*uop)->setDelayedCommit();
+        }
+
+        // printf("Done\n");
+
+    }
+
+    Fault
+    execute(ExecContext *, trace::InstRecord *) const override
+    {
+        panic("Execute method called when it shouldn't!");
+        return NoFault;
+    }
+
+    // std::string
+    // generateDisassembly(Addr pc,
+    //                     const loader::SymbolTable *symtab) const override
+    // {
+    //     std::stringstream ss;
+    //     printMnemonic(ss, "", false);
+    //     ccprintf(ss, "{");
+    //     for (int i = 0; i < numregs; ++i) {
+    //         // printVecReg(ss, (dest + i) % 32, true);
+    //         if (i < numregs - 1)
+    //             ccprintf(ss, ", ");
+    //     }
+    //     ccprintf(ss, "}, ");
+    //     ccprintf(ss, "/z, [");
+    //     printIntReg(ss, base);
+    //     if (imm != 0) {
+    //         ccprintf(ss, ", #%d, MUL VL", imm);
+    //     }
+    //     ccprintf(ss, "]");
+    //     return ss.str();
+    // }
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 template <typename Element,
          template <typename> class MicroopStMemType,
          template <typename> class MicroopIntrlvType>

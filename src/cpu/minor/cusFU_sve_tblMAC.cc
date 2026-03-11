@@ -201,6 +201,7 @@ Compute::Compute(uint8_t vect_len, uint8_t n_inputs)
     vect_len(vect_len),
     n_inputs(n_inputs),
     inputs(n_inputs, vector<float>(vect_len, 0.0)),
+    input_ptr(0),
     accumulators(n_inputs, vector<float>(vect_len, 0.0)),
     out_mem_tmp(n_inputs, 0.0),
     out_vals(n_inputs, 0.0)
@@ -210,14 +211,23 @@ Compute::Compute(uint8_t vect_len, uint8_t n_inputs)
 
 
 void
-Compute::set_inputs_lane(uint8_t in_idx, uint8_t lane_idx, float value)
+Compute::set_inputs_lane(uint8_t in_idx, uint8_t lane_idx, float value, bool pred_value)
 {
     if(in_idx >= this->n_inputs){
         printf("ERROR! --> input idx > n_inputs in Compute::set_inputs_lane. in_idx = %d\n", in_idx);
         exit(1);
     } else {
-        // printf("Setting IN[%d][%d] = %f\n", in_idx, lane_idx, value);
-        this->inputs[in_idx][lane_idx] = value;
+
+        if(pred_value){
+            this->inputs[in_idx][lane_idx] = value;
+        } else {
+            this->inputs[in_idx][lane_idx] = 0.0;
+        }
+        // printf("IN[%d][%d] = %f from [%p]\n", in_idx, lane_idx, this->inputs[in_idx][lane_idx], this->input_ptr);
+        
+        // Inscrease the input ptr (assume words)
+        this->input_ptr++;
+        // printf("Updating ptr --> %p\n", this->input_ptr);
     }
 }
 
@@ -282,6 +292,21 @@ Compute::get_out_val(uint8_t lane_idx)
 }
 
 
+void 
+Compute::set_in_ptr(float *val)
+{   
+    this->input_ptr = val;
+    // printf("New address set to %p\n", this->input_ptr);
+}
+
+float* 
+Compute::get_in_ptr()
+{
+    // printf("Getting address %p\n", this->input_ptr);
+
+    return this->input_ptr;
+}
+
 
 void
 Compute::vect_mult(vector<vector<float>> weights, vector<bool> pred)
@@ -304,7 +329,7 @@ Compute::vect_mult(vector<vector<float>> weights, vector<bool> pred)
 
     // printf("\n");
     // for(int lane=0; lane<this->vect_len; lane++){
-    //     printf("[%d] %f\n", lane, this->accumulators[0][lane]);
+        // printf("[%d] %f\n", lane, this->accumulators[0][lane]);
     // }
 
 }
@@ -376,6 +401,7 @@ CusFU_SVE_tblMAC::CusFU_SVE_tblMAC( const std::string &name,
     tbl_lu(vect_len, n_cb),
     cmpt(vect_len, n_cb),
     predicate(vect_len),
+    missing_lane(0),
     unpkd_idxs(vect_len),
     w(n_cb, vector<float>(vect_len, 0.0))
     {}
@@ -401,7 +427,7 @@ CusFU_SVE_tblMAC::load_packed_idxs_lane(uint8_t lane_idx, uint32_t packed_idxs_l
 void
 CusFU_SVE_tblMAC::load_inputs(uint8_t in_idx, uint8_t lane_idx, float value)
 {
-    this->cmpt.set_inputs_lane(in_idx, lane_idx, value);
+    this->cmpt.set_inputs_lane(in_idx, lane_idx, value, this->predicate[lane_idx]);
 }
 
 
@@ -477,19 +503,51 @@ CusFU_SVE_tblMAC::reset_out_vals()
 
 
 
-
-void
-CusFU_SVE_tblMAC::getIdxs(uint8_t pred_upper_bound)
+void 
+CusFU_SVE_tblMAC::set_input_ptr(float* ptr)
 {
+    this->cmpt.set_in_ptr(ptr);
+}
+
+
+float* 
+CusFU_SVE_tblMAC::get_input_ptr()
+{
+    return this->cmpt.get_in_ptr();
+}
+
+
+void 
+CusFU_SVE_tblMAC::set_missing_lane(uint8_t miss_lane)
+{
+    // printf("Inside `set_missing_lane` foo()\n");
+    // Set the value
+    this->missing_lane = miss_lane;
+
+    // printf("Missing lanes = %d\n", this->missing_lane);
+
     // Compute the predicate
     for(int lane=0; lane<this->vect_len; lane++){
-        if(lane<pred_upper_bound){
+        if(lane<this->missing_lane){
             this->predicate[lane] = true;
         } else {
             this->predicate[lane] = false;
         }
     }
 
+
+    // printf("=====================\n");
+    // printf("Printing predicate:\n");
+    // for(int lane=0; lane<this->vect_len; lane++){
+    //     printf("%d\n", (int)this->predicate[lane]);
+    // }
+    // printf("=====================\n");
+}
+
+
+void
+CusFU_SVE_tblMAC::getIdxs()
+{
     // Unpack the next group of indexes
     this->idx_ret.mask_next_idxs(this->predicate);
 
@@ -515,6 +573,18 @@ CusFU_SVE_tblMAC::doMac()
     // printf(">>>MAC\n");
     // Do the weights-inputs multiplication
     this->cmpt.vect_mult(this->w, this->predicate);
+
+    // Count active lanes
+    uint8_t active_lanes = 0;
+    for(int lane=0; lane<this->vect_len; lane++){
+        if(this->predicate[lane]){
+            active_lanes++;
+        }
+    }
+
+    // Update the missing_lane and predicate
+    this->set_missing_lane(this->missing_lane - active_lanes);
+
 }
 
 

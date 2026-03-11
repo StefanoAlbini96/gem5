@@ -114,6 +114,7 @@ namespace Aarch64
     StaticInstPtr decodeSveLoadStructsSICusLoadInputs(ExtMachInst machInst);
     StaticInstPtr decodeSveContigLoadSICusLDIDX(ExtMachInst machInst);
     StaticInstPtr decodeSveContigStoreSICus(ExtMachInst machInst);
+    StaticInstPtr decodeIdxPtrLoopCus(ExtMachInst machInst);
 
     StaticInstPtr decodeCusSveIntAdd1(ExtMachInst machInst);
 
@@ -421,6 +422,9 @@ namespace Aarch64
                 return decodeSveContigStoreSICus(machInst);
 
             case 0x4:
+            //cout << "return  decodeIdxPtrLoopCus" << endl;
+                return decodeIdxPtrLoopCus(machInst);
+
             case 0x5:
             case 0x6:
             case 0x7:

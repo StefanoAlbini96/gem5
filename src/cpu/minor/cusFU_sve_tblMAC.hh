@@ -178,6 +178,15 @@ class Compute {
      */
     vector<vector<float>> inputs;
 
+
+    /**
+     * Keeps the pointer to the next input to load.
+     * Gets updated after loading each input lane
+     */
+    float *input_ptr;
+
+
+
     /**
      * Accumulate the results of the input-weights multiplication
      */
@@ -201,7 +210,7 @@ class Compute {
     Compute(uint8_t vect_len, uint8_t n_inputs);
 
 
-    void set_inputs_lane(uint8_t in_idx, uint8_t lane_idx, float value);
+    void set_inputs_lane(uint8_t in_idx, uint8_t lane_idx, float value, bool pred_value);
 
 
     void set_out_mem_tmp(uint8_t in_idx, float value);
@@ -209,6 +218,9 @@ class Compute {
     void add_outputs();
 
     float get_out_val(uint8_t lane_idx);
+
+    void set_in_ptr(float *val);
+    float* get_in_ptr();
 
     void vect_mult(vector<vector<float>> weights, vector<bool> pred);
 
@@ -242,6 +254,13 @@ class CusFU_SVE_tblMAC : public FUPipeline
      */
     vector<bool> predicate;
 
+
+    /**
+     * Keeps track of how many indexes are missing from the current processed lane.
+     * This is set in the beginning and decreased every time a new index is processed.
+     * Is used to determine how many lanes should be active. 
+     */
+    uint8_t missing_lane;
 
 
     vector<uint32_t> unpkd_idxs;
@@ -291,10 +310,12 @@ class CusFU_SVE_tblMAC : public FUPipeline
 
     void reset_out_vals();
 
+    void set_input_ptr(float *ptr);
+    float* get_input_ptr();
 
+    void set_missing_lane(uint8_t miss_lane);
 
-
-    void getIdxs(uint8_t pred_upper_bound);
+    void getIdxs();
     void doTbl();
     void doMac();
 

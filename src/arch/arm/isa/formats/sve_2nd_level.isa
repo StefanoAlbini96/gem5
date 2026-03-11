@@ -4090,6 +4090,33 @@ namespace Aarch64
 
 
 
+
+
+    StaticInstPtr
+    decodeIdxPtrLoopCus(ExtMachInst machInst)
+    {
+        // For the element size
+        uint8_t msz = bits(machInst, 24, 23);
+
+        // Destination register
+        RegIndex zt = (RegIndex) (uint8_t) bits(machInst, 12, 10);
+
+        // Immediate upper bound for the predicate
+        RegIndex missingLane = (uint8_t) bits(machInst, 4, 0);
+
+        // Base address register
+        RegIndex rn = makeSP((RegIndex) (uint8_t) bits(machInst, 9, 5));
+        // RegIndex rn = (RegIndex) (uint8_t) bits(machInst, 9, 5);
+
+        int8_t imm = sext<4>(bits(machInst, 19, 16));
+
+        return decodeSveIdxPtrLoopCus(msz, machInst, zt, missingLane, rn, imm);
+
+    }  // decodeIdxPtrLoopCus
+
+
+
+
     StaticInstPtr
     decodeSveContigNTStoreSS(ExtMachInst machInst)
     {

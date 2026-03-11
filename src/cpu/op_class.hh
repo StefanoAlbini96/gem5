@@ -147,9 +147,12 @@ static const OpClass CusFUreduceOp = enums::CusFUreduce;
 static const OpClass CusFUstepOp = enums::CusFUstep;
 
 
+static const OpClass CusFUsetPtrOp = enums::CusFUsetPtr;
+
 static const OpClass CusFUgetIdxsOp = enums::CusFUgetIdxs;
 static const OpClass CusFUtblOp = enums::CusFUtbl;
 static const OpClass CusFUmacOp = enums::CusFUmac;
+static const OpClass CusFUaddOp = enums::CusFUadd;
 
 static const OpClass Num_OpClasses = enums::Num_OpClass;
 

@@ -512,6 +512,61 @@ output decoder {{
 
 
 
+    template <class etype>
+    StaticInstPtr
+    decodeIdxPtrLoopMicroOpsCus(uint8_t esize, ExtMachInst machInst,
+            RegIndex dest, RegIndex missingLane, RegIndex xn,
+            int64_t imm)
+    {
+
+        static const char* mnem = "idxptrloop";
+        int numregs = 4;
+
+        // cout << "Decoding correctly!" << endl;
+        // cout << "Imm = " << imm << endl;
+
+        // return new NopInst(machInst);
+        return new IdxPtrLoopCus<
+            etype,
+            CusSetMissLane,
+            SveLoadRegImmInputsMicroopCus,
+            SveDeIntrlv4MicroopCusLDIN,
+            CusGetIdx,
+            CusDoTbl,
+            CusDoMac
+        >
+        (mnem, machInst, CusFUstepOp, dest, missingLane, xn, numregs, imm);
+    }
+
+
+    StaticInstPtr
+    decodeSveIdxPtrLoopCus(uint8_t esize, ExtMachInst machInst,
+            RegIndex dest, RegIndex missingLane, RegIndex xn,
+            int64_t imm)
+    {
+        switch (esize) {
+            case 0:
+                return decodeIdxPtrLoopMicroOpsCus<uint8_t>(esize,
+                        machInst, dest, missingLane, xn, imm);
+            case 1:
+                return decodeIdxPtrLoopMicroOpsCus<uint16_t>(esize,
+                        machInst, dest, missingLane, xn, imm);
+            case 2:
+                return decodeIdxPtrLoopMicroOpsCus<uint32_t>(esize,
+                        machInst, dest, missingLane, xn, imm);
+            case 3:
+                return decodeIdxPtrLoopMicroOpsCus<uint64_t>(esize,
+                        machInst, dest, missingLane, xn, imm);
+        }
+        return new Unknown64(machInst);
+    }
+
+
+
+
+
+
+
 
 
 
@@ -1020,6 +1075,19 @@ let {{
             return std::make_shared<SPAlignmentFault>();
         }
     '''
+
+
+    SPAlignmentCheckCodeCUS = '''
+
+        gem5::CusFU_SVE_tblMAC* fup = xc->tcBase()->getCpuPtr()->getCusFU_SVE_tblMAC();
+        uintptr_t baseAddr = reinterpret_cast<uintptr_t>(fup->get_input_ptr());
+        
+        if (this->baseIsSP && bits(baseAddr, 3, 0) &&
+            SPAlignmentCheckEnabled(xc->tcBase())) {
+            return std::make_shared<SPAlignmentFault>();
+        }
+    '''
+
 
     def emitSveMemFillSpill(isPred):
         global header_output, exec_output, decoders
@@ -1971,10 +2039,17 @@ let {{
         eaCode = SPAlignmentCheckCode + '''
         int memAccessSize = eCount * sizeof(Element);
         EA = memAccessSize * regIndex + XBase + '''
+
+        eaCodeCUS = SPAlignmentCheckCodeCUS + '''
+        int memAccessSize = eCount * sizeof(Element);
+        EA = memAccessSize * regIndex + baseAddr + '''
+
         if offsetIsImm:
             eaCode += '((int64_t) this->imm * eCount * sizeof(Element))'
+            eaCodeCUS += '((int64_t) this->imm * eCount * sizeof(Element))'
         else:
             eaCode += '(XOffset * sizeof(Element));'
+            eaCodeCUS += '(XOffset * sizeof(Element));'
         loadMemAccCode = '''
         for (int i = 0; i < eCount; i++) {
             int gpIdx = (regIndex * eCount + i) / numRegs;
@@ -1988,6 +2063,7 @@ let {{
         loadMemAccCodeCus = '''
         for (int i = 0; i < eCount; i++) {
             int gpIdx = (regIndex * eCount + i) / numRegs;
+            cout << \"gpIdx = \" << gpIdx << \"  | UpPredLane = \" << UpPredLane << endl;
             if (gpIdx <= UpPredLane) {
                 // float value = bitsToFloat32(memDataView[i]);
                 float value = memDataView[i];
@@ -1996,6 +2072,14 @@ let {{
             } else {
                 AA64FpDest_x[i] = 0;
             }
+        }
+        '''
+
+        loadMemAccInputsCodeCus = '''
+        for (int i = 0; i < eCount; i++) {
+            float value = memDataView[i];
+            AA64FpDest_x[i] = value;
+            Tmp = memDataView[i];
         }
         '''
 
@@ -2044,6 +2128,16 @@ let {{
             ['IsLoad', 'IsMicroop'])
 
 
+        loadInputsIopCus = ArmInstObjParams('ldxx',
+            'SveLoadRegImmInputsMicroopCus' if offsetIsImm else 'SveLoadRegRegInputsMicroopCus',
+            'MicroOp',
+            {'targs': 'Element',
+             'memacc_code': loadMemAccInputsCodeCus,
+             'ea_code' : sveEnabledCheckCode + eaCodeCUS,
+             'fa_code' : ''},
+            ['IsLoad', 'IsMicroop'])
+
+
         loadCusOutTmpIop = ArmInstObjParams('ldouttmp1',
             'SveContigLoadSICusOutTMP' if offsetIsImm else 'SveContigLoadSSCusOutTMP',
             'MicroOp',
@@ -2066,11 +2160,13 @@ let {{
         if offsetIsImm:
             header_output += SveStructMemSIMicroopDeclare.subst(loadIop)
             header_output += SveStructMemSIMicroopDeclareCus.subst(loadIopCus)
+            header_output += SveStructMemSIInputsMicroopDeclareCus.subst(loadInputsIopCus)
             header_output += SveContigLoadSIMicroOPCusOutTMP.subst(loadCusOutTmpIop)
             header_output += SveStructMemSIMicroopDeclare.subst(storeIop)
         else:
             header_output += SveStructMemSSMicroopDeclare.subst(loadIop)
             header_output += SveStructMemSSMicroopDeclareCus.subst(loadIopCus)
+            header_output += SveStructMemSSInputsMicroopDeclareCus.subst(loadInputsIopCus)
             header_output += SveContigLoadSSMicroOPCusOutTMP.subst(loadCusOutTmpIop)
             header_output += SveStructMemSSMicroopDeclare.subst(storeIop)
         exec_output += (
@@ -2080,6 +2176,9 @@ let {{
             SveStructLoadExecute.subst(loadIopCus) +
             SveStructLoadInitiateAcc.subst(loadIopCus) +
             SveStructLoadCompleteAcc.subst(loadIopCus) +
+            SveStructLoadExecute.subst(loadInputsIopCus) +
+            SveStructLoadInitiateAcc.subst(loadInputsIopCus) +
+            SveStructLoadCompleteAcc.subst(loadInputsIopCus) +
             SveStructLoadExecute.subst(loadCusOutTmpIop) +
             SveStructLoadInitiateAcc.subst(loadCusOutTmpIop) +
             SveStructLoadCompleteAcc.subst(loadCusOutTmpIop) +
@@ -2095,6 +2194,10 @@ let {{
 
             substDict['class_name'] = ('SveLoadRegImmMicroopCus' if offsetIsImm
                                        else 'SveLoadRegRegMicroopCus')
+            exec_output += SveStructMemExecDeclare.subst(substDict)
+
+            substDict['class_name'] = ('SveLoadRegImmInputsMicroopCus' if offsetIsImm
+                                       else 'SveLoadRegRegInputsMicroopCus')
             exec_output += SveStructMemExecDeclare.subst(substDict)
 
             substDict['class_name'] = ('SveContigLoadSICusOutTMP' if offsetIsImm
@@ -2136,6 +2239,97 @@ let {{
             substDict = {'targs': type,
                          'class_name': 'SveADDOutTMPCus'}
             exec_output += SveMicroOpADDOutTMPExecDeclare.subst(substDict)
+
+
+
+
+
+
+
+    def emitCusFULoopInstr():
+        global header_output, exec_output
+
+        setMissLaneCode = '''
+            // cout << \"Setting the miss lane to \" << Op164 << endl;
+            gem5::CusFU_SVE_tblMAC* fup = xc->tcBase()->getCpuPtr()->getCusFU_SVE_tblMAC();
+            fup->set_missing_lane(Op164);
+            Tmp = Tmp + Op164;
+        '''
+        getIdxCode = '''
+            // cout << \"GetIdx!\" << endl;
+            gem5::CusFU_SVE_tblMAC* fup = xc->tcBase()->getCpuPtr()->getCusFU_SVE_tblMAC();
+            fup->getIdxs();
+            Tmp = Tmp + Tmp;
+        '''
+        doTblCode = '''
+            // cout << \"Do TBL!\" << endl;
+            gem5::CusFU_SVE_tblMAC* fup = xc->tcBase()->getCpuPtr()->getCusFU_SVE_tblMAC();
+            fup->doTbl();
+            Tmp = Tmp + Tmp;
+        '''
+        doMacCode = '''
+            // cout << \"Do MAC!\" << endl;
+            gem5::CusFU_SVE_tblMAC* fup = xc->tcBase()->getCpuPtr()->getCusFU_SVE_tblMAC();
+            fup->doMac();
+            Tmp = Tmp + Tmp;
+        '''
+
+
+        setMissLaneIop = ArmInstObjParams('setMissLane',
+            'CusSetMissLane',
+            'MicroOp',
+            {'code': setMissLaneCode,
+             'fa_code': ""},
+            ['IsMicroop'])
+        getIdxIop = ArmInstObjParams('getIdx',
+            'CusGetIdx',
+            'MicroOp',
+            {'code': getIdxCode,
+             'fa_code': ""},
+            ['IsMicroop'])
+        doTblIop = ArmInstObjParams('doTbl',
+            'CusDoTbl',
+            'MicroOp',
+            {'code': doTblCode,
+             'fa_code': ""},
+            ['IsMicroop'])
+        doMacIop = ArmInstObjParams('doMac',
+            'CusDoMac',
+            'MicroOp',
+            {'code': doMacCode,
+             'fa_code': ""},
+            ['IsMicroop'])
+
+        header_output += CusMicroOpLoopCmpt.subst(setMissLaneIop)
+        header_output += CusMicroOpLoopCmpt.subst(getIdxIop)
+        header_output += CusMicroOpLoopCmpt.subst(doTblIop)
+        header_output += CusMicroOpLoopCmpt.subst(doMacIop)
+        exec_output += CusMicroOpLoopCmptExecute.subst(setMissLaneIop)
+        exec_output += CusMicroOpLoopCmptExecute.subst(getIdxIop)
+        exec_output += CusMicroOpLoopCmptExecute.subst(doTblIop)
+        exec_output += CusMicroOpLoopCmptExecute.subst(doMacIop)
+
+        tplArgs = ('uint8_t', 'uint16_t', 'uint32_t', 'uint64_t')
+        for type in tplArgs:
+            substDict = {'targs': type,
+                         'class_name': 'CusSetMissLane'}
+            exec_output += CusMicroOpLoopCmptDeclare.subst(substDict)
+
+            substDict = {'targs': type,
+                         'class_name': 'CusGetIdx'}
+            exec_output += CusMicroOpLoopCmptDeclare.subst(substDict)
+
+            substDict = {'targs': type,
+                         'class_name': 'CusDoTbl'}
+            exec_output += CusMicroOpLoopCmptDeclare.subst(substDict)
+
+            substDict = {'targs': type,
+                         'class_name': 'CusDoMac'}
+            exec_output += CusMicroOpLoopCmptDeclare.subst(substDict)
+
+
+
+
 
 
     # Generates definitions for SVE load-and-replicate quadword instructions
@@ -2289,4 +2483,7 @@ let {{
 
     # For the custom ADD OUT TMP
     emitSveAddLoadInst()
+
+    # For the LOOP custom instructions
+    emitCusFULoopInstr()
 }};

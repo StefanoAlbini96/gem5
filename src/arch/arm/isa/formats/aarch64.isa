@@ -246,7 +246,7 @@ namespace Aarch64
                 return new DoMac64(machInst, rdsp, rnsp);
 
               case 0x3:
-                return new Unknown64(machInst);
+                return new SetPtr64(machInst, rdsp, rnsp);
 
               default:
                 return new Unknown64(machInst);
