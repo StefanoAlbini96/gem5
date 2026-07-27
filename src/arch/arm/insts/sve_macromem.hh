@@ -473,6 +473,100 @@ class SveLdAddStStructSICus : public PredMacroOp
 
 
 
+template <typename Element,
+         template <typename> class MicroopLdMemType,
+         template <typename, typename> class MicroopStMemType>
+class SveLdAddStStructSICus_I2CE_SC : public PredMacroOp
+{
+  protected:
+    RegIndex gp;
+    RegIndex base;
+    int64_t imm;
+    uint8_t numregs;
+
+  public:
+    SveLdAddStStructSICus_I2CE_SC(const char* mnem, ExtMachInst machInst, OpClass __opClass,
+            RegIndex _dest, RegIndex _gp, RegIndex _base, int64_t _imm)
+        : PredMacroOp(mnem, machInst, __opClass),
+          gp(_gp),      // Here I pass a immediate the index of the last active lane
+          base(_base),
+          imm(_imm)
+    {
+        // For each register, I need a LD + ST
+        numMicroops = 2;
+
+        microOps = new StaticInstPtr[numMicroops];
+
+        // printf("Adding uOps for Store...\n");
+
+        // Add the LD micro-op
+        // Loads one out value per lane
+        // static const char* dbg_mnem = "testLD";
+        microOps[0] = new MicroopLdMemType<Element>(
+                    mnem, machInst, _dest, gp,
+                    _base, _imm);
+        // printf("Added LD\n");
+
+
+        // Add the ST micro-op
+        // dbg_mnem = "testST";
+        microOps[1] = new MicroopStMemType<float, float>(
+                    mnem, machInst, _dest, gp,
+                    _base, _imm);
+        // printf("Added ST\n");
+
+        // printf("MICROOPS adr: \n");
+        // std::cout << microOps[0] << std::endl;
+        // std::cout << microOps[1] << std::endl;
+        // std::cout << microOps[2] << std::endl;
+
+        microOps[0]->setFirstMicroop();
+        microOps[numMicroops - 1]->setLastMicroop();
+
+        for (StaticInstPtr *uop = microOps; !(*uop)->isLastMicroop(); uop++) {
+            (*uop)->setDelayedCommit();
+        }
+    }
+
+    Fault
+    execute(ExecContext *, trace::InstRecord *) const override
+    {
+        panic("Execute method called when it shouldn't!");
+        return NoFault;
+    }
+
+    std::string
+    generateDisassembly(Addr pc,
+                        const loader::SymbolTable *symtab) const override
+    {
+        std::stringstream ss;
+        printMnemonic(ss, "", false);
+        ccprintf(ss, "{");
+        for (int i = 0; i < numregs; ++i) {
+            // printVecReg(ss, (dest + i) % 32, true);
+            if (i < numregs - 1)
+                ccprintf(ss, ", ");
+        }
+        ccprintf(ss, "}, ");
+        ccprintf(ss, "/z, [");
+        printIntReg(ss, base);
+        if (imm != 0) {
+            ccprintf(ss, ", #%d, MUL VL", imm);
+        }
+        ccprintf(ss, "]");
+        return ss.str();
+    }
+};
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -537,6 +631,7 @@ class IdxPtrLoopCus : public PredMacroOp
             for(int i=0; i<numregs; i++){
                 microOps[base_uop_idx + i] = new MicroopLdMemType<Element>(
                         mnem, machInst, static_cast<RegIndex>(INTRLVREG0 + i),
+                        // _base, ld_imm, _numregs, 0);
                         _base, ld_imm, _numregs, i);
             }
 
@@ -612,6 +707,119 @@ class IdxPtrLoopCus : public PredMacroOp
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+template <typename Element,
+         template <typename> class MicroopLdMemType,
+         template <typename> class MicroopDeIntrlvType,
+         template <typename> class Microop_i2ce_Compute,
+         template <typename> class Microop_i2ce_Stall>
+class IdxPtrLoopCus_SystemC : public PredMacroOp
+{
+  protected:
+    uint8_t numregs;
+    uint8_t n_iters;
+
+  public:
+    IdxPtrLoopCus_SystemC(const char* mnem, ExtMachInst machInst, OpClass __opClass,
+            RegIndex _dest, RegIndex _gp, RegIndex _base, 
+            uint8_t _numregs, uint8_t _n_iters)
+        : PredMacroOp(mnem, machInst, __opClass),
+          numregs(_numregs),
+          n_iters(_n_iters)
+    {
+
+        uint8_t ld_imm = 0;
+
+
+        uint8_t n_microOps_per_iter = (numregs * 2) + 1;
+        numMicroops = (n_microOps_per_iter * n_iters) + 1;
+        microOps = new StaticInstPtr[numMicroops];
+
+        // microOps[0] = new gem5::ArmISAInst::SetPtr64(machInst, _missingLane, _missingLane);
+
+        printf("N-ITERS = %d --> N-uOP = %d\n", n_iters, numMicroops);
+        printf("N regs = %d\n", numregs);
+
+        std::cout << "DEST : " << static_cast<RegIndex>(INTRLVREG0) << std::endl;
+
+
+
+        for(int it=0; it<n_iters; it++){
+            printf("=====  ADDING instructions for IT = %d =====\n", it);
+            uint8_t base_uop_idx = (it * n_microOps_per_iter);
+
+            // IMM makes sure we are accessing subsequent interleaved data, skipping the previous ones.
+            ld_imm = (it * numregs);
+
+            // LOAD interleaved 
+            for(int i=0; i<numregs; i++){
+                printf("Adding LD uOp[%d]\n", base_uop_idx + i);
+                microOps[base_uop_idx + i] = new MicroopLdMemType<Element>(
+                        mnem, machInst, static_cast<RegIndex>(INTRLVREG0 + i),
+                        _gp, _base, ld_imm, _numregs, i);
+            }
+
+            // DEINTERLEAVE
+            for (int i = 0; i < numregs; ++i) {
+                printf("Adding DeInterl uOp[%d]\n", base_uop_idx + (i + numregs));
+                microOps[base_uop_idx + (i + numregs)] = new MicroopDeIntrlvType<Element>(
+                        mnem, machInst,
+                        _dest, _numregs, i, this);
+            }
+
+            // COMPUTE 
+            microOps[base_uop_idx + (numregs * 2)] = new Microop_i2ce_Compute<Element>(
+                mnem, machInst, _dest, _dest, _gp, CusFUCompute_SCOp
+            );  
+
+        }
+
+        // STALL
+        microOps[(n_microOps_per_iter * n_iters)] = new Microop_i2ce_Stall<Element>(
+            mnem, machInst, _dest, _dest, _gp, CusFUStall_SCOp
+        );  
+
+
+        microOps[0]->setFirstMicroop();
+        microOps[numMicroops - 1]->setLastMicroop();
+
+        for (StaticInstPtr *uop = microOps; !(*uop)->isLastMicroop(); uop++) {
+            (*uop)->setDelayedCommit();
+        }
+
+        printf("DONE\n");
+
+    }
+
+    Fault
+    execute(ExecContext *, trace::InstRecord *) const override
+    {
+        panic("Execute method called when it shouldn't!");
+        return NoFault;
+    }
+
+};
 
 
 

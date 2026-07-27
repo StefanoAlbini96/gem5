@@ -45,6 +45,10 @@ namespace Aarch64
     template <typename DecoderFeatures>
     StaticInstPtr decodeFpAdvSIMD(ExtMachInst machInst);
 
+
+    StaticInstPtr decodeCusSystemCTest(ExtMachInst machInst);
+    StaticInstPtr decodeCusSystemCLoop(ExtMachInst machInst);
+
     StaticInstPtr decodeCusFUInstr(ExtMachInst machInst);
     StaticInstPtr decodeSveInt(ExtMachInst machInst);
     StaticInstPtr decodeCusSveInt(ExtMachInst machInst);
@@ -243,7 +247,9 @@ namespace Aarch64
                 return new DoTbl64(machInst, rdsp, rnsp);
 
               case 0x2:
-                return new DoMac64(machInst, rdsp, rnsp);
+                // return new DoMac64(machInst, rdsp, rnsp);
+                // return decodeCusSystemCTest(machInst);
+                return decodeCusSystemCLoop(machInst);
 
               case 0x3:
                 return new SetPtr64(machInst, rdsp, rnsp);
@@ -260,6 +266,25 @@ namespace Aarch64
 }
 }};
 
+
+
+output decoder {{
+namespace Aarch64
+{
+    StaticInstPtr
+    decodeCusSystemCTest(ExtMachInst machInst)
+    {
+        RegIndex rd = (RegIndex)(uint32_t)bits(machInst, 4, 0);
+        RegIndex rdsp = makeSP(rd);
+
+        RegIndex rn = (RegIndex)(uint32_t)bits(machInst, 9, 5);
+        RegIndex rnsp = makeSP(rn);
+
+
+        return new TestingSC64(machInst, rdsp, rnsp);
+    }
+}
+}};
 
 
 output decoder {{
@@ -3761,10 +3786,12 @@ def format Aarch64() {{
                 if (bits(machInst, 26) == 0x1) {
                     if (bits(machInst, 31) == 0x0) {
                         if (bits(machInst, 25) == 0x1) {
+
                             return decodeCusFUInstr(machInst);  // this is the final one
                         }
                         switch (bits(machInst, 30, 29)) {
                             case 0x0:
+                              // return decodeCusSystemCTest(machInst);
                             case 0x1:
                             case 0x2:
                             return decodeSveInt(machInst);

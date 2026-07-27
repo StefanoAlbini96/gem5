@@ -182,6 +182,33 @@ class MinorDefaultIntDivFU(MinorFU):
 
 
 
+class MinorDefaultCusFakeLoad_SC(MinorFU):
+    opClasses = minorMakeOpClassSet(["CusFUFakeLoad_SC"])
+    timings = [
+        MinorFUTiming(description="CusFUFakeLoad_SC", srcRegsRelativeLats=[2])
+    ]
+    issueLat = 1
+    opLat = 5
+
+class MinorDefaultCusCompute_SC(MinorFU):
+    opClasses = minorMakeOpClassSet(["CusFUCompute_SC"])
+    timings = [
+        MinorFUTiming(description="CusFUCompute_SC", srcRegsRelativeLats=[2])
+    ]
+    issueLat = 1
+    opLat = 10
+
+class MinorDefaultCusStall_SC(MinorFU):
+    opClasses = minorMakeOpClassSet(["CusFUStall_SC"])
+    timings = [
+        MinorFUTiming(description="CusFUStall_SC", srcRegsRelativeLats=[2])
+    ]
+    issueLat = 1
+    opLat = 1
+
+
+
+
 class MinorDefaultCusFUsetPtr(MinorFU):
     opClasses = minorMakeOpClassSet(["CusFUsetPtr"])
     timings = [
@@ -196,7 +223,6 @@ class MinorDefaultCUSreduce(MinorFU):
     timings = [MinorFUTiming(description="CusReduce", srcRegsRelativeLats=[2])]
     # opLat = 18
     opLat = 1
-    # opLat = 25
 
 
 class MinorDefaultCUSstep(MinorFU):
@@ -214,7 +240,6 @@ class MinorDefaultCUSgetIdxs(MinorFU):
     ]
     # opLat = 18
     opLat = 1
-    # opLat = 12
 
 
 class MinorDefaultCUStbl(MinorFU):
@@ -222,7 +247,6 @@ class MinorDefaultCUStbl(MinorFU):
     timings = [MinorFUTiming(description="CusTbl", srcRegsRelativeLats=[2])]
     # opLat = 6
     opLat = 1
-    # opLat = 26
 
 
 class MinorDefaultCUSmac(MinorFU):
@@ -230,7 +254,6 @@ class MinorDefaultCUSmac(MinorFU):
     timings = [MinorFUTiming(description="CusMac", srcRegsRelativeLats=[2])]
     # opLat = 6
     opLat = 1
-    # opLat = 15
 
 
 
@@ -239,6 +262,7 @@ class MinorDefaultCusFUadd(MinorFU):
     timings = [
         MinorFUTiming(description="CusAdd", srcRegsRelativeLats=[2])
     ]
+    # opLat = 6
     opLat = 1
 
 
@@ -359,7 +383,11 @@ class MinorDefaultFUPool(MinorFUPool):
         MinorDefaultCUStbl(),
         MinorDefaultCUSmac(),
         MinorDefaultCusFUsetPtr(),
-        MinorDefaultCusFUadd()
+        MinorDefaultCusFUadd(),
+        MinorDefaultCusFakeLoad_SC(),
+        MinorDefaultCusCompute_SC(),
+        MinorDefaultCusStall_SC()
+
         # MinorDefaultCusFU(),
         # MinorDefaultCusSVEFU(),
     ]
@@ -511,6 +539,8 @@ class BaseMinorCPU(BaseCPU):
     branchPred = Param.BranchPredictor(
         TournamentBP(numThreads=Parent.numThreads), "Branch Predictor"
     )
+
+    i2ce_accel = Param.I2CE_driver(NULL, "I2CE_FU_driver")
 
     def addCheckerCpu(self):
         print("Checker not yet supported by MinorCPU")

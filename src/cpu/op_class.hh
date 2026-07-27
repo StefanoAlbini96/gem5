@@ -154,6 +154,11 @@ static const OpClass CusFUtblOp = enums::CusFUtbl;
 static const OpClass CusFUmacOp = enums::CusFUmac;
 static const OpClass CusFUaddOp = enums::CusFUadd;
 
+
+static const OpClass CusFUFakeLoad_SCOp = enums::CusFUFakeLoad_SC;
+static const OpClass CusFUCompute_SCOp = enums::CusFUCompute_SC;
+static const OpClass CusFUStall_SCOp = enums::CusFUStall_SC;
+
 static const OpClass Num_OpClasses = enums::Num_OpClass;
 
 

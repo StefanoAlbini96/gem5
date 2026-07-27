@@ -267,6 +267,20 @@ let {{
 
 
 
+
+    buildDataXRegInst(
+        "testingSC", # mnem
+        1, # num of regs interfaced
+        """
+        cout << \"Testing SystemC\" << endl; 
+
+
+        """, # code
+        overrideOpClass="CusFUCompute_SCOp"
+    )
+
+
+
     buildDataXRegInst("madd", 3, "Dest64 = Op164 + Op264 * Op364",
         overrideOpClass="IntMultOp")
     buildDataXRegInst("msub", 3, "Dest64 = Op164 - Op264 * Op364",

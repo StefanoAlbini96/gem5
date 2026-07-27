@@ -320,6 +320,75 @@ def template SveContigLoadSIMicroOPCusOutTMP {{
 
 
 
+def template SveContigLoadSIMicroOPCusOutTMP_I2CE {{
+    template<class _Element>
+    class %(class_name)s : public %(base_class)s
+    {
+      public:
+        %(reg_idx_arr_decl)s;
+
+      protected:
+        typedef _Element Element;
+        typedef _Element TPElem;
+
+        RegIndex gp;
+        RegIndex base;
+        int64_t imm;
+        RegIndex tmpDestReg;
+
+        RegIndex regIndex = 0;
+
+        unsigned memAccessFlags;
+
+        bool baseIsSP;
+
+      public:
+        %(class_name)s(const char* mnem, ExtMachInst machInst,
+                RegIndex _dest, RegIndex _gp, RegIndex _base,
+                int64_t _imm) :
+            %(base_class)s(mnem, machInst, %(op_class)s),
+            gp(_gp), base(_base), imm(_imm), tmpDestReg(_dest),
+            memAccessFlags(ArmISA::MMU::AllowUnaligned)
+        {
+            %(set_reg_idx_arr)s;
+            %(constructor)s;
+            baseIsSP = isSP(_base);
+        }
+
+        Fault execute(ExecContext *, trace::InstRecord *) const override;
+        Fault initiateAcc(ExecContext *, trace::InstRecord *) const override;
+        Fault completeAcc(PacketPtr, ExecContext *,
+                          trace::InstRecord *) const override;
+
+        void
+        annotateFault(ArmISA::ArmFault *fault) override
+        {
+            %(fa_code)s
+        }
+
+        std::string
+        generateDisassembly(Addr pc,
+                            const loader::SymbolTable *symtab) const override
+        {
+            std::stringstream ss;
+            printMnemonic(ss, "", false);
+            ccprintf(ss, "{");
+            ccprintf(ss, "}, ");
+            if (_opClass == MemReadOp) {
+                ccprintf(ss, "/z");
+            }
+            ccprintf(ss, ", [");
+            printVecReg(ss, base, true);
+            if (imm != 0) {
+                ccprintf(ss, ", #%d", imm * sizeof(Element));
+            }
+            return ss.str();
+        }
+    };
+}};
+
+
+
 
 
 
@@ -393,6 +462,79 @@ def template SveContigLoadSSMicroOPCusOutTMP {{
     };
 }};
 
+
+
+
+
+
+def template SveContigLoadSSMicroOPCusOutTMP_I2CE {{
+    template <class _Element>
+    class %(class_name)s : public %(base_class)s
+    {
+      private:
+        %(reg_idx_arr_decl)s;
+
+      protected:
+        typedef _Element Element;
+        typedef _Element TPElem;
+
+        RegIndex tmpDestReg;
+        RegIndex gp;
+        RegIndex base;
+        RegIndex offset;
+
+        uint8_t numRegs;
+        int regIndex;
+
+        unsigned memAccessFlags;
+
+        bool baseIsSP;
+
+      public:
+        %(class_name)s(const char* mnem, ExtMachInst machInst,
+                RegIndex _dest, RegIndex _gp, RegIndex _base,
+                RegIndex _offset, uint8_t _numRegs, int _regIndex) :
+            %(base_class)s(mnem, machInst, %(op_class)s),
+            tmpDestReg(_dest), gp(_gp), base(_base), offset(_offset),
+            numRegs(_numRegs), regIndex(_regIndex),
+            memAccessFlags(ArmISA::MMU::AllowUnaligned)
+        {
+            %(set_reg_idx_arr)s;
+            %(constructor)s;
+            baseIsSP = isSP(_base);
+        }
+
+        Fault execute(ExecContext *, trace::InstRecord *) const override;
+        Fault initiateAcc(ExecContext *, trace::InstRecord *) const override;
+        Fault completeAcc(PacketPtr, ExecContext *,
+                          trace::InstRecord *) const override;
+
+        void
+        annotateFault(ArmISA::ArmFault *fault) override
+        {
+            %(fa_code)s
+        }
+
+        std::string
+        generateDisassembly(Addr pc,
+                            const loader::SymbolTable *symtab) const override
+        {
+            std::stringstream ss;
+            printMnemonic(ss, "", false);
+            ccprintf(ss, "{");
+            ccprintf(ss, "}, ");
+            if (_opClass == MemReadOp) {
+                ccprintf(ss, "/z");
+            }
+            ccprintf(ss, ", [");
+            printIntReg(ss, base);
+            ccprintf(ss, ", ");
+            printVecReg(ss, offset, true);
+            ccprintf(ss, "] (uop reg %d tfer)", regIndex);
+            return ss.str();
+        }
+    };
+}};
 
 
 
@@ -1540,6 +1682,7 @@ def template SveStructMemSIInputsMicroopDeclareCus {{
             numRegs(_numRegs), regIndex(_regIndex),
             memAccessFlags(ArmISA::MMU::AllowUnaligned)
         {
+            std::cout << "tmpDestReg = " << tmpDestReg << std::endl;
             %(set_reg_idx_arr)s;
             %(constructor)s;
             baseIsSP = isSP(_base);

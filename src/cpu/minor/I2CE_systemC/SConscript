@@ -1,0 +1,15 @@
+# # -*- mode:python -*-
+
+
+Import('*')
+
+
+SimObject('I2CE_systemC.py', sim_objects=["I2CE_driver", "I2CE_accelerator"])
+# SimObject('I2CE_systemC.py', sim_objects=["I2CE_driver"])
+Source('I2CE_driver.cc')
+Source('accelerator.cc')
+Source('get_idx.cc')
+Source('tbl.cc')
+Source('simd_mac.cc')
+Source('reduce.cc')
+Source('store.cc')

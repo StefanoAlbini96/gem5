@@ -80,6 +80,9 @@ MinorCPU::MinorCPU(const BaseMinorCPUParams &params) :
     activityRecorder = pipeline->getActivityRecorder();
 
     fetchEventWrapper = NULL;
+
+
+    i2ce_driver_fu = params.i2ce_accel;
 }
 
 MinorCPU::~MinorCPU()

@@ -69,6 +69,7 @@ class CheckerCPU;
 class ThreadContext;
 
 class CusFU_SVE_tblMAC;
+class I2CE_driver;
 
 struct AddressMonitor
 {
@@ -195,6 +196,9 @@ class BaseCPU : public ClockedObject
     SignalSinkPort<bool> modelResetPort;
 
   public:
+
+
+    I2CE_driver *i2ce_driver_fu;
 
     /**
      * Purely virtual method that returns a reference to the data
@@ -855,6 +859,9 @@ class BaseCPU : public ClockedObject
     void setCusFU_SVE_tblMAC(CusFU_SVE_tblMAC *fu) { this->tblmac_fu= fu; }
 
     CusFU_SVE_tblMAC *getCusFU_SVE_tblMAC() { return this->tblmac_fu; }
+
+
+    I2CE_driver *get_I2CE_Driver() { return this->i2ce_driver_fu; }
 };
 
 } // namespace gem5

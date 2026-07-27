@@ -100,6 +100,7 @@ output decoder {{
 
 #include "cpu/minor/cpu.hh"
 #include "cpu/minor/cusFU_sve_tblMAC.hh"
+#include "cpu/minor/I2CE_systemC/I2CE_driver.hh"
 
 
 namespace gem5::ArmISAInst
@@ -130,6 +131,7 @@ output exec {{
 #include "sim/pseudo_inst.hh"
 #include "sim/sim_exit.hh"
 #include "cpu/minor/cusFU_sve_tblMAC.hh"
+#include "cpu/minor/I2CE_systemC/I2CE_driver.hh"
 
 namespace gem5::ArmISAInst
 {

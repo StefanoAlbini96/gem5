@@ -128,6 +128,9 @@ class OpClass(Enum):
         "CusFUtbl",
         "CusFUmac",
         "CusFUadd",
+        "CusFUFakeLoad_SC",
+        "CusFUCompute_SC",
+        "CusFUStall_SC",
     ]
 
 

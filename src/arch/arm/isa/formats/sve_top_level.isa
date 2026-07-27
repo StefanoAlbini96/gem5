@@ -116,6 +116,11 @@ namespace Aarch64
     StaticInstPtr decodeSveContigStoreSICus(ExtMachInst machInst);
     StaticInstPtr decodeIdxPtrLoopCus(ExtMachInst machInst);
 
+    StaticInstPtr decodeIdxPtrLoopCus_SystemC(ExtMachInst machInst);
+    StaticInstPtr decodeSveContigLoadSICusLDIDX_I2CE(ExtMachInst machInst);
+    StaticInstPtr decodeSveLoadStructsSICusLoadCodebooks_I2CE(ExtMachInst machInst);
+    StaticInstPtr decodeSveContigStoreSICus_I2CE(ExtMachInst machInst);
+    
     StaticInstPtr decodeCusSveIntAdd1(ExtMachInst machInst);
 
     StaticInstPtr decodeSveMisc(ExtMachInst machInst);
@@ -425,6 +430,31 @@ namespace Aarch64
             //cout << "return  decodeIdxPtrLoopCus" << endl;
                 return decodeIdxPtrLoopCus(machInst);
 
+            case 0x5:
+            case 0x6:
+            case 0x7:
+            default:
+                return new Unknown64(machInst);
+
+        }
+        return new Unknown64(machInst);
+    }
+
+    StaticInstPtr
+    decodeCusSystemCLoop(ExtMachInst machInst)
+    {
+        switch(bits(machInst, 15, 13)) {
+
+            case 0x0:
+                return decodeIdxPtrLoopCus_SystemC(machInst);
+
+            case 0x1:
+                return decodeSveContigLoadSICusLDIDX_I2CE(machInst);
+            case 0x2:
+                return decodeSveLoadStructsSICusLoadCodebooks_I2CE(machInst);
+            case 0x3:
+                return decodeSveContigStoreSICus_I2CE(machInst);
+            case 0x4:
             case 0x5:
             case 0x6:
             case 0x7:
