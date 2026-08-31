@@ -21,25 +21,26 @@ using namespace sc_core;
 using namespace sc_dt;
 
 
+
 SC_MODULE(I2CE_accelerator){
 
     sc_in<bool>                             clk;
     sc_in<bool>                             rst;
     
     sc_in<bool>                             en_input;
-    sc_signal<bool>                         en;
+    sc_signal<bool>                         en_reg, en_nxt;
+
     sc_signal<bool>                         tbl_en_sig, tbl_en_nxt;
     sc_signal<bool>                         mac_en_sig, mac_en_nxt;
     sc_signal<bool>                         red_en_sig, red_en_nxt;
 
-    // sc_in<bool>                          ready;  // Enables / disables the pipeline to synchronize with new input activations taken from memory 
-
     sc_in<sc_dt::sc_uint<32>>               packed_in[N_LANES];
     sc_in<float>                            codebook_in[N_LEARNERS][N_LANES];
     
-    
-    std::deque<float>                       input_fifo;
-    sc_in<float>                            inputs_in[N_LEARNERS][N_LANES];
+
+    // std::deque<float>                       input_fifo;
+    sc_in<float>                            inputs_in[N_LEARNERS][N_LANES][IDX_PER_LANE];
+    sc_signal<sc_uint<16>>                  in_ptr_reg, in_ptr_nxt; // this points at a specific input in the sequence
 
     sc_in<float>                            res_tmp[N_LEARNERS];
 
@@ -100,16 +101,21 @@ SC_MODULE(I2CE_accelerator){
         async_reset_signal_is(rst, true);
 
         SC_METHOD(comb_method);
-        sensitive << en;
+        sensitive << en_input;
+        sensitive << en_reg;
         sensitive << tbl_en_sig;
         sensitive << mac_en_sig;
+        sensitive << in_ptr_reg;
         for(int lane=0; lane<N_LANES; lane++){
             sensitive << packed_in[lane];
         }
         for(int learner=0; learner<N_LEARNERS; learner++){
             for(int lane=0; lane<N_LANES; lane++){
                 sensitive << codebook_in[learner][lane];
-                sensitive << inputs_in[learner][lane];
+
+                for(int i=0; i<IDX_PER_LANE; i++){
+                    sensitive << inputs_in[learner][lane][i];
+                }
             }
         }
 
@@ -117,8 +123,8 @@ SC_MODULE(I2CE_accelerator){
         // Bind the ports for the get_idx module
         getidx_mod->clk(clk);
         getidx_mod->rst(rst);
-        getidx_mod->get_idx_en(en);
-        // getidx_mod->ready(ready);
+        getidx_mod->get_idx_en(en_input);
+        getidx_mod->en_out(tbl_en_sig);
         for(int lane=0; lane<N_LANES; lane++){
             getidx_mod->packed_indexes[lane](packed_idx_reg[lane]);
             getidx_mod->out[lane](res_getidx_mod_wire[lane]);
@@ -144,6 +150,8 @@ SC_MODULE(I2CE_accelerator){
         mac_mod->clk(clk);
         mac_mod->rst(rst);
         mac_mod->mac_en(mac_en_sig);
+        mac_mod->add_en(mac_en_sig);
+        mac_mod->en_out(red_en_sig);
         for(int learner=0; learner<N_LEARNERS; learner++){
             for(int lane=0; lane<N_LANES; lane++){
                 mac_mod->activation[learner][lane](inputs_reg[learner][lane]);
@@ -169,6 +177,7 @@ SC_MODULE(I2CE_accelerator){
         // Bind the ports for the store module
         st_mod->clk(clk);
         st_mod->rst(rst);
+        st_mod->st_en(red_en_sig);
         for(int learner=0; learner<N_LEARNERS; learner++){
             st_mod->red_res[learner](res_red_mod_wire[learner]);
             st_mod->res_tmp_from_mem[learner](res_tmp[learner]);

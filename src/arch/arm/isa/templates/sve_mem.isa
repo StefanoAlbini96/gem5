@@ -2353,6 +2353,55 @@ def template SveDeIntrlvMicroopDeclareCus {{
 
 
 
+def template SveDeIntrlvMicroopDeclareCus_multiInputs {{
+    template <class _Element>
+    class %(class_name)s : public %(base_class)s
+    {
+      public:
+        %(reg_idx_arr_decl)s;
+
+      protected:
+        typedef _Element Element;
+        typedef _Element TPElem;
+        uint8_t numRegs;
+        int regIndex;
+
+        StaticInst *macroOp;
+
+        int input_index;
+
+      public:
+        %(class_name)s(const char* mnem, ExtMachInst machInst,
+                uint8_t _numRegs, int _regIndex,
+                StaticInst *_macroOp, int _in_idx) :
+            MicroOp(mnem, machInst, SimdAluOp),
+            numRegs(_numRegs), regIndex(_regIndex), macroOp(_macroOp), input_index(_in_idx)
+        {
+            %(set_reg_idx_arr)s;
+            %(constructor)s;
+        }
+
+        Fault execute(ExecContext *, trace::InstRecord *) const override;
+
+        std::string
+        generateDisassembly(Addr pc,
+                            const loader::SymbolTable *symtab) const override
+        {
+            std::stringstream ss;
+            ccprintf(ss, "%s", macroOp->disassemble(pc, symtab));
+            ccprintf(ss, " (uop deinterleave)");
+            return ss.str();
+        }
+    };
+}};
+
+
+
+
+
+
+
+
 
 def template SveIntrlvMicroopExecDeclare {{
     template

@@ -3858,6 +3858,28 @@ namespace Aarch64
 
 
     StaticInstPtr
+    decodeSveLoadStructsSICusLoadInputs_I2CE(ExtMachInst machInst)
+    {
+        // RegIndex zt = (RegIndex) (uint8_t) bits(machInst, 4, 0);
+        RegIndex rn = makeSP( (RegIndex) (uint8_t) bits(machInst, 9, 5) );
+        //uint8_t imm = sext<4>(bits(machInst, 19, 16));
+        uint8_t imm = bits(machInst, 19, 16);
+        RegIndex pg = (RegIndex) (uint8_t) bits(machInst, 12, 10);
+        uint8_t msz = bits(machInst, 24, 23);
+        uint8_t num = bits(machInst, 22, 21);
+
+        if (num != 0) {
+            num++;
+            // imm *= num;
+            imm++;
+            return decodeSveStructLoadSIInstsCusLDINPUTS_I2CE(msz, machInst,
+                    pg, rn, imm, num);
+        }
+        return new Unknown64(machInst);
+    }  // decodeSveLoadStructsSICusLoadCodebooks
+
+
+    StaticInstPtr
     decodeSveLoadStructsSICusLoadInputs(ExtMachInst machInst)
     {
         // Immediate upper bound for the predicate

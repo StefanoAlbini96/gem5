@@ -358,6 +358,116 @@ class SveLdStructSICus : public PredMacroOp
 
 
 
+template <typename Element,
+         template <typename> class MicroopLdMemType,
+         template <typename> class MicroopDeIntrlvType>
+class SveLdStructSICus_multiInputs : public PredMacroOp
+{
+  protected:
+    RegIndex gp;
+    RegIndex base;
+    uint8_t numregs;
+    uint8_t n_iters;
+
+  public:
+    SveLdStructSICus_multiInputs(const char* mnem, ExtMachInst machInst, OpClass __opClass,
+            RegIndex _gp, RegIndex _base,
+            uint8_t _numregs, uint8_t _n_iters)
+        : PredMacroOp(mnem, machInst, __opClass),
+          gp(_gp),
+          base(_base),
+          numregs(_numregs),
+          n_iters(_n_iters)
+    {
+
+        uint8_t ld_imm = 0;
+
+        uint8_t n_microOps_per_iter = (numregs * 2);
+        numMicroops = n_microOps_per_iter * n_iters;
+
+
+        printf("N iters = %d\n", n_iters);
+        printf("N regs = %d\n", numregs);
+        printf("Num microops = %d\n", numMicroops);
+
+        microOps = new StaticInstPtr[numMicroops];
+
+
+        for(int it=0; it<n_iters; it++){
+            uint8_t base_uop_idx = (it * n_microOps_per_iter);
+            
+            // printf("\nLD imm = %d\n", ld_imm);
+            // printf("IT %d\n", it);
+            // printf("Base idx %d\n", base_uop_idx);
+
+            // printf("Adding a LD\n");
+
+            // LOAD
+            for(int i=0; i<numregs; i++){
+                microOps[base_uop_idx + i] = new MicroopLdMemType<Element>(
+                        mnem, machInst, static_cast<RegIndex>(INTRLVREG0 + i),
+                        gp, _base, ld_imm, _numregs, i);
+            }
+            // printf("LD added\n");
+
+            // printf("Adding a DEINT\n");
+
+            // DE-INTERLEAVE
+            for (int i = 0; i < numregs; ++i) {
+                microOps[base_uop_idx + (i + numregs)] = new MicroopDeIntrlvType<Element>(
+                        mnem, machInst,
+                        _numregs, i, this, it);
+            }
+
+            // TODO: update based on the SIMD width
+            // ld_imm += numregs + 4;
+            ld_imm += numregs;
+
+        //     printf("DEINT added\n");
+        }
+
+        // printf("Added them all \n");
+
+        microOps[0]->setFirstMicroop();
+        microOps[numMicroops - 1]->setLastMicroop();
+
+
+        // printf("Done\n");
+
+        for (StaticInstPtr *uop = microOps; !(*uop)->isLastMicroop(); uop++) {
+            (*uop)->setDelayedCommit();
+        }
+    }
+
+    Fault
+    execute(ExecContext *, trace::InstRecord *) const override
+    {
+        panic("Execute method called when it shouldn't!");
+        return NoFault;
+    }
+
+    std::string
+    generateDisassembly(Addr pc,
+                        const loader::SymbolTable *symtab) const override
+    {
+        std::stringstream ss;
+        printMnemonic(ss, "", false);
+        ccprintf(ss, "{");
+        for (int i = 0; i < numregs; ++i) {
+            // printVecReg(ss, (dest + i) % 32, true);
+            if (i < numregs - 1)
+                ccprintf(ss, ", ");
+        }
+        ccprintf(ss, "}, ");
+        ccprintf(ss, "/z, [");
+        printIntReg(ss, base);
+        ccprintf(ss, "]");
+        return ss.str();
+    }
+};
+
+
+
 
 
 

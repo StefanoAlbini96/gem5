@@ -3,7 +3,11 @@
 #define _I2CE_DRIVER_HH_
 
 #include "sim/eventq.hh"
+
 #include "sim/sim_object.hh"
+#include "sim/clocked_object.hh"
+
+
 // #include "cpu/func_unit.hh"
 // #include "params/I2CE_Driver.hh"
 
@@ -19,6 +23,7 @@ namespace gem5
 class I2CE_driverParams;
 
 class I2CE_driver : public gem5::SimObject
+// class I2CE_driver : public gem5::ClockedObject
 {
 
     public:
@@ -31,7 +36,11 @@ class I2CE_driver : public gem5::SimObject
         void enable();
 
         void push(float new_in);
-        void compute();
+        void compute_enable();
+        void compute_disable();
+
+
+        void ld_inputs(int learner, int lane, int in_idx, float input_val);
 
         void ld_codebooks(int learner, int lane, float cb_word);
         void load_packed_idxs(int lane, uint32_t idx_word);
@@ -59,7 +68,7 @@ class I2CE_driver : public gem5::SimObject
 
         // This is the vector signal of the inputs that triggers the accelerator
         // sc_core::sc_signal<std::array<float, N_LANES>> input_vect;
-        sc_core::sc_signal<float>   input_vect[N_LEARNERS][N_LANES];
+        sc_core::sc_signal<float>   input_vect[N_LEARNERS][N_LANES][IDX_PER_LANE];
 
 
 

@@ -462,6 +462,74 @@ output decoder {{
 
 
 
+
+    template <class etype>
+    StaticInstPtr
+    decodeSveStructLoadSIInstsByNRegCusLDINPUTS_I2CE(uint8_t esize, ExtMachInst machInst,
+            RegIndex pg, RegIndex xn,
+            uint8_t imm, int numregs)
+    {
+        static const char* nm[5][4] = {
+            { nullptr, nullptr, nullptr, nullptr},
+            { nullptr, nullptr, nullptr, nullptr},
+            { "ld2b", "ld2h", "ld2w", "ld2d" },
+            { "ld3b", "ld3h", "ld3w", "ld3d" },
+            { "ld4b", "ld4h", "ld4w", "ld4d" } };
+
+        switch (numregs) {
+            case 2:
+                return new SveLdStructSICus_multiInputs<etype,
+                        SveLoadRegImmMicroop,
+                        SveDeIntrlv2MicroopCusLDINPUTS_I2CE>(
+                               nm[numregs][esize], machInst, MemReadOp,
+                               pg, xn, numregs, imm);
+            case 3:
+                return new SveLdStructSICus_multiInputs<etype,
+                        SveLoadRegImmMicroop,
+                        SveDeIntrlv3MicroopCusLDINPUTS_I2CE>(
+                               nm[numregs][esize], machInst, MemReadOp,
+                               pg, xn, numregs, imm);
+            case 4:
+                return new SveLdStructSICus_multiInputs<etype,
+                        SveLoadRegImmMicroop,
+                        SveDeIntrlv4MicroopCusLDINPUTS_I2CE>(
+                               nm[numregs][esize], machInst, MemReadOp,
+                               pg, xn, numregs, imm);
+        }
+        return new Unknown64(machInst);
+    }
+
+
+
+    StaticInstPtr
+    decodeSveStructLoadSIInstsCusLDINPUTS_I2CE(uint8_t esize, ExtMachInst machInst,
+            RegIndex pg, RegIndex xn,
+            uint8_t imm, int numregs)
+    {
+        switch (esize) {
+            case 0:
+                return decodeSveStructLoadSIInstsByNRegCusLDINPUTS_I2CE<uint8_t>(esize,
+                        machInst, pg, xn, imm, numregs);
+            case 1:
+                return decodeSveStructLoadSIInstsByNRegCusLDINPUTS_I2CE<uint16_t>(esize,
+                        machInst, pg, xn, imm, numregs);
+            case 2:
+                return decodeSveStructLoadSIInstsByNRegCusLDINPUTS_I2CE<uint32_t>(esize,
+                        machInst, pg, xn, imm, numregs);
+            case 3:
+                return decodeSveStructLoadSIInstsByNRegCusLDINPUTS_I2CE<uint64_t>(esize,
+                        machInst, pg, xn, imm, numregs);
+        }
+        return new Unknown64(machInst);
+    }
+
+
+
+
+
+
+
+
     template <class etype>
     StaticInstPtr
     decodeSveStructLoadSIInstsByNRegCusLDIN(uint8_t esize, ExtMachInst machInst,
@@ -2285,6 +2353,108 @@ let {{
 
 
 
+    def emitCusFUINPUTSSveDeInterleaveMicroop_I2CE():
+        global header_output, exec_output, decoders
+        code2 = sveEnabledCheckCode + '''
+        unsigned eCount = ArmStaticInst::getCurSveVecLen<Element>(
+                xc->tcBase());
+
+        // Pointer to the DRIVER
+        gem5::I2CE_driver* i2ce_driver_ptr = xc->tcBase()->getCpuPtr()->get_I2CE_Driver();
+
+        for (unsigned int i = 0; i < eCount; ++i) {
+            unsigned int absIdx = (regIndex + numRegs * i);
+            unsigned int srcIdx = absIdx % eCount;
+            unsigned int srcVec = absIdx / eCount;
+            if (srcVec == 0){
+                i2ce_driver_ptr->ld_inputs(this->regIndex, i, input_index, bitsToFloat32(AA64IntrlvReg0_x[srcIdx]));
+            }
+            else if(srcVec == 1) {
+                i2ce_driver_ptr->ld_inputs(this->regIndex, i, input_index, bitsToFloat32(AA64IntrlvReg1_x[srcIdx]));
+            }   
+        }'''
+
+        code3 = sveEnabledCheckCode + '''
+        unsigned eCount = ArmStaticInst::getCurSveVecLen<Element>(
+                xc->tcBase());
+
+        // Pointer to the DRIVER
+        gem5::I2CE_driver* i2ce_driver_ptr = xc->tcBase()->getCpuPtr()->get_I2CE_Driver();
+
+        for (unsigned int i = 0; i < eCount; ++i) {
+            unsigned int absIdx = (regIndex + numRegs * i);
+            unsigned int srcIdx = absIdx % eCount;
+            unsigned int srcVec = absIdx / eCount;
+            if (srcVec == 0)
+                i2ce_driver_ptr->ld_inputs(this->regIndex, i, input_index, bitsToFloat32(AA64IntrlvReg0_x[srcIdx]));
+            else if(srcVec == 1)
+                i2ce_driver_ptr->ld_inputs(this->regIndex, i, input_index, bitsToFloat32(AA64IntrlvReg1_x[srcIdx]));
+            else if(srcVec == 2)
+                i2ce_driver_ptr->ld_inputs(this->regIndex, i, input_index, bitsToFloat32(AA64IntrlvReg2_x[srcIdx]));
+        }'''
+
+        code4 = sveEnabledCheckCode + '''
+        unsigned eCount = ArmStaticInst::getCurSveVecLen<Element>(
+                xc->tcBase());
+
+        // Pointer to the DRIVER
+        gem5::I2CE_driver* i2ce_driver_ptr = xc->tcBase()->getCpuPtr()->get_I2CE_Driver();
+
+        for (unsigned int i = 0; i < eCount; ++i) {
+            unsigned int absIdx = (regIndex + numRegs * i);
+            unsigned int srcIdx = absIdx % eCount;
+            unsigned int srcVec = absIdx / eCount;
+            if (srcVec == 0){
+                i2ce_driver_ptr->ld_inputs(this->regIndex, i, input_index, bitsToFloat32(AA64IntrlvReg0_x[srcIdx]));
+            }
+            else if(srcVec == 1){
+                i2ce_driver_ptr->ld_inputs(this->regIndex, i, input_index, bitsToFloat32(AA64IntrlvReg1_x[srcIdx]));
+            }
+            else if(srcVec == 2){
+                i2ce_driver_ptr->ld_inputs(this->regIndex, i, input_index, bitsToFloat32(AA64IntrlvReg2_x[srcIdx]));
+            }
+            else if(srcVec == 3){
+                i2ce_driver_ptr->ld_inputs(this->regIndex, i, input_index, bitsToFloat32(AA64IntrlvReg3_x[srcIdx]));
+            }
+        }'''
+
+        iop2 = ArmInstObjParams('deintrlv',
+                'SveDeIntrlv2MicroopCusLDINPUTS_I2CE',
+                'MicroOp',
+                {'code': code2},
+                ['IsMicroop'])
+        iop3 = ArmInstObjParams('deintrlv',
+                'SveDeIntrlv3MicroopCusLDINPUTS_I2CE',
+                'MicroOp',
+                {'code': code3},
+                ['IsMicroop'])
+        iop4 = ArmInstObjParams('deintrlv',
+                'SveDeIntrlv4MicroopCusLDINPUTS_I2CE',
+                'MicroOp',
+                {'code': code4},
+                ['IsMicroop'])
+        header_output += SveDeIntrlvMicroopDeclareCus_multiInputs.subst(iop2);
+        header_output += SveDeIntrlvMicroopDeclareCus_multiInputs.subst(iop3);
+        header_output += SveDeIntrlvMicroopDeclareCus_multiInputs.subst(iop4);
+        exec_output += SveIntrlvMicroopExecute.subst(iop2);
+        exec_output += SveIntrlvMicroopExecute.subst(iop3);
+        exec_output += SveIntrlvMicroopExecute.subst(iop4);
+        for type in ('uint8_t', 'uint16_t', 'uint32_t', 'uint64_t'):
+            for nreg in range(2,5):
+                substDict = {'targs' : type,
+                        'class_name' : 'SveDeIntrlv' + str(nreg) + 'MicroopCusLDINPUTS_I2CE'}
+                exec_output += SveIntrlvMicroopExecDeclare.subst(substDict)
+
+
+
+
+
+
+
+
+
+
+
 
     def emitSveDeInterleaveMicroop_I2CE():
         global header_output, exec_output, decoders
@@ -2790,7 +2960,7 @@ let {{
             // Tmp = Tmp + Tmp;
 
             gem5::I2CE_driver* i2ce_driver_ptr = xc->tcBase()->getCpuPtr()->get_I2CE_Driver();
-            i2ce_driver_ptr->compute();
+            i2ce_driver_ptr->compute_enable();
 
         '''
 
@@ -2800,7 +2970,7 @@ let {{
             // Tmp = Tmp + Tmp;
 
             gem5::I2CE_driver* i2ce_driver_ptr = xc->tcBase()->getCpuPtr()->get_I2CE_Driver();
-            i2ce_driver_ptr->compute();
+            i2ce_driver_ptr->compute_enable();
         '''
 
 
@@ -3059,6 +3229,8 @@ let {{
 
     # For the custom LOAD INTERLEAVED into the FU CODEBOOKS
     emitCusFUCodebookSveDeInterleaveMicroop()
+
+    emitCusFUINPUTSSveDeInterleaveMicroop_I2CE()
 
     emitSveDeInterleaveMicroop_I2CE()
 

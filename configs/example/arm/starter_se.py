@@ -61,6 +61,15 @@ from common.cores.arm import (
     O3_ARM_v7a,
 )
 
+
+
+
+# MY TESTS
+# BIN_TO_RUN = "/home/albini/Documents/ESL/gem5/apps/cus_instr_tests/gem5-x-add1/add1"
+# BIN_TO_RUN = "/home/albini/Documents/ESL/gem5/apps/cus_instr_tests/myFU-add/myadd"
+BIN_TO_RUN = "/home/albini/Documents/ESL/I2-CE_accel/launch_gem5/exec/test"
+
+
 # Pre-defined CPU configurations. Each tuple must be ordered as : (cpu_class,
 # l1_icache_class, l1_dcache_class, l2_Cache_class). Any of
 # the cache class may be 'None' if the particular cache is not present.
@@ -160,21 +169,30 @@ def create(args):
     #     cpu.workload = workload    
     # END FROM THE TUTORAIL
 
-    # MY TESTS
-    # binary = "/home/albini/Documents/ESL/gem5/apps/test_app"
-    # binary = "/home/albini/Documents/ESL/gem5/apps/NN_layers/conv3D_sve/experiments/initial_test_SE/50_static_normal"
-    # binary = "/home/albini/Documents/ESL/gem5/apps/NN_layers/conv3D_sve/experiments/initial_test_SE/50_static_compact"
-    # binary = "/home/albini/Documents/ESL/gem5/apps/NN_layers/conv3D_sve/experiments/initial_test_SE/50_static_compact_SVE"
-    # binary = "/home/albini/Documents/ESL/gem5/apps/NN_layers/dense/experiments/5000x200_CB4_20+100/all_SE_static"
-    binary = "/home/albini/Documents/ESL/gem5/apps/cus_instr_tests/add1"
-
-    system.workload = SEWorkload.init_compatible(binary)
+    # system.workload = SEWorkload.init_compatible(BIN_TO_RUN)
+    print("---\nRUNNING BIN = {}\n---\n".format(args.bin_to_run))
+    system.workload = SEWorkload.init_compatible(args.bin_to_run)
 
     process = Process()
-    process.cmd = [binary]
+    # process.cmd = [BIN_TO_RUN]
+    process.cmd = [args.bin_to_run]
     system.cpu_cluster[0].cpus[0].workload = process
     # system.cpu_cluster[0].cpus[0].createThreads()
     # END MY TESTS
+
+    # print("================================================")
+    # print("================================================")
+    # print("================================================")
+
+    # # for e in dir(type(system.cpu_cluster)):
+    # #     print(e)
+    # # print(system.cpu_cluster.cpus.execute.fu.01)
+    # print(system.cpu_cluster.cpus.execute)
+    # # print(dir(type(system.cpu_cluster)))
+    # print("================================================")
+    # print("================================================")
+    # print("================================================")
+    # exit()
 
     return system
 
@@ -199,6 +217,14 @@ def main():
     parser.add_argument(
         "--num-cores", type=int, default=1, help="Number of CPU cores"
     )
+
+    parser.add_argument(
+        "--bin_to_run",
+        type=str,
+        default=BIN_TO_RUN,
+        help="Path to the binary to execute",
+    )
+
     # parser.add_argument(
     #     "--mem-type",
     #     default="DDR3_1600_8x8",
@@ -256,9 +282,20 @@ def main():
         help="Initial confidence for the L2 stride prefetcher.",
     )
 
+
+    parser.add_argument(
+        "--sve_vl",
+        type=int,
+        default=1,
+        help="Initial Vector Lenght for the SVE extension.",
+    )
+
     Options.addNoISAOptions(parser)
 
     args = parser.parse_args()
+
+
+
 
     # Create a single root node for gem5's object hierarchy. There can
     # only exist one root node in the simulator at any given
@@ -269,6 +306,32 @@ def main():
     # Populate the root node with a system. A system corresponds to a
     # single node with shared memory.
     root.system = create(args)
+
+
+    my_accel = I2CE_accelerator()
+    my_driver = I2CE_driver()
+    my_driver.accel = my_accel
+    # my_driver.clk_domain = root.system.clk_domain
+
+    print("=======================================")
+    print(root.system.clk_domain)
+    print("=======================================")
+
+    kernel = SystemC_Kernel(feeder=my_driver)
+    root.systemc_kernel=kernel
+
+    cpu = root.system.cpu_cluster.cpus[0]
+    cpu.i2ce_accel = my_driver
+
+
+    # print("==================")
+    # for name in cpu._params.keys():
+    #     print(name)
+    #     # print(cpu.)
+    # print("==================\n")
+    # print(cpu.i2ce_accel)
+
+    root.system.cpu_cluster.cpus[0].isa[0].sve_vl_se = args.sve_vl
 
     # Instantiate the C++ object hierarchy. After this point,
     # SimObjects can't be instantiated anymore.

@@ -73,6 +73,7 @@
  * How many indexes are packed in each lane
  */
 #define IDX_PER_LANE    (LANE_BITS/IDX_BIT)
+// #define IDX_PER_LANE    1
 
 
 /**
@@ -84,8 +85,10 @@
 
 
 // For the MAC module
-#define MUL_STAGES  1
-#define ADD_STAGES  1
+#define MUL_STAGES      1
+#define ADD_STAGES      1
+#define MUL_EN          (MUL_STAGES)
+#define ADD_DRAIN_EN    (MUL_STAGES + ADD_STAGES + 2)
 
 
 #endif

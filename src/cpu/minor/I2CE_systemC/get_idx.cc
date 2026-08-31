@@ -13,6 +13,7 @@ void get_idx::clock_thread()
 
     mask_reg = IDX_MASK;    // Remains constant
 
+    idx_en_sig.write(false);
 
     wait();
 
@@ -20,8 +21,12 @@ void get_idx::clock_thread()
     // Clocked behaviour
     while(1)
     {
+
+        idx_en_sig.write(idx_en_nxt.read());
+
+
         // if(get_idx_en.read() && ready.read()){
-        if(get_idx_en.read()){
+        if(get_idx_en.read() || idx_en_sig.read()){
 
 
             // For the duplicated packed lane
@@ -46,10 +51,12 @@ void get_idx::clock_thread()
 void get_idx::comb_method()
 {
 
-    sc_dt::sc_uint<32>                        packed_lane;   // Lane of packed indexes to be unpacked
+    sc_dt::sc_uint<32>              packed_lane;   // Lane of packed indexes to be unpacked
     uint8_t                         index;          // Unpacked index
     sc_uint<SHAMT_BIT>              shamt_prev;
     sc_uint<SHAMT_BIT>              shamt_updated;
+
+    sc_uint<LANE_IDX_BIT>           sel_updated;
 
     for(int lane=0; lane<N_LANES; lane++){
 
@@ -73,11 +80,27 @@ void get_idx::comb_method()
         // printf("%d < %d\n", (uint32_t)shamt_updated, (uint32_t)shamt_prev);
         if (shamt_updated < shamt_prev){
             sel_nxt.write((sel_reg.read() + 1) % N_LANES);
+            sel_updated = (sel_reg.read() + 1) % N_LANES;
         } else {
             sel_nxt.write(sel_reg.read());
+            sel_updated = sel_reg.read();
         }
 
         // Write the output
         out[lane].write(idxs_reg[lane].read());
     }
+    
+
+    idx_en_nxt.write(idx_en_sig.read());
+
+    if(get_idx_en.read()){
+        idx_en_nxt.write(true);
+    }
+
+    // Detect overflow for the sel_reg
+    if(sel_updated < sel_reg.read()){
+        idx_en_nxt.write(false);
+    }
+
+    en_out.write(idx_en_sig.read());
 }

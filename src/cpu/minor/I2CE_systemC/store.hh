@@ -13,7 +13,7 @@ SC_MODULE(store_mod){
     sc_in<bool> clk;
     sc_in<bool> rst;
     
-    // sc_in<bool> red_en;
+    sc_in<bool> st_en;
 
     sc_in<float> red_res[N_LEARNERS];
 

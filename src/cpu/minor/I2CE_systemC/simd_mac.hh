@@ -14,6 +14,10 @@ SC_MODULE(simd_mac){
     
     // sc_in<bool> ready;
     sc_in<bool> mac_en; // Signals that the mac result should be registered
+    sc_in<bool> add_en; // Enables the ADD DRAIN pipeline. This needs to have a delay so that the pipeline can be fully drained
+
+    sc_signal<bool>     mul_en_sig[MUL_EN];
+    sc_signal<bool>     add_drain_en_sig[ADD_DRAIN_EN];
 
 
     sc_in<float>        activation[N_LEARNERS][N_LANES];
@@ -30,6 +34,8 @@ SC_MODULE(simd_mac){
     sc_signal<float>    pipeline_add_drain[N_LEARNERS][N_LANES][ADD_STAGES];
     sc_signal<float>    res_reg[N_LEARNERS][N_LANES], res_nxt[N_LEARNERS][N_LANES];             // For the final result, coming from the accumulation of the drain
     
+
+    sc_out<bool>        en_out;     // output it to be able to synch with the subsequent module (as this one delays the EN)
     sc_out<float>       out[N_LEARNERS][N_LANES];
 
 

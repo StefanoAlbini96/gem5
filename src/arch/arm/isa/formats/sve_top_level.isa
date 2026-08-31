@@ -116,6 +116,7 @@ namespace Aarch64
     StaticInstPtr decodeSveContigStoreSICus(ExtMachInst machInst);
     StaticInstPtr decodeIdxPtrLoopCus(ExtMachInst machInst);
 
+    StaticInstPtr decodeSveLoadStructsSICusLoadInputs_I2CE(ExtMachInst machInst);
     StaticInstPtr decodeIdxPtrLoopCus_SystemC(ExtMachInst machInst);
     StaticInstPtr decodeSveContigLoadSICusLDIDX_I2CE(ExtMachInst machInst);
     StaticInstPtr decodeSveLoadStructsSICusLoadCodebooks_I2CE(ExtMachInst machInst);
@@ -446,8 +447,7 @@ namespace Aarch64
         switch(bits(machInst, 15, 13)) {
 
             case 0x0:
-                return decodeIdxPtrLoopCus_SystemC(machInst);
-
+                return decodeSveLoadStructsSICusLoadInputs_I2CE(machInst);
             case 0x1:
                 return decodeSveContigLoadSICusLDIDX_I2CE(machInst);
             case 0x2:
@@ -455,7 +455,26 @@ namespace Aarch64
             case 0x3:
                 return decodeSveContigStoreSICus_I2CE(machInst);
             case 0x4:
+                {
+                RegIndex rd = (RegIndex)(uint32_t)bits(machInst, 4, 0);
+                RegIndex rdsp = makeSP(rd); // destination
+
+                RegIndex rn = (RegIndex)(uint32_t)bits(machInst, 9, 5);
+                RegIndex rnsp = makeSP(rn);
+
+                cout << "Decoding COMPUTE EN" << endl;
+                return new Compute_en64(machInst, rdsp, rnsp);
+                }
             case 0x5:
+                {
+                RegIndex rd = (RegIndex)(uint32_t)bits(machInst, 4, 0);
+                RegIndex rdsp = makeSP(rd);
+
+                RegIndex rn = (RegIndex)(uint32_t)bits(machInst, 4, 0);
+                RegIndex rnsp = makeSP(rn); // op1, must be destination of the first instruction to create dependency
+
+                return new StopCompute_en64(machInst, rdsp, rnsp);
+                }
             case 0x6:
             case 0x7:
             default:

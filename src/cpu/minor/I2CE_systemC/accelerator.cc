@@ -7,17 +7,24 @@
 void I2CE_accelerator::clock_thread()
 {
 
+    in_ptr_reg.write(0);
+    en_reg.write(false);
+
     for(int lane=0; lane<N_LANES; lane++){
         packed_idx_reg[lane] = 0;
     }
     
     for(int learner=0; learner<N_LEARNERS; learner++){
         for(int lane=0; lane<N_LANES; lane++){
-            
-            inputs_reg[learner][lane] = 0;
+
             codebook_reg[learner][lane] = 0;
+            inputs_reg[learner][lane] = 0;
         }
     }
+
+    // for(int add_stage=0; add_stage<ADD_DRAIN_EN; add_stage++){
+    //     add_drain_en_sig[add_stage].write(false);
+    // }
 
     wait();
 
@@ -27,10 +34,9 @@ void I2CE_accelerator::clock_thread()
         // std::cout << "t = " << sc_core::sc_time_stamp() << std::endl;
 
 
-        en.write(en_input.read());
 
-        int nelems = input_fifo.size();
-        bool enough_data = (nelems >= (N_LEARNERS * N_LANES));
+        // int nelems = input_fifo.size();
+        // bool enough_data = (nelems >= (N_LEARNERS * N_LANES));
 
 
         // Packed indexes
@@ -45,37 +51,36 @@ void I2CE_accelerator::clock_thread()
         }
 
 
+        // Propagate the EN signal through the modules
+        en_reg.write(en_nxt.read());
+        // tbl_en_sig.write(tbl_en_nxt.read());
+        mac_en_sig.write(mac_en_nxt.read());
+        // red_en_sig.write(red_en_nxt.read());
 
-        if(en.read()){
 
-            // printf("ACCEL ENABLED\n");
-            // float res = a.read() + b.read();
-            // numAdditions++;
+        // for(int add_stage=(ADD_DRAIN_EN-1); add_stage>0; add_stage--){
+        //     add_drain_en_sig[add_stage] = add_drain_en_sig[add_stage-1];
+        // }
+        // add_drain_en_sig[0] = red_en_nxt.read();    // Done with red_en_nxt so to create a first 1CC shift
 
-            // printf("Res = %f + %f = %f\n", a.read(), b.read(), res);
 
-            // printf("ENOUGH DATA? %d\n", nelems);
-
-            // Propagate the EN signal through the modules
-            tbl_en_sig.write(tbl_en_nxt.read());
-            mac_en_sig.write(mac_en_nxt.read());
-            red_en_sig.write(red_en_nxt.read());
+        if(en_reg.read() || en_input.read()){
 
             sum_reg.write(sum_nxt.read());
-            // printf("SUM RESULT = %f\n", sum_reg.read());
 
-            
-            if(tbl_en_sig.read() && (nelems >= (N_LEARNERS * N_LANES))){
-                // printf("YESSSSS\n");
+            // if(tbl_en_sig.read()){
                 for(int learner=0; learner<N_LEARNERS; learner++){
                     for(int lane=0; lane<N_LANES; lane++){
-                        // inputs_reg[learner][lane].write(inputs_nxt[learner][lane]);
-                        inputs_reg[learner][lane].write(input_fifo.front());
-                        input_fifo.pop_front();
+                        inputs_reg[learner][lane] = inputs_nxt[learner][lane];
                     }
                 }
-            }
+            // }
+        }
 
+
+        // Update the input pointer
+        if(en_reg.read() || en_input.read()){
+            in_ptr_reg.write(in_ptr_nxt.read());
         }
 
         wait();
@@ -87,39 +92,114 @@ void I2CE_accelerator::clock_thread()
 void I2CE_accelerator::comb_method()
 {
 
-    // printf("\n--- Comb method ---\n");
 
-    tbl_en_nxt = en.read();
-    mac_en_nxt = tbl_en_sig.read();
-    red_en_nxt = mac_en_sig.read();
 
+    // printf("Triggered\n");
     // Packed indexes
     for(int lane=0; lane<N_LANES; lane++){
+        // std::cout << sc_time_stamp()
+        //   << " packed_in = "
+        //   << packed_in[lane].read()
+        //   << std::endl;
         packed_idx_nxt[lane] = packed_in[lane];
     }
+
+
+
+    uint16_t input_pointer = in_ptr_reg.read();
 
     // Inputs
     for(int learner=0; learner<N_LEARNERS; learner++){
         for(int lane=0; lane<N_LANES; lane++){
+
             codebook_nxt[learner][lane] = codebook_in[learner][lane];
-            inputs_nxt[learner][lane] = inputs_in[learner][lane];
+            inputs_nxt[learner][lane] = inputs_in[learner][lane][input_pointer];
         }
     }
 
 
-    float test_result = 0.0;
-
-
-    for(int learn=0; learn<N_LEARNERS; learn++){
-        for(int lane=0; lane<N_LANES; lane++){
-            // printf("Input[%d] = %f\n", lane, inputs_reg[learn][lane].read());
-
-            test_result += inputs_reg[learn][lane].read();
-        }
+    bool can_update_in_ptr = (input_pointer < (IDX_PER_LANE - 1));
+    if(can_update_in_ptr){
+        in_ptr_nxt = in_ptr_reg.read() + 1;
     }
 
-    sum_nxt.write(test_result);
+
+
+    Update the EN signal
+    en_nxt.write(en_reg.read());
+
+    if(en_input.read()){
+        en_nxt.write(true);
+    }
+
+    if(!can_update_in_ptr){
+        en_nxt.write(false);
+    }
+
+    for(int stage=(N_STAGES-1); stage>0; stage--){
+        pipeline_en
+    }
+
 }
+
+
+
+// void I2CE_accelerator::comb_method()
+// {
+
+
+//     // printf("\n--- Comb method ---\n");
+
+//     // tbl_en_nxt = en_reg.read();
+//     mac_en_nxt = tbl_en_sig.read();
+//     // red_en_nxt = mac_en_sig.read();
+
+//     // Packed indexes
+//     for(int lane=0; lane<N_LANES; lane++){
+//         packed_idx_nxt[lane] = packed_in[lane];
+//     }
+
+//     uint16_t input_pointer = in_ptr_reg.read();
+
+//     // Inputs
+//     for(int learner=0; learner<N_LEARNERS; learner++){
+//         for(int lane=0; lane<N_LANES; lane++){
+//             codebook_nxt[learner][lane] = codebook_in[learner][lane];
+
+//             inputs_nxt[learner][lane] = inputs_in[learner][lane][input_pointer];
+//         }
+//     }
+
+
+//     en_nxt.write(en_reg.read());
+
+//     if(en_input.read()){
+//         en_nxt.write(true);
+//     }
+
+//     if (in_ptr_reg.read() >= (IDX_PER_LANE-1)){
+//         en_nxt.write(false);
+//         printf("EN = FALSE\n");
+//     } else {
+//         in_ptr_nxt = in_ptr_reg.read() + 1;
+//     }
+
+
+
+
+//     float test_result = 0.0;
+
+
+//     for(int learn=0; learn<N_LEARNERS; learn++){
+//         for(int lane=0; lane<N_LANES; lane++){
+//             // printf("Input[%d] = %f\n", lane, inputs_reg[learn][lane].read());
+
+//             test_result += inputs_reg[learn][lane].read();
+//         }
+//     }
+
+//     sum_nxt.write(test_result);
+// }
 
 
 
