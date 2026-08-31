@@ -125,7 +125,7 @@ void I2CE_accelerator::comb_method()
 
 
 
-    Update the EN signal
+    // Update the EN signal
     en_nxt.write(en_reg.read());
 
     if(en_input.read()){
