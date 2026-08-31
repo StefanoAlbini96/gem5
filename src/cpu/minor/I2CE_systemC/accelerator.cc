@@ -136,9 +136,6 @@ void I2CE_accelerator::comb_method()
         en_nxt.write(false);
     }
 
-    for(int stage=(N_STAGES-1); stage>0; stage--){
-        pipeline_en
-    }
 
 }
 
