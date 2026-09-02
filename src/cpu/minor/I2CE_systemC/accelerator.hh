@@ -26,13 +26,17 @@ SC_MODULE(I2CE_accelerator){
 
     sc_in<bool>                             clk;
     sc_in<bool>                             rst;
-    
+
     sc_in<bool>                             en_input;
     sc_signal<bool>                         en_reg, en_nxt;
 
     sc_signal<bool>                         tbl_en_sig, tbl_en_nxt;
     sc_signal<bool>                         mac_en_sig, mac_en_nxt;
+
+    sc_signal<bool>                         mac_en_out_wire;
     sc_signal<bool>                         red_en_sig, red_en_nxt;
+
+    sc_signal<bool>                         pipeline_en[EN_STAGES];
 
     sc_in<sc_dt::sc_uint<32>>               packed_in[N_LANES];
     sc_in<float>                            codebook_in[N_LEARNERS][N_LANES];
@@ -41,6 +45,9 @@ SC_MODULE(I2CE_accelerator){
     // std::deque<float>                       input_fifo;
     sc_in<float>                            inputs_in[N_LEARNERS][N_LANES][IDX_PER_LANE];
     sc_signal<sc_uint<16>>                  in_ptr_reg, in_ptr_nxt; // this points at a specific input in the sequence
+    
+    // Counts the number of processed indexes so it knows when to stop the EN
+    sc_signal<sc_uint<8>>                   idx_processed_cnt_reg, idx_processed_cnt_nxt; 
 
     sc_in<float>                            res_tmp[N_LEARNERS];
 
@@ -100,6 +107,9 @@ SC_MODULE(I2CE_accelerator){
         SC_CTHREAD(clock_thread, clk.pos());
         async_reset_signal_is(rst, true);
 
+        // SC_METHOD(comb_method_red_en);
+        // sensitive << mac_en_out_wire;
+
         SC_METHOD(comb_method);
         sensitive << en_input;
         sensitive << en_reg;
@@ -134,7 +144,8 @@ SC_MODULE(I2CE_accelerator){
         // Bind the ports for the tbl module
         tbl_mod->clk(clk);
         tbl_mod->rst(rst);
-        tbl_mod->tbl_en(tbl_en_sig);
+        // tbl_mod->tbl_en(tbl_en_sig);
+        tbl_mod->tbl_en(pipeline_en[0]);
         for(int lane=0; lane<N_LANES; lane++){
             tbl_mod->idxs[lane](res_getidx_mod_wire[lane]);
         }
@@ -149,9 +160,12 @@ SC_MODULE(I2CE_accelerator){
         // Bind the ports for the simd_mac module
         mac_mod->clk(clk);
         mac_mod->rst(rst);
-        mac_mod->mac_en(mac_en_sig);
-        mac_mod->add_en(mac_en_sig);
-        mac_mod->en_out(red_en_sig);
+        // mac_mod->mac_en(mac_en_sig);
+        // mac_mod->add_en(mac_en_sig);
+        mac_mod->mac_en(pipeline_en[1]);
+        mac_mod->add_en(pipeline_en[1]);
+        // mac_mod->en_out(red_en_sig);
+        mac_mod->en_out(mac_en_out_wire);
         for(int learner=0; learner<N_LEARNERS; learner++){
             for(int lane=0; lane<N_LANES; lane++){
                 mac_mod->activation[learner][lane](inputs_reg[learner][lane]);
@@ -190,6 +204,7 @@ SC_MODULE(I2CE_accelerator){
 
     
     void clock_thread();
+    // void comb_method_red_en();
     void comb_method();
 
 

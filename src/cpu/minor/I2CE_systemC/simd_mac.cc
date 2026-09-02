@@ -57,10 +57,9 @@ void simd_mac::clock_thread()
 
 
         /*
-            mac_en --> directly check the input, we don't need any daley
+            mac_en --> directly check the input, we don't need any delay
             mul_en_sig --> delay the en to drain the MUL pipeline
         */
-        // if(mac_en.read() || mul_en_sig[MUL_EN-1].read()){
         if(mac_en.read()){
 
             for(int learner=0; learner<N_LEARNERS; learner++){
@@ -70,12 +69,20 @@ void simd_mac::clock_thread()
                         pipeline_mul[learner][lane][m_stage] = pipeline_mul[learner][lane][m_stage-1];
                     }
                     pipeline_mul[learner][lane][0] = mul_comb_res[learner][lane];
-
-                    mul_res_reg[learner][lane].write(mul_res_nxt[learner][lane]);
-
                 }
             }
         }
+
+        if(mul_en_sig[MUL_EN-1].read()){
+
+            for(int learner=0; learner<N_LEARNERS; learner++){
+                for(int lane=0; lane<N_LANES; lane++){
+                    mul_res_reg[learner][lane].write(mul_res_nxt[learner][lane]);
+                }
+            }
+        }
+
+
 
 
         /*

@@ -9,9 +9,14 @@ void I2CE_accelerator::clock_thread()
 
     in_ptr_reg.write(0);
     en_reg.write(false);
+    idx_processed_cnt_reg.write(0);
 
     for(int lane=0; lane<N_LANES; lane++){
         packed_idx_reg[lane] = 0;
+    }
+
+    for(int stage=0; stage<EN_STAGES; stage++){
+        pipeline_en[stage] = 0;
     }
     
     for(int learner=0; learner<N_LEARNERS; learner++){
@@ -29,15 +34,28 @@ void I2CE_accelerator::clock_thread()
     wait();
 
     while(1){
-        // wait(a.value_changed_event());
-        // wait();
-        // std::cout << "t = " << sc_core::sc_time_stamp() << std::endl;
+
+        // The EN is coming externally and we start counting
+        if(en_input.read() && !pipeline_en[0].read()){
+            pipeline_en[0].write(en_input.read());
+            idx_processed_cnt_reg.write(0);
+        } 
+        else if (pipeline_en[0].read()){
+            if(idx_processed_cnt_reg.read() >= (IDX_PER_LANE-1)){
+                pipeline_en[0].write(false);
+            } else {
+                idx_processed_cnt_reg.write(idx_processed_cnt_reg.read() + 1);
+            }
+        }
+
+        for(int stage=(EN_STAGES-1); stage>0; stage--){
+            pipeline_en[stage].write(pipeline_en[stage-1].read());
+        }
 
 
 
         // int nelems = input_fifo.size();
         // bool enough_data = (nelems >= (N_LEARNERS * N_LANES));
-
 
         // Packed indexes
         for(int lane=0; lane<N_LANES; lane++){
@@ -64,22 +82,38 @@ void I2CE_accelerator::clock_thread()
         // add_drain_en_sig[0] = red_en_nxt.read();    // Done with red_en_nxt so to create a first 1CC shift
 
 
-        if(en_reg.read() || en_input.read()){
+        // if(en_reg.read() || en_input.read()){
+
+        //     sum_reg.write(sum_nxt.read());
+
+        //     // if(tbl_en_sig.read()){
+        //         for(int learner=0; learner<N_LEARNERS; learner++){
+        //             for(int lane=0; lane<N_LANES; lane++){
+        //                 inputs_reg[learner][lane] = inputs_nxt[learner][lane];
+        //             }
+        //         }
+        //     // }
+        // }
+
+
+        // // Update the input pointer
+        // if(en_reg.read() || en_input.read()){
+        //     in_ptr_reg.write(in_ptr_nxt.read());
+        // }
+
+
+        // EN for the TBL module
+        // At the next cycle the MAC is EN and the activations are already in the register
+        if(pipeline_en[0].read()){
 
             sum_reg.write(sum_nxt.read());
 
-            // if(tbl_en_sig.read()){
-                for(int learner=0; learner<N_LEARNERS; learner++){
-                    for(int lane=0; lane<N_LANES; lane++){
-                        inputs_reg[learner][lane] = inputs_nxt[learner][lane];
-                    }
+            for(int learner=0; learner<N_LEARNERS; learner++){
+                for(int lane=0; lane<N_LANES; lane++){
+                    inputs_reg[learner][lane] = inputs_nxt[learner][lane];
                 }
-            // }
-        }
+            }
 
-
-        // Update the input pointer
-        if(en_reg.read() || en_input.read()){
             in_ptr_reg.write(in_ptr_nxt.read());
         }
 
@@ -136,6 +170,8 @@ void I2CE_accelerator::comb_method()
         en_nxt.write(false);
     }
 
+
+    mac_en_nxt = tbl_en_sig.read();
 
 }
 

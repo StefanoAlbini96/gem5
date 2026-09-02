@@ -57,10 +57,10 @@ class I2CE_driver : public gem5::SimObject
         // not needed since the CPU called the accel //
         // gem5::MemberEventWrapper<&I2CE_driver::drive> event;
 
-        sc_core::sc_clock           clk;
+        sc_core::sc_clock                           clk;
         // sc_core::sc_signal<bool>    clk;
-        sc_core::sc_signal<bool>    rst;
-        sc_core::sc_signal<bool>    en;
+        sc_core::sc_signal<bool>                    rst;
+        sc_core::sc_signal<bool>                    en;
 
         // FIFO with the data coming from memory
         // sc_core::sc_fifo<float> input_fifo;
@@ -68,7 +68,7 @@ class I2CE_driver : public gem5::SimObject
 
         // This is the vector signal of the inputs that triggers the accelerator
         // sc_core::sc_signal<std::array<float, N_LANES>> input_vect;
-        sc_core::sc_signal<float>   input_vect[N_LEARNERS][N_LANES][IDX_PER_LANE];
+        sc_core::sc_signal<float>                   input_vect[N_LEARNERS][N_LANES][IDX_PER_LANE];
 
 
 

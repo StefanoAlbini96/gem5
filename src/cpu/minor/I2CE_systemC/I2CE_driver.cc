@@ -11,7 +11,7 @@ I2CE_driver::I2CE_driver(const gem5::I2CE_driverParams &params) :
     gem5::SimObject(params), 
     // gem5::ClockedObject(params), 
     accel(params.accel),
-    clk("clk", sc_core::sc_time(1, sc_core::SC_NS))
+    clk("clk", sc_core::sc_time(0.2, sc_core::SC_NS))
     // clk("clk", sc_core::sc_time(clockPeriod(), sc_core::SC_PS))
     // clk(params.clk_domain)
 {
@@ -72,28 +72,31 @@ I2CE_driver::startup()
     sc_core::sc_trace(tf, clk, "clk");
     sc_core::sc_trace(tf, rst, "rst");
     
-    sc_core::sc_trace(tf, en, "en_inputs");
-    sc_core::sc_trace(tf, accel->en_reg, "en_reg");
-    sc_core::sc_trace(tf, accel->tbl_mod->tbl_en, "tbl_mod_EN");
-    sc_core::sc_trace(tf, accel->mac_mod->mac_en, "mac_mod_EN");
+    sc_core::sc_trace(tf, en, "en");
+    sc_core::sc_trace(tf, accel->en_reg, "accel.en_reg");
+    sc_core::sc_trace(tf, accel->tbl_mod->tbl_en, "accel.tbl_mod.tbl_mod_EN");
+    sc_core::sc_trace(tf, accel->mac_mod->mac_en, "accel.mac_mod_EN");
 
 
-    sc_core::sc_trace(tf, accel->in_ptr_nxt, "IN_pointer_nxt");
-    sc_core::sc_trace(tf, accel->in_ptr_reg, "IN_pointer_reg");
+    sc_core::sc_trace(tf, accel->in_ptr_nxt, "accel.IN_pointer_nxt");
+    sc_core::sc_trace(tf, accel->in_ptr_reg, "accel.IN_pointer_reg");
 
-    sc_core::sc_trace(tf, accel->getidx_mod->sel_nxt, "GET_IDX.sel_nxt");
-    sc_core::sc_trace(tf, accel->getidx_mod->sel_reg, "GET_IDX.sel_reg");
+    sc_core::sc_trace(tf, accel->getidx_mod->sel_nxt, "accel.GET_IDX.sel_nxt");
+    sc_core::sc_trace(tf, accel->getidx_mod->sel_reg, "accel.GET_IDX.sel_reg");
 
-    sc_core::sc_trace(tf, accel->getidx_mod->idx_en_nxt, "GET_IDX.idx_en_nxt");
-    sc_core::sc_trace(tf, accel->getidx_mod->idx_en_sig, "GET_IDX.idx_en_sig");
+    sc_core::sc_trace(tf, accel->getidx_mod->idx_en_nxt, "accel.GET_IDX.idx_en_nxt");
+    sc_core::sc_trace(tf, accel->getidx_mod->idx_en_sig, "accel.GET_IDX.idx_en_sig");
 
 
+    for(int stage=0; stage<EN_STAGES; stage++){
+        sc_core::sc_trace(tf, accel->pipeline_en[stage], "accel.pipeline_en[" + std::to_string(stage) + "]");
+    }
 
     for(int mul_stage=0; mul_stage<(MUL_EN); mul_stage++){
-        sc_core::sc_trace(tf, accel->mac_mod->mul_en_sig[mul_stage], "mac_mod.mul_en_sig[" + std::to_string(mul_stage) + "]");
+        sc_core::sc_trace(tf, accel->mac_mod->mul_en_sig[mul_stage], "accel.mac_mod.mul_en_sig[" + std::to_string(mul_stage) + "]");
     }
     for(int add_stage=0; add_stage<(ADD_DRAIN_EN); add_stage++){
-        sc_core::sc_trace(tf, accel->mac_mod->add_drain_en_sig[add_stage], "mac_mod.add_drain_en_sig[" + std::to_string(add_stage) + "]");
+        sc_core::sc_trace(tf, accel->mac_mod->add_drain_en_sig[add_stage], "accel.mac_mod.add_drain_en_sig[" + std::to_string(add_stage) + "]");
     }
 
 
@@ -101,15 +104,14 @@ I2CE_driver::startup()
         for(int lane=0; lane<N_LANES; lane++){
 
             for(int i=0; i<IDX_PER_LANE; i++){
-                sc_core::sc_trace(tf, accel->inputs_in[learner][lane][i], "inputs_in[" + std::to_string(learner) + "][" + std::to_string(lane) + "][" + std::to_string(i) + "]");
+                sc_core::sc_trace(tf, input_vect[learner][lane][i], "input_vect[" + std::to_string(learner) + "][" + std::to_string(lane) + "][" + std::to_string(i) + "]");
+                sc_core::sc_trace(tf, accel->inputs_in[learner][lane][i], "accel.inputs_in[" + std::to_string(learner) + "][" + std::to_string(lane) + "][" + std::to_string(i) + "]");            
             }
 
             sc_core::sc_trace(tf, codebooks[learner][lane], "codebooks[" + std::to_string(learner) + "][" + std::to_string(lane) + "]");
             sc_core::sc_trace(tf, accel->codebook_reg[learner][lane], "accel.codebook_reg[" + std::to_string(learner) + "][" + std::to_string(lane) + "]");
 
             sc_core::sc_trace(tf, accel->res_tbl_mod_wire[learner][lane], "accel.res_tbl_mod_wire[" + std::to_string(learner) + "][" + std::to_string(lane) + "]");
-
-            sc_core::sc_trace(tf, input_vect[learner][lane], "input_vect[" + std::to_string(learner) + "][" + std::to_string(lane) + "]");
 
             sc_core::sc_trace(tf, accel->inputs_nxt[learner][lane], "accel.inputs_nxt[" + std::to_string(learner) + "][" + std::to_string(lane) + "]");
             sc_core::sc_trace(tf, accel->inputs_reg[learner][lane], "accel.inputs_reg[" + std::to_string(learner) + "][" + std::to_string(lane) + "]");
@@ -123,25 +125,30 @@ I2CE_driver::startup()
 
 
             for(int stage=0; stage<MUL_STAGES; stage++){
-                sc_core::sc_trace(tf, accel->mac_mod->pipeline_mul[learner][lane][stage], "mac_mod.pipeline_mul[" + std::to_string(learner) + "][" + std::to_string(lane) + "][" + std::to_string(stage) + "]");
+                sc_core::sc_trace(tf, accel->mac_mod->pipeline_mul[learner][lane][stage], "accel.mac_mod.pipeline_mul[" + std::to_string(learner) + "][" + std::to_string(lane) + "][" + std::to_string(stage) + "]");
             }
             for(int stage=0; stage<ADD_STAGES; stage++){
-                sc_core::sc_trace(tf, accel->mac_mod->pipeline_add[learner][lane][stage], "mac_mod.pipeline_add[" + std::to_string(learner) + "][" + std::to_string(lane) + "][" + std::to_string(stage) + "]");
-                sc_core::sc_trace(tf, accel->mac_mod->pipeline_add_drain[learner][lane][stage], "mac_mod.pipeline_add_drain[" + std::to_string(learner) + "][" + std::to_string(lane) + "][" + std::to_string(stage) + "]");
+                sc_core::sc_trace(tf, accel->mac_mod->pipeline_add[learner][lane][stage], "accel.mac_mod.pipeline_add[" + std::to_string(learner) + "][" + std::to_string(lane) + "][" + std::to_string(stage) + "]");
+                sc_core::sc_trace(tf, accel->mac_mod->pipeline_add_drain[learner][lane][stage], "accel.mac_mod.pipeline_add_drain[" + std::to_string(learner) + "][" + std::to_string(lane) + "][" + std::to_string(stage) + "]");
             }
-            sc_core::sc_trace(tf, accel->mac_mod->add_res_reg[learner][lane], "mac_mod.add_res_reg[" + std::to_string(learner) + "][" + std::to_string(lane) + "]");
+            sc_core::sc_trace(tf, accel->mac_mod->add_res_reg[learner][lane], "accel.mac_mod.add_res_reg[" + std::to_string(learner) + "][" + std::to_string(lane) + "]");
 
-            sc_core::sc_trace(tf, accel->mac_mod->activation[learner][lane], "mac_mod.activation[" + std::to_string(learner) + "][" + std::to_string(lane) + "]");
-            sc_core::sc_trace(tf, accel->mac_mod->weight[learner][lane], "mac_mod.weight[" + std::to_string(learner) + "][" + std::to_string(lane) + "]");
+            sc_core::sc_trace(tf, accel->mac_mod->activation[learner][lane], "accel.mac_mod.activation[" + std::to_string(learner) + "][" + std::to_string(lane) + "]");
+            sc_core::sc_trace(tf, accel->mac_mod->weight[learner][lane], "accel.mac_mod.weight[" + std::to_string(learner) + "][" + std::to_string(lane) + "]");
 
-            sc_core::sc_trace(tf, accel->mac_mod->mul_res_reg[learner][lane], "mac_mod.mul_res_reg[" + std::to_string(learner) + "][" + std::to_string(lane) + "]");
-            sc_core::sc_trace(tf, accel->mac_mod->add_res_reg[learner][lane], "mac_mod.add_res_reg[" + std::to_string(learner) + "][" + std::to_string(lane) + "]");
-            sc_core::sc_trace(tf, accel->mac_mod->res_reg[learner][lane], "mac_mod.res_reg[" + std::to_string(learner) + "][" + std::to_string(lane) + "]");
+            sc_core::sc_trace(tf, accel->mac_mod->mul_res_reg[learner][lane], "accel.mac_mod.mul_res_reg[" + std::to_string(learner) + "][" + std::to_string(lane) + "]");
+            sc_core::sc_trace(tf, accel->mac_mod->add_res_reg[learner][lane], "accel.mac_mod.add_res_reg[" + std::to_string(learner) + "][" + std::to_string(lane) + "]");
+            sc_core::sc_trace(tf, accel->mac_mod->res_reg[learner][lane], "accel.mac_mod.res_reg[" + std::to_string(learner) + "][" + std::to_string(lane) + "]");
         }
 
-        sc_core::sc_trace(tf, accel->red_out[learner], "RED_OUT[" + std::to_string(learner) + "]");
 
-        sc_core::sc_trace(tf, accel->res_tmp[learner], "RES_TMP[" + std::to_string(learner) + "]");
+        sc_core::sc_trace(tf, accel->red_mod->reduced_reg[learner], "accel.red_mod.reduced_reg[" + std::to_string(learner) + "]");
+
+        sc_core::sc_trace(tf, accel->red_out[learner], "accel.RED_OUT[" + std::to_string(learner) + "]");
+
+        sc_core::sc_trace(tf, accel->res_tmp[learner], "accel.RES_TMP[" + std::to_string(learner) + "]");
+
+        sc_core::sc_trace(tf, accel->res_red_mod_wire[learner], "accel.res_red_mod_wire[" + std::to_string(learner) + "]");
     
     }
 
@@ -149,10 +156,10 @@ I2CE_driver::startup()
         sc_core::sc_trace(tf, accel->packed_in[lane], "accel.packed_in[" + std::to_string(lane) + "]");
         sc_core::sc_trace(tf, accel->packed_idx_nxt[lane], "accel.packed_idx_nxt[" + std::to_string(lane) + "]");
         sc_core::sc_trace(tf, accel->packed_idx_reg[lane], "accel.packed_idx_reg[" + std::to_string(lane) + "]");
-        sc_core::sc_trace(tf, accel->getidx_mod->packed_indexes[lane], "GET_IDX.packed_indexes[" + std::to_string(lane) + "]");
-        sc_core::sc_trace(tf, accel->getidx_mod->shamt_reg[lane], "GET_IDX.shamt_reg[" + std::to_string(lane) + "]");
+        sc_core::sc_trace(tf, accel->getidx_mod->packed_indexes[lane], "accel.GET_IDX.packed_indexes[" + std::to_string(lane) + "]");
+        sc_core::sc_trace(tf, accel->getidx_mod->shamt_reg[lane], "accel.GET_IDX.shamt_reg[" + std::to_string(lane) + "]");
 
-        sc_core::sc_trace(tf, accel->res_getidx_mod_wire[lane], "res_getidx_mod_wire[" + std::to_string(lane) + "]");
+        sc_core::sc_trace(tf, accel->res_getidx_mod_wire[lane], "accel.res_getidx_mod_wire[" + std::to_string(lane) + "]");
 
 
 
