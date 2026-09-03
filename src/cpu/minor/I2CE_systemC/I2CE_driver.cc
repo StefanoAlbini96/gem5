@@ -37,7 +37,7 @@ I2CE_driver::I2CE_driver(const gem5::I2CE_driverParams &params) :
         for(int lane=0; lane<N_LANES; lane++){
             accel->codebook_in[learn][lane](codebooks[learn][lane]);
 
-            for(int i=0; i<IDX_PER_LANE; i++){
+            for(int i=0; i<ACT_BUF_SIZE; i++){
                 accel->inputs_in[learn][lane][i](input_vect[learn][lane][i]);
             }
         }
@@ -103,7 +103,7 @@ I2CE_driver::startup()
     for(int learner=0; learner<N_LEARNERS; learner++){
         for(int lane=0; lane<N_LANES; lane++){
 
-            for(int i=0; i<IDX_PER_LANE; i++){
+            for(int i=0; i<ACT_BUF_SIZE; i++){
                 sc_core::sc_trace(tf, input_vect[learner][lane][i], "input_vect[" + std::to_string(learner) + "][" + std::to_string(lane) + "][" + std::to_string(i) + "]");
                 sc_core::sc_trace(tf, accel->inputs_in[learner][lane][i], "accel.inputs_in[" + std::to_string(learner) + "][" + std::to_string(lane) + "][" + std::to_string(i) + "]");            
             }

@@ -8,7 +8,8 @@ void I2CE_accelerator::clock_thread()
 {
 
     in_ptr_reg.write(0);
-    en_reg.write(false);
+    en_prev_reg.write(false);
+    en_reg.write(false);        // Probably it can be removed!
     idx_processed_cnt_reg.write(0);
 
     for(int lane=0; lane<N_LANES; lane++){
@@ -35,8 +36,14 @@ void I2CE_accelerator::clock_thread()
 
     while(1){
 
+
+        en_prev_reg.write(en_prev_nxt.read());
+
+        bool rising_edge_en = (en_input.read() && !en_prev_reg.read());
+
         // The EN is coming externally and we start counting
-        if(en_input.read() && !pipeline_en[0].read()){
+        // if(en_input.read() && !pipeline_en[0].read()){
+        if(rising_edge_en && !pipeline_en[0].read()){
             pipeline_en[0].write(en_input.read());
             idx_processed_cnt_reg.write(0);
         } 
@@ -76,32 +83,6 @@ void I2CE_accelerator::clock_thread()
         // red_en_sig.write(red_en_nxt.read());
 
 
-        // for(int add_stage=(ADD_DRAIN_EN-1); add_stage>0; add_stage--){
-        //     add_drain_en_sig[add_stage] = add_drain_en_sig[add_stage-1];
-        // }
-        // add_drain_en_sig[0] = red_en_nxt.read();    // Done with red_en_nxt so to create a first 1CC shift
-
-
-        // if(en_reg.read() || en_input.read()){
-
-        //     sum_reg.write(sum_nxt.read());
-
-        //     // if(tbl_en_sig.read()){
-        //         for(int learner=0; learner<N_LEARNERS; learner++){
-        //             for(int lane=0; lane<N_LANES; lane++){
-        //                 inputs_reg[learner][lane] = inputs_nxt[learner][lane];
-        //             }
-        //         }
-        //     // }
-        // }
-
-
-        // // Update the input pointer
-        // if(en_reg.read() || en_input.read()){
-        //     in_ptr_reg.write(in_ptr_nxt.read());
-        // }
-
-
         // EN for the TBL module
         // At the next cycle the MAC is EN and the activations are already in the register
         if(pipeline_en[0].read()){
@@ -127,6 +108,8 @@ void I2CE_accelerator::comb_method()
 {
 
 
+    en_prev_nxt.write(en_input.read());
+
 
     // printf("Triggered\n");
     // Packed indexes
@@ -147,15 +130,21 @@ void I2CE_accelerator::comb_method()
         for(int lane=0; lane<N_LANES; lane++){
 
             codebook_nxt[learner][lane] = codebook_in[learner][lane];
-            inputs_nxt[learner][lane] = inputs_in[learner][lane][input_pointer];
+
+            // // Write 0 if the en is off so that the accumulation in the MAC module is correct
+            // if(pipeline_en[0]){
+                inputs_nxt[learner][lane] = inputs_in[learner][lane][input_pointer];
+            // } else {
+            //     inputs_nxt[learner][lane] = 0;
+            // }
         }
     }
 
 
-    bool can_update_in_ptr = (input_pointer < (IDX_PER_LANE - 1));
-    if(can_update_in_ptr){
+    bool can_update_in_ptr = (input_pointer < (ACT_BUF_SIZE - 1));
+    // if(can_update_in_ptr){
         in_ptr_nxt = in_ptr_reg.read() + 1;
-    }
+     // }
 
 
 

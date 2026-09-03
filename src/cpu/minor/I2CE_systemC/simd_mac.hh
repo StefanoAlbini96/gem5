@@ -19,6 +19,8 @@ SC_MODULE(simd_mac){
     sc_signal<bool>     mul_en_sig[MUL_EN];
     sc_signal<bool>     add_drain_en_sig[ADD_DRAIN_EN];
 
+    // sc_signal<bool>     add_en_sig
+
 
     sc_in<float>        activation[N_LEARNERS][N_LANES];
     sc_in<float>        weight[N_LEARNERS][N_LANES];

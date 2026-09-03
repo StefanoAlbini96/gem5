@@ -88,12 +88,19 @@
 #define MUL_STAGES      1
 #define ADD_STAGES      1
 #define MUL_EN          (MUL_STAGES)
-#define ADD_DRAIN_EN    (MUL_STAGES + ADD_STAGES + 2)
+// #define ADD_DRAIN_EN    (MUL_STAGES + ADD_STAGES + 2)
+#define ADD_DRAIN_EN    (MUL_STAGES + ADD_STAGES + 1)
 
 
 // Number of stages/modules of the accelerator, neede to propagate the EN signal
-// I have 3 modules to EN but I do 3-1 since the first EN is tied to the input!
-#define EN_STAGES    (3-1)
+// I need 1 for the GET-IDX and TBL, and 2 for the MAC module (one for mul and one for add)
+#define EN_STAGES    3
+
+
+/**
+ * Number of SIMD elements of the activation buffer (we have one buffer per learner)
+*/
+#define ACT_BUF_SIZE    16
 
 
 #endif

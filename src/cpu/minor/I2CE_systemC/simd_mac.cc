@@ -83,29 +83,59 @@ void simd_mac::clock_thread()
         }
 
 
-
-
         /*
            add_drain_en_sig[0]  --> not directly the input so to give a 1 CC delay to the ADD enable
            add_drain_en_sig[-1] --> to properly drain the pipeline in the end
         */
-        if(add_drain_en_sig[0].read() || add_drain_en_sig[ADD_DRAIN_EN-1].read()){
+
+        // Update the Pipeline ADD and the ADD result
+        if(add_drain_en_sig[0].read()){
 
             for(int learner=0; learner<N_LEARNERS; learner++){
                 for(int lane=0; lane<N_LANES; lane++){
                     for(int add_stage=(ADD_STAGES-1); add_stage>0; add_stage--){
                         pipeline_add[learner][lane][add_stage] = pipeline_add[learner][lane][add_stage-1];
-                        pipeline_add_drain[learner][lane][add_stage] = pipeline_add_drain[learner][lane][add_stage-1];
                     }
                     pipeline_add[learner][lane][0] = add_comb_res[learner][lane];
-                    pipeline_add_drain[learner][lane][0] = add_res_reg[learner][lane];
-
                     add_res_reg[learner][lane].write(add_res_nxt[learner][lane]);
+                }
+            }
+            
+        }
+
+
+        if(add_drain_en_sig[ADD_DRAIN_EN-1].read()){
+
+            for(int learner=0; learner<N_LEARNERS; learner++){
+                for(int lane=0; lane<N_LANES; lane++){
+                    for(int add_stage=(ADD_STAGES-1); add_stage>0; add_stage--){
+                        pipeline_add_drain[learner][lane][add_stage] = pipeline_add_drain[learner][lane][add_stage-1];
+                    }
+                    pipeline_add_drain[learner][lane][0] = add_res_reg[learner][lane];
 
                     res_reg[learner][lane].write(res_nxt[learner][lane]);
                 }
             }
         }
+
+
+        // if(add_drain_en_sig[0].read() || add_drain_en_sig[ADD_DRAIN_EN-1].read()){
+
+        //     for(int learner=0; learner<N_LEARNERS; learner++){
+        //         for(int lane=0; lane<N_LANES; lane++){
+        //             for(int add_stage=(ADD_STAGES-1); add_stage>0; add_stage--){
+        //                 pipeline_add[learner][lane][add_stage] = pipeline_add[learner][lane][add_stage-1];
+        //                 pipeline_add_drain[learner][lane][add_stage] = pipeline_add_drain[learner][lane][add_stage-1];
+        //             }
+        //             pipeline_add[learner][lane][0] = add_comb_res[learner][lane];
+        //             pipeline_add_drain[learner][lane][0] = add_res_reg[learner][lane];
+
+        //             add_res_reg[learner][lane].write(add_res_nxt[learner][lane]);
+
+        //             res_reg[learner][lane].write(res_nxt[learner][lane]);
+        //         }
+        //     }
+        // }
 
         wait();
     }

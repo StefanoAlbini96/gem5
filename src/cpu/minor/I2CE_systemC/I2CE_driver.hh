@@ -68,7 +68,7 @@ class I2CE_driver : public gem5::SimObject
 
         // This is the vector signal of the inputs that triggers the accelerator
         // sc_core::sc_signal<std::array<float, N_LANES>> input_vect;
-        sc_core::sc_signal<float>                   input_vect[N_LEARNERS][N_LANES][IDX_PER_LANE];
+        sc_core::sc_signal<float>                   input_vect[N_LEARNERS][N_LANES][ACT_BUF_SIZE];
 
 
 

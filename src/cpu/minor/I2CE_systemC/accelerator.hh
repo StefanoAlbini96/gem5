@@ -28,6 +28,7 @@ SC_MODULE(I2CE_accelerator){
     sc_in<bool>                             rst;
 
     sc_in<bool>                             en_input;
+    sc_signal<bool>                         en_prev_reg, en_prev_nxt;    // To detecet the rising edge --> start of compute loop
     sc_signal<bool>                         en_reg, en_nxt;
 
     sc_signal<bool>                         tbl_en_sig, tbl_en_nxt;
@@ -43,8 +44,8 @@ SC_MODULE(I2CE_accelerator){
     
 
     // std::deque<float>                       input_fifo;
-    sc_in<float>                            inputs_in[N_LEARNERS][N_LANES][IDX_PER_LANE];
-    sc_signal<sc_uint<16>>                  in_ptr_reg, in_ptr_nxt; // this points at a specific input in the sequence
+    sc_in<float>                            inputs_in[N_LEARNERS][N_LANES][ACT_BUF_SIZE];
+    sc_signal<sc_uint<log2_pow2(ACT_BUF_SIZE)>>                  in_ptr_reg, in_ptr_nxt; // this points at a specific input in the sequence
     
     // Counts the number of processed indexes so it knows when to stop the EN
     sc_signal<sc_uint<8>>                   idx_processed_cnt_reg, idx_processed_cnt_nxt; 
@@ -112,6 +113,7 @@ SC_MODULE(I2CE_accelerator){
 
         SC_METHOD(comb_method);
         sensitive << en_input;
+        sensitive << en_prev_reg;
         sensitive << en_reg;
         sensitive << tbl_en_sig;
         sensitive << mac_en_sig;
@@ -123,7 +125,7 @@ SC_MODULE(I2CE_accelerator){
             for(int lane=0; lane<N_LANES; lane++){
                 sensitive << codebook_in[learner][lane];
 
-                for(int i=0; i<IDX_PER_LANE; i++){
+                for(int i=0; i<ACT_BUF_SIZE; i++){
                     sensitive << inputs_in[learner][lane][i];
                 }
             }
@@ -163,7 +165,7 @@ SC_MODULE(I2CE_accelerator){
         // mac_mod->mac_en(mac_en_sig);
         // mac_mod->add_en(mac_en_sig);
         mac_mod->mac_en(pipeline_en[1]);
-        mac_mod->add_en(pipeline_en[1]);
+        mac_mod->add_en(pipeline_en[2]);
         // mac_mod->en_out(red_en_sig);
         mac_mod->en_out(mac_en_out_wire);
         for(int learner=0; learner<N_LEARNERS; learner++){
