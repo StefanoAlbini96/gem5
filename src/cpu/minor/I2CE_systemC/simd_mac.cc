@@ -29,6 +29,9 @@ void simd_mac::clock_thread()
         mul_en_sig[mul_stage].write(false);
     }
 
+    add_en_sig.write(false);
+    n_adds_cnt_reg.write(false);
+
     for(int add_stage=0; add_stage<ADD_DRAIN_EN; add_stage++){
         add_drain_en_sig[add_stage] = false;
     }
@@ -47,6 +50,11 @@ void simd_mac::clock_thread()
             mul_en_sig[mul_stage] = mul_en_sig[mul_stage-1];
         }
         mul_en_sig[0] = mac_en.read();
+
+
+        // n_adds_cnt_reg.write(n_adds_cnt_nxt);
+        // add_en_sig.write(add_en_nxt);
+
 
         // Update and shift the add drain enable
         for(int add_stage=(ADD_DRAIN_EN-1); add_stage>0; add_stage--){
@@ -73,12 +81,10 @@ void simd_mac::clock_thread()
             }
         }
 
-        if(mul_en_sig[MUL_EN-1].read()){
 
-            for(int learner=0; learner<N_LEARNERS; learner++){
-                for(int lane=0; lane<N_LANES; lane++){
-                    mul_res_reg[learner][lane].write(mul_res_nxt[learner][lane]);
-                }
+        for(int learner=0; learner<N_LEARNERS; learner++){
+            for(int lane=0; lane<N_LANES; lane++){
+                mul_res_reg[learner][lane].write(mul_res_nxt[learner][lane]);
             }
         }
 
@@ -88,8 +94,33 @@ void simd_mac::clock_thread()
            add_drain_en_sig[-1] --> to properly drain the pipeline in the end
         */
 
-        // Update the Pipeline ADD and the ADD result
-        if(add_drain_en_sig[0].read()){
+        // // Update the Pipeline ADD
+        // if(add_drain_en_sig[0].read() || add_drain_en_sig[1].read()){
+
+        //     for(int learner=0; learner<N_LEARNERS; learner++){
+        //         for(int lane=0; lane<N_LANES; lane++){
+        //             for(int add_stage=(ADD_STAGES-1); add_stage>0; add_stage--){
+        //                 pipeline_add[learner][lane][add_stage] = pipeline_add[learner][lane][add_stage-1];
+        //             }
+        //             pipeline_add[learner][lane][0] = add_comb_res[learner][lane];
+        //             // add_res_reg[learner][lane].write(add_res_nxt[learner][lane]);
+        //         }
+        //     }
+            
+        // }
+
+        // // Update the ADD result
+        // if(add_drain_en_sig[1].read()){
+
+        //     for(int learner=0; learner<N_LEARNERS; learner++){
+        //         for(int lane=0; lane<N_LANES; lane++){
+        //             add_res_reg[learner][lane].write(add_res_nxt[learner][lane]);
+        //             // res_reg[learner][lane].write(res_nxt[learner][lane]);
+        //         }
+        //     }
+        // }
+
+        if(mul_en_sig[0].read() || add_drain_en_sig[ADD_DRAIN_EN-1].read()){
 
             for(int learner=0; learner<N_LEARNERS; learner++){
                 for(int lane=0; lane<N_LANES; lane++){
@@ -104,7 +135,8 @@ void simd_mac::clock_thread()
         }
 
 
-        if(add_drain_en_sig[ADD_DRAIN_EN-1].read()){
+        // Update the Pipeline ADD drain
+        if(add_drain_en_sig[ADD_DRAIN_EN-2].read()){
 
             for(int learner=0; learner<N_LEARNERS; learner++){
                 for(int lane=0; lane<N_LANES; lane++){
@@ -112,30 +144,22 @@ void simd_mac::clock_thread()
                         pipeline_add_drain[learner][lane][add_stage] = pipeline_add_drain[learner][lane][add_stage-1];
                     }
                     pipeline_add_drain[learner][lane][0] = add_res_reg[learner][lane];
-
-                    res_reg[learner][lane].write(res_nxt[learner][lane]);
                 }
             }
         }
 
 
-        // if(add_drain_en_sig[0].read() || add_drain_en_sig[ADD_DRAIN_EN-1].read()){
 
-        //     for(int learner=0; learner<N_LEARNERS; learner++){
-        //         for(int lane=0; lane<N_LANES; lane++){
-        //             for(int add_stage=(ADD_STAGES-1); add_stage>0; add_stage--){
-        //                 pipeline_add[learner][lane][add_stage] = pipeline_add[learner][lane][add_stage-1];
-        //                 pipeline_add_drain[learner][lane][add_stage] = pipeline_add_drain[learner][lane][add_stage-1];
-        //             }
-        //             pipeline_add[learner][lane][0] = add_comb_res[learner][lane];
-        //             pipeline_add_drain[learner][lane][0] = add_res_reg[learner][lane];
+        // Update the result
+        if(add_drain_en_sig[ADD_DRAIN_EN-1].read()){
 
-        //             add_res_reg[learner][lane].write(add_res_nxt[learner][lane]);
+            for(int learner=0; learner<N_LEARNERS; learner++){
+                for(int lane=0; lane<N_LANES; lane++){
+                    res_reg[learner][lane].write(res_nxt[learner][lane].read());
+                }
+            }
+        }
 
-        //             res_reg[learner][lane].write(res_nxt[learner][lane]);
-        //         }
-        //     }
-        // }
 
         wait();
     }
@@ -151,8 +175,12 @@ void simd_mac::mult_comb_method()
         for(int lane=0; lane<N_LANES; lane++){
 
             mul_comb_res[learner][lane] = activation[learner][lane].read() * weight[learner][lane].read();
-            mul_res_nxt[learner][lane] = pipeline_mul[learner][lane][MUL_STAGES-1];
 
+            if(mul_en_sig[MUL_EN-1].read()){
+                mul_res_nxt[learner][lane] = pipeline_mul[learner][lane][MUL_STAGES-1];
+            } else {
+                mul_res_nxt[learner][lane] = 0;
+            }
         }
     }
 }
@@ -176,13 +204,24 @@ void simd_mac::add_comb_method()
                 sum += pipeline_add_drain[learner][lane][d_stage].read();
             }
             sum += add_res_reg[learner][lane].read();
-
             res_nxt[learner][lane] = sum;
 
             // Write the output
             out[learner][lane].write(res_reg[learner][lane].read());
         }
     }
+
+
+    // // Increment
+    // if(add_en_sig.read()){
+    //     n_adds_cnt_nxt.write(n_adds_cnt_reg.read() + 1);
+
+    //     if(n_adds_cnt_reg.read() <= ADD_EN){
+    //         add_en_nxt.write(true);
+    //     }
+    // } else {
+
+    // }
 
     en_out.write(add_drain_en_sig[ADD_DRAIN_EN-1]);
 }

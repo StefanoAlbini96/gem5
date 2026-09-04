@@ -19,7 +19,8 @@ SC_MODULE(simd_mac){
     sc_signal<bool>     mul_en_sig[MUL_EN];
     sc_signal<bool>     add_drain_en_sig[ADD_DRAIN_EN];
 
-    // sc_signal<bool>     add_en_sig
+    sc_signal<bool>     add_en_sig, add_en_nxt;         // this enables the ADD (pipeline and add_res update, not the drain)
+    sc_signal<uint8_t>  n_adds_cnt_reg, n_adds_cnt_nxt;
 
 
     sc_in<float>        activation[N_LEARNERS][N_LANES];
@@ -48,6 +49,9 @@ SC_MODULE(simd_mac){
         async_reset_signal_is(rst, true);
 
         SC_METHOD(mult_comb_method);
+        for(int en=0; en<MUL_EN; en++){
+            sensitive << mul_en_sig[en];
+        }
         for(int learner=0; learner<N_LEARNERS; learner++){
             for(int lane=0; lane<N_LANES; lane++){
                 sensitive << activation[learner][lane];
@@ -57,6 +61,11 @@ SC_MODULE(simd_mac){
         }
 
         SC_METHOD(add_comb_method);
+        for(int en=0; en<ADD_DRAIN_EN; en++){
+            sensitive << add_drain_en_sig[en];
+        }
+        sensitive << add_en_sig;
+        sensitive << n_adds_cnt_reg;
         for(int learner=0; learner<N_LEARNERS; learner++){
             for(int lane=0; lane<N_LANES; lane++){
                 sensitive << mul_res_reg[learner][lane];
