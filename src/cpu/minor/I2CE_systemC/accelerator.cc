@@ -80,7 +80,6 @@ void I2CE_accelerator::clock_thread()
         en_reg.write(en_nxt.read());
         // tbl_en_sig.write(tbl_en_nxt.read());
         mac_en_sig.write(mac_en_nxt.read());
-        // red_en_sig.write(red_en_nxt.read());
 
 
         // EN for the TBL module

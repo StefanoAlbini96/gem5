@@ -39,6 +39,8 @@ class I2CE_driver : public gem5::SimObject
         void compute_enable();
         void compute_disable();
 
+        void reduce_enable();
+
 
         void ld_inputs(int learner, int lane, int in_idx, float input_val);
 
@@ -61,6 +63,7 @@ class I2CE_driver : public gem5::SimObject
         // sc_core::sc_signal<bool>    clk;
         sc_core::sc_signal<bool>                    rst;
         sc_core::sc_signal<bool>                    en;
+        sc_core::sc_signal<bool>                    en_reduce;
 
         // FIFO with the data coming from memory
         // sc_core::sc_fifo<float> input_fifo;

@@ -131,6 +131,7 @@ class OpClass(Enum):
         "CusFUFakeLoad_SC",
         "CusFUCompute_SC",
         "CusFUStall_SC",
+        "CusReduce_SC",
     ]
 
 

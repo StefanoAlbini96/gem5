@@ -28,6 +28,8 @@ SC_MODULE(I2CE_accelerator){
     sc_in<bool>                             rst;
 
     sc_in<bool>                             en_input;
+    sc_in<bool>                             en_reduce;
+
     sc_signal<bool>                         en_prev_reg, en_prev_nxt;    // To detecet the rising edge --> start of compute loop
     sc_signal<bool>                         en_reg, en_nxt;
 
@@ -181,7 +183,7 @@ SC_MODULE(I2CE_accelerator){
         // Bind the ports for the reduce module
         red_mod->clk(clk);
         red_mod->rst(rst);
-        red_mod->red_en(red_en_sig);
+        red_mod->red_en(en_reduce);
         for(int learner=0; learner<N_LEARNERS; learner++){
             for(int lane=0; lane<N_LANES; lane++){
                 red_mod->mac_res[learner][lane](res_mac_mod_wire[learner][lane]);

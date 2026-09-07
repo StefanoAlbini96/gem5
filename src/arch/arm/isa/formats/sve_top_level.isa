@@ -476,6 +476,15 @@ namespace Aarch64
                 return new StopCompute_en64(machInst, rdsp, rnsp);
                 }
             case 0x6:
+                {
+                RegIndex rd = (RegIndex)(uint32_t)bits(machInst, 4, 0);
+                RegIndex rdsp = makeSP(rd);
+
+                RegIndex rn = (RegIndex)(uint32_t)bits(machInst, 4, 0);
+                RegIndex rnsp = makeSP(rn); // op1, must be destination of the first instruction to create dependency
+
+                return new Reduce_en64(machInst, rdsp, rnsp);
+                }
             case 0x7:
             default:
                 return new Unknown64(machInst);

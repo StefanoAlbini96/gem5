@@ -94,32 +94,6 @@ void simd_mac::clock_thread()
            add_drain_en_sig[-1] --> to properly drain the pipeline in the end
         */
 
-        // // Update the Pipeline ADD
-        // if(add_drain_en_sig[0].read() || add_drain_en_sig[1].read()){
-
-        //     for(int learner=0; learner<N_LEARNERS; learner++){
-        //         for(int lane=0; lane<N_LANES; lane++){
-        //             for(int add_stage=(ADD_STAGES-1); add_stage>0; add_stage--){
-        //                 pipeline_add[learner][lane][add_stage] = pipeline_add[learner][lane][add_stage-1];
-        //             }
-        //             pipeline_add[learner][lane][0] = add_comb_res[learner][lane];
-        //             // add_res_reg[learner][lane].write(add_res_nxt[learner][lane]);
-        //         }
-        //     }
-            
-        // }
-
-        // // Update the ADD result
-        // if(add_drain_en_sig[1].read()){
-
-        //     for(int learner=0; learner<N_LEARNERS; learner++){
-        //         for(int lane=0; lane<N_LANES; lane++){
-        //             add_res_reg[learner][lane].write(add_res_nxt[learner][lane]);
-        //             // res_reg[learner][lane].write(res_nxt[learner][lane]);
-        //         }
-        //     }
-        // }
-
         if(mul_en_sig[0].read() || add_drain_en_sig[ADD_DRAIN_EN-1].read()){
 
             for(int learner=0; learner<N_LEARNERS; learner++){
@@ -210,18 +184,6 @@ void simd_mac::add_comb_method()
             out[learner][lane].write(res_reg[learner][lane].read());
         }
     }
-
-
-    // // Increment
-    // if(add_en_sig.read()){
-    //     n_adds_cnt_nxt.write(n_adds_cnt_reg.read() + 1);
-
-    //     if(n_adds_cnt_reg.read() <= ADD_EN){
-    //         add_en_nxt.write(true);
-    //     }
-    // } else {
-
-    // }
 
     en_out.write(add_drain_en_sig[ADD_DRAIN_EN-1]);
 }
