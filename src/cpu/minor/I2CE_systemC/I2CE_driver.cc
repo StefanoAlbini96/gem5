@@ -23,7 +23,7 @@ I2CE_driver::I2CE_driver(const gem5::I2CE_driverParams &params) :
     accel->clk(clk);
 
     accel->en_input(en);
-    accel->en_reduce(en_reduce);
+    accel->red_trigger(red_trigger);
     accel->rst(rst);
     // accel->a(ab);
     // accel->b(ab);
@@ -78,8 +78,9 @@ I2CE_driver::startup()
     sc_core::sc_trace(tf, accel->tbl_mod->tbl_en, "accel.tbl_mod.tbl_mod_EN");
     sc_core::sc_trace(tf, accel->mac_mod->mac_en, "accel.mac_mod_EN");
 
-    sc_core::sc_trace(tf, en_reduce, "en_reduce_DRIVER");
-    sc_core::sc_trace(tf, accel->en_reduce, "accel.en_reduce");
+    sc_core::sc_trace(tf, accel->red_trigger, "accel.red_trigger");
+    sc_core::sc_trace(tf, accel->red_en_nxt, "accel.red_en_nxt");
+    sc_core::sc_trace(tf, accel->red_en_reg, "accel.red_en_reg");
     sc_core::sc_trace(tf, accel->red_mod->red_en, "accel.red_mod.red_en");
 
 
@@ -211,8 +212,8 @@ I2CE_driver::compute_disable()
 void
 I2CE_driver::reduce_enable()
 {
-    printf("Enabling the reduce\n");
-    en_reduce.write(true);
+    printf("Triggering the reduce\n");
+    red_trigger.write(!red_trigger.read());
 }
 
 

@@ -11,6 +11,8 @@ void I2CE_accelerator::clock_thread()
     en_prev_reg.write(false);
     en_reg.write(false);        // Probably it can be removed!
     idx_processed_cnt_reg.write(0);
+    red_en_reg.write(false);
+    red_trigger_prev_reg.write(false);
 
     for(int lane=0; lane<N_LANES; lane++){
         packed_idx_reg[lane] = 0;
@@ -38,6 +40,8 @@ void I2CE_accelerator::clock_thread()
 
 
         en_prev_reg.write(en_prev_nxt.read());
+        red_en_reg.write(red_en_nxt.read());
+        red_trigger_prev_reg.write(red_trigger_prev_nxt.read());
 
         bool rising_edge_en = (en_input.read() && !en_prev_reg.read());
 
@@ -164,64 +168,20 @@ void I2CE_accelerator::comb_method()
 }
 
 
+void I2CE_accelerator::trigger_reduce_comb_method()
+{
+    // Creates a pulse for the 
+    printf("REDUCE TOGGLE!\n");
 
-// void I2CE_accelerator::comb_method()
-// {
-
-
-//     // printf("\n--- Comb method ---\n");
-
-//     // tbl_en_nxt = en_reg.read();
-//     mac_en_nxt = tbl_en_sig.read();
-//     // red_en_nxt = mac_en_sig.read();
-
-//     // Packed indexes
-//     for(int lane=0; lane<N_LANES; lane++){
-//         packed_idx_nxt[lane] = packed_in[lane];
-//     }
-
-//     uint16_t input_pointer = in_ptr_reg.read();
-
-//     // Inputs
-//     for(int learner=0; learner<N_LEARNERS; learner++){
-//         for(int lane=0; lane<N_LANES; lane++){
-//             codebook_nxt[learner][lane] = codebook_in[learner][lane];
-
-//             inputs_nxt[learner][lane] = inputs_in[learner][lane][input_pointer];
-//         }
-//     }
+    red_trigger_prev_nxt.write(red_trigger.read());
 
 
-//     en_nxt.write(en_reg.read());
-
-//     if(en_input.read()){
-//         en_nxt.write(true);
-//     }
-
-//     if (in_ptr_reg.read() >= (IDX_PER_LANE-1)){
-//         en_nxt.write(false);
-//         printf("EN = FALSE\n");
-//     } else {
-//         in_ptr_nxt = in_ptr_reg.read() + 1;
-//     }
-
-
-
-
-//     float test_result = 0.0;
-
-
-//     for(int learn=0; learn<N_LEARNERS; learn++){
-//         for(int lane=0; lane<N_LANES; lane++){
-//             // printf("Input[%d] = %f\n", lane, inputs_reg[learn][lane].read());
-
-//             test_result += inputs_reg[learn][lane].read();
-//         }
-//     }
-
-//     sum_nxt.write(test_result);
-// }
-
+    if(red_trigger.read() != red_trigger_prev_reg.read()){
+        red_en_nxt.write(true);
+    } else {
+        red_en_nxt.write(false);
+    }
+}
 
 
 I2CE_accelerator *

@@ -63,7 +63,7 @@ class I2CE_driver : public gem5::SimObject
         // sc_core::sc_signal<bool>    clk;
         sc_core::sc_signal<bool>                    rst;
         sc_core::sc_signal<bool>                    en;
-        sc_core::sc_signal<bool>                    en_reduce;
+        sc_core::sc_signal<bool>                    red_trigger;
 
         // FIFO with the data coming from memory
         // sc_core::sc_fifo<float> input_fifo;
