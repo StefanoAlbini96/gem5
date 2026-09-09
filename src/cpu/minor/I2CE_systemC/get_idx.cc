@@ -13,7 +13,7 @@ void get_idx::clock_thread()
 
     mask_reg = IDX_MASK;    // Remains constant
 
-    idx_en_sig.write(false);
+    // idx_en_sig.write(false);
 
     wait();
 
@@ -22,11 +22,12 @@ void get_idx::clock_thread()
     while(1)
     {
 
-        idx_en_sig.write(idx_en_nxt.read());
+        // idx_en_sig.write(idx_en_nxt.read());
 
 
         // if(get_idx_en.read() && ready.read()){
-        if(get_idx_en.read() || idx_en_sig.read()){
+        // if(get_idx_en.read() || idx_en_sig.read()){
+        if(get_idx_en.read()){
 
 
             // For the duplicated packed lane
@@ -91,16 +92,16 @@ void get_idx::comb_method()
     }
     
 
-    idx_en_nxt.write(idx_en_sig.read());
+    // idx_en_nxt.write(idx_en_sig.read());
 
-    if(get_idx_en.read()){
-        idx_en_nxt.write(true);
-    }
+    // if(get_idx_en.read()){
+    //     idx_en_nxt.write(true);
+    // }
 
-    // Detect overflow for the sel_reg
-    if(sel_updated < sel_reg.read()){
-        idx_en_nxt.write(false);
-    }
+    // // Detect overflow for the sel_reg
+    // if(sel_updated < sel_reg.read()){
+    //     idx_en_nxt.write(false);
+    // }
 
-    en_out.write(idx_en_sig.read());
+    // en_out.write(idx_en_sig.read());
 }

@@ -3752,6 +3752,19 @@ namespace Aarch64
 
 
     StaticInstPtr
+    decodeSveContigLoadSICusLDTmpRes_I2CE(ExtMachInst machInst)
+    {
+        RegIndex zt = (RegIndex) (uint8_t) bits(machInst, 4, 0);
+        RegIndex rn = makeSP((RegIndex) (uint8_t) bits(machInst, 9, 5));
+        uint64_t imm = sext<4>(bits(machInst, 19, 16));
+        RegIndex pg = (RegIndex) (uint8_t) bits(machInst, 12, 10);
+
+        return decodeSveContigLoadSIInsts<SveContigLoadSI_I2CE_LDTmpRes>(
+            bits(machInst, 24, 21), machInst, zt, pg, rn, imm, false);
+    }  // decodeSveContigLoadSICusLDTmpRes_I2CE
+
+
+    StaticInstPtr
     decodeSveContigNFLoadSI(ExtMachInst machInst)
     {
         RegIndex zt = (RegIndex) (uint8_t) bits(machInst, 4, 0);
@@ -3854,8 +3867,7 @@ namespace Aarch64
                     zt, pg, rn, imm, num);
         }
         return new Unknown64(machInst);
-    }  // decodeSveLoadStructsSICusLoadCodebooks
-
+    }  // decodeSveLoadStructsSICusLoadCodebooks_I2CE
 
     StaticInstPtr
     decodeSveLoadStructsSICusLoadInputs_I2CE(ExtMachInst machInst)

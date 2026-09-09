@@ -18,6 +18,9 @@ SC_MODULE(reduce_mod){
     // Vector registers with the results to be reduced
     sc_in<float> mac_res[N_LEARNERS][N_LANES];
 
+    // Results loaded from memory and to be added to the new one
+    sc_in<float> res_from_mem[N_LEARNERS];
+
     // Containes the reduced results
     sc_signal<float> reduced_reg[N_LEARNERS], reduced_nxt[N_LEARNERS];
 
@@ -34,7 +37,7 @@ SC_MODULE(reduce_mod){
             for(int lane=0; lane<N_LANES; lane++){
                 sensitive << mac_res[learner][lane];
             }
-            // sensitive << pipeline_add[learner][ADD_STAGES-1];
+            sensitive << res_from_mem[learner];
             sensitive << reduced_reg[learner];
         }
     }

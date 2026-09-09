@@ -32,7 +32,7 @@ SC_MODULE(I2CE_accelerator){
     sc_in<bool>                             red_trigger;
 
     sc_signal<bool>                         en_prev_reg, en_prev_nxt;    // To detecet the rising edge --> start of compute loop
-    sc_signal<bool>                         en_reg, en_nxt;
+    // sc_signal<bool>                         en_reg, en_nxt;
 
     sc_signal<bool>                         tbl_en_sig, tbl_en_nxt;
     sc_signal<bool>                         mac_en_sig, mac_en_nxt;
@@ -55,6 +55,7 @@ SC_MODULE(I2CE_accelerator){
     sc_signal<sc_uint<8>>                   idx_processed_cnt_reg, idx_processed_cnt_nxt; 
 
     sc_in<float>                            res_tmp[N_LEARNERS];
+    sc_signal<float>                        res_from_mem_reg[N_LEARNERS];
 
     // Register for the packed indexes to be unpacked
     sc_signal<sc_dt::sc_uint<32>>           packed_idx_reg[N_LANES], packed_idx_nxt[N_LANES];
@@ -118,7 +119,6 @@ SC_MODULE(I2CE_accelerator){
         SC_METHOD(comb_method);
         sensitive << en_input;
         sensitive << en_prev_reg;
-        sensitive << en_reg;
         sensitive << tbl_en_sig;
         sensitive << mac_en_sig;
         sensitive << in_ptr_reg;
@@ -133,6 +133,8 @@ SC_MODULE(I2CE_accelerator){
                     sensitive << inputs_in[learner][lane][i];
                 }
             }
+
+            sensitive << res_tmp[learner];
         }
 
 
@@ -145,7 +147,7 @@ SC_MODULE(I2CE_accelerator){
         getidx_mod->clk(clk);
         getidx_mod->rst(rst);
         getidx_mod->get_idx_en(en_input);
-        getidx_mod->en_out(tbl_en_sig);
+        // getidx_mod->en_out(tbl_en_sig);
         for(int lane=0; lane<N_LANES; lane++){
             getidx_mod->packed_indexes[lane](packed_idx_reg[lane]);
             getidx_mod->out[lane](res_getidx_mod_wire[lane]);
@@ -195,6 +197,7 @@ SC_MODULE(I2CE_accelerator){
             for(int lane=0; lane<N_LANES; lane++){
                 red_mod->mac_res[learner][lane](res_mac_mod_wire[learner][lane]);
             }
+            red_mod->res_from_mem[learner](res_from_mem_reg[learner]);
             red_mod->out[learner](res_red_mod_wire[learner]);
         }
 
@@ -217,6 +220,7 @@ SC_MODULE(I2CE_accelerator){
     void clock_thread();
     // void comb_method_red_en();
     void comb_method();
+    void ld_res_mem();
     void trigger_reduce_comb_method();
 
 

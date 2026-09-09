@@ -47,8 +47,10 @@ class I2CE_driver : public gem5::SimObject
         void ld_codebooks(int learner, int lane, float cb_word);
         void load_packed_idxs(int lane, uint32_t idx_word);
 
-        void push_tmp_res(int learner_id, float val);
+        void ld_tmp_res(int learner_id, float val);
         float get_out_value(int learner_id);
+
+        int get_n_learners();
 
 
     private:

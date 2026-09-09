@@ -9,7 +9,7 @@ void I2CE_accelerator::clock_thread()
 
     in_ptr_reg.write(0);
     en_prev_reg.write(false);
-    en_reg.write(false);        // Probably it can be removed!
+    // en_reg.write(false);        // Probably it can be removed!
     idx_processed_cnt_reg.write(0);
     red_en_reg.write(false);
     red_trigger_prev_reg.write(false);
@@ -28,6 +28,9 @@ void I2CE_accelerator::clock_thread()
             codebook_reg[learner][lane] = 0;
             inputs_reg[learner][lane] = 0;
         }
+
+
+        res_from_mem_reg[learner].write(0.0);
     }
 
     // for(int add_stage=0; add_stage<ADD_DRAIN_EN; add_stage++){
@@ -77,11 +80,14 @@ void I2CE_accelerator::clock_thread()
             for(int lane=0; lane<N_LANES; lane++){
                 codebook_reg[learner][lane].write(codebook_nxt[learner][lane]);
             }
+
+            // Load the temp result from memory
+            res_from_mem_reg[learner].write(res_tmp[learner].read());
         }
 
 
         // Propagate the EN signal through the modules
-        en_reg.write(en_nxt.read());
+        // en_reg.write(en_nxt.read());
         // tbl_en_sig.write(tbl_en_nxt.read());
         mac_en_sig.write(mac_en_nxt.read());
 
@@ -144,23 +150,23 @@ void I2CE_accelerator::comb_method()
     }
 
 
-    bool can_update_in_ptr = (input_pointer < (ACT_BUF_SIZE - 1));
+    // bool can_update_in_ptr = (input_pointer < (ACT_BUF_SIZE - 1));
     // if(can_update_in_ptr){
-        in_ptr_nxt = in_ptr_reg.read() + 1;
+    in_ptr_nxt = in_ptr_reg.read() + 1;
      // }
 
 
 
-    // Update the EN signal
-    en_nxt.write(en_reg.read());
+    // // Update the EN signal
+    // en_nxt.write(en_reg.read());
 
-    if(en_input.read()){
-        en_nxt.write(true);
-    }
+    // if(en_input.read()){
+    //     en_nxt.write(true);
+    // }
 
-    if(!can_update_in_ptr){
-        en_nxt.write(false);
-    }
+    // if(!can_update_in_ptr){
+    //     en_nxt.write(false);
+    // }
 
 
     mac_en_nxt = tbl_en_sig.read();
@@ -170,9 +176,6 @@ void I2CE_accelerator::comb_method()
 
 void I2CE_accelerator::trigger_reduce_comb_method()
 {
-    // Creates a pulse for the 
-    printf("REDUCE TOGGLE!\n");
-
     red_trigger_prev_nxt.write(red_trigger.read());
 
 

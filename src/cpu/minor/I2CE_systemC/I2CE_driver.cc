@@ -74,7 +74,7 @@ I2CE_driver::startup()
     sc_core::sc_trace(tf, rst, "rst");
     
     sc_core::sc_trace(tf, en, "en");
-    sc_core::sc_trace(tf, accel->en_reg, "accel.en_reg");
+    // sc_core::sc_trace(tf, accel->en_reg, "accel.en_reg");
     sc_core::sc_trace(tf, accel->tbl_mod->tbl_en, "accel.tbl_mod.tbl_mod_EN");
     sc_core::sc_trace(tf, accel->mac_mod->mac_en, "accel.mac_mod_EN");
 
@@ -90,8 +90,8 @@ I2CE_driver::startup()
     sc_core::sc_trace(tf, accel->getidx_mod->sel_nxt, "accel.GET_IDX.sel_nxt");
     sc_core::sc_trace(tf, accel->getidx_mod->sel_reg, "accel.GET_IDX.sel_reg");
 
-    sc_core::sc_trace(tf, accel->getidx_mod->idx_en_nxt, "accel.GET_IDX.idx_en_nxt");
-    sc_core::sc_trace(tf, accel->getidx_mod->idx_en_sig, "accel.GET_IDX.idx_en_sig");
+    // sc_core::sc_trace(tf, accel->getidx_mod->idx_en_nxt, "accel.GET_IDX.idx_en_nxt");
+    // sc_core::sc_trace(tf, accel->getidx_mod->idx_en_sig, "accel.GET_IDX.idx_en_sig");
 
 
     for(int stage=0; stage<EN_STAGES; stage++){
@@ -150,11 +150,14 @@ I2CE_driver::startup()
 
         sc_core::sc_trace(tf, accel->red_mod->reduced_reg[learner], "accel.red_mod.reduced_reg[" + std::to_string(learner) + "]");
 
+        sc_core::sc_trace(tf, accel->res_from_mem_reg[learner], "accel.res_from_mem_reg[" + std::to_string(learner) + "]");
+
         sc_core::sc_trace(tf, accel->red_out[learner], "accel.RED_OUT[" + std::to_string(learner) + "]");
 
         sc_core::sc_trace(tf, accel->res_tmp[learner], "accel.RES_TMP[" + std::to_string(learner) + "]");
 
         sc_core::sc_trace(tf, accel->res_red_mod_wire[learner], "accel.res_red_mod_wire[" + std::to_string(learner) + "]");
+
     
     }
 
@@ -316,10 +319,13 @@ void I2CE_driver::load_packed_idxs(int lane, uint32_t idx_word)
 }
 
 
-void I2CE_driver::push_tmp_res(int learner_id, float val)
+void I2CE_driver::ld_tmp_res(int learner_id, float val)
 {
     // printf("Driver --> pushing tmp res = %d | %f\n", learner_id, val);
+
     res_tmp[learner_id].write(val);
+
+    // Also reset the result registers used for the reduction
 }
 
 float I2CE_driver::get_out_value(int learner_id)
@@ -327,6 +333,14 @@ float I2CE_driver::get_out_value(int learner_id)
     // printf("Driver --> getting out value = %d --> %f\n", learner_id, red_out[learner_id]);
     return red_out[learner_id];
 }
+
+
+int I2CE_driver::get_n_learners()
+{
+    return N_LEARNERS;
+}
+
+
 
 
 

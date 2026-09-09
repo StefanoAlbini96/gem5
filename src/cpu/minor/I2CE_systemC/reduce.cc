@@ -38,8 +38,11 @@ void reduce_mod::comb_method()
         for(int lane=0; lane<N_LANES; lane++){
             res_tmp = res_tmp + mac_res[learner][lane].read();
         }
-        reduced_nxt[learner].write(res_tmp);
 
+        // Add the previous result from memory
+        res_tmp += res_from_mem[learner].read();
+
+        reduced_nxt[learner].write(res_tmp);
 
         out[learner].write(reduced_reg[learner].read());
     }

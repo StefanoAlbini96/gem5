@@ -188,7 +188,7 @@ class MinorDefaultCusFakeLoad_SC(MinorFU):
         MinorFUTiming(description="CusFUFakeLoad_SC", srcRegsRelativeLats=[2])
     ]
     issueLat = 1
-    opLat = 5
+    opLat = 1
 
 class MinorDefaultCusCompute_SC(MinorFU):
     opClasses = minorMakeOpClassSet(["CusFUCompute_SC"])

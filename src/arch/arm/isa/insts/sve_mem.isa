@@ -1502,6 +1502,22 @@ let {{
             }
         }
         '''
+
+        loadRdEnableCode_SC_TmpRes = '''
+        auto rdEn = std::vector<bool>(sizeof(MemElemType) * eCount, true);
+
+        gem5::I2CE_driver* i2ce_driver_ptr = xc->tcBase()->getCpuPtr()->get_I2CE_Driver();
+        unsigned n_learners = i2ce_driver_ptr->get_n_learners();
+
+        if(n_learners <= eCount){
+            for (int i = 0; i < n_learners; i++) {
+                for (int j = 0; j < sizeof(MemElemType); j++) {
+                    rdEn[sizeof(MemElemType) * i + j] = false;
+                }
+            }
+        }
+        '''
+
         loadMemAccCode = '''
         for (int i = 0; i < eCount; i++) {
             if (GpOp_x[i]) {
@@ -1530,6 +1546,23 @@ let {{
                 i2ce_driver_ptr->load_packed_idxs(i, memDataView[i]);
             } else {
                 i2ce_driver_ptr->load_packed_idxs(i, 0);
+            }
+        }
+        '''
+
+        loadMemAccCodeCus_I2CE_loadTmpRes = '''
+        // Pointer to the DRIVER
+
+        gem5::I2CE_driver* i2ce_driver_ptr = xc->tcBase()->getCpuPtr()->get_I2CE_Driver();
+        unsigned n_learners = i2ce_driver_ptr->get_n_learners();
+
+        if(n_learners <= eCount){
+            for (int i = 0; i < n_learners; i++) {        
+                i2ce_driver_ptr->ld_tmp_res(i, bitsToFloat32(memDataView[i]));
+
+                // if (GpOp_x[i]) {
+                //}
+                // No else since the accelerator has many lanes as the number or learners
             }
         }
         '''
@@ -1682,6 +1715,18 @@ let {{
              'fa_code' : ''},
             ['IsLoad'])
 
+        loadCus_I2CE_LDTmpRes = ArmInstObjParams('ldtmpres1',
+            'SveContigLoadSI_I2CE_LDTmpRes' if offsetIsImm else 'SveContigLoadSS_I2CE_LDTmpRes',
+            'SveContigMemSI' if offsetIsImm else 'SveContigMemSS',
+            {'tpl_header': tplHeader,
+             'tpl_args': tplArgs,
+             'rden_code' : loadRdEnableCode_SC_TmpRes,
+             'memacc_code': loadMemAccCodeCus_I2CE_loadTmpRes,
+             'ea_code' : sveEnabledCheckCode + eaCode,
+             'fault_code' : '',
+             'fa_code' : ''},
+            ['IsLoad'])
+
         storeIop = ArmInstObjParams('st1',
             'SveContigStoreSI' if offsetIsImm else 'SveContigStoreSS',
             'SveContigMemSI' if offsetIsImm else 'SveContigMemSS',
@@ -1741,6 +1786,7 @@ let {{
             header_output += SveContigMemSIOpDeclare.subst(loadIop)
             header_output += SveContigMemSIOpDeclare.subst(loadCusLDIDXIop)
             header_output += SveContigMemSIOpDeclare.subst(loadCus_I2CELDIDXIop)
+            header_output += SveContigMemSIOpDeclare.subst(loadCus_I2CE_LDTmpRes)
             header_output += SveContigMemSIOpDeclare.subst(storeIop)
             header_output += SveContigMemSIOpDeclare.subst(storeCusIop)
             header_output += SveContigMemSIOpDeclare.subst(storeCus_I2CE_Iop)
@@ -1750,6 +1796,7 @@ let {{
             header_output += SveContigMemSSOpDeclare.subst(loadIop)
             header_output += SveContigMemSSOpDeclare.subst(loadCusLDIDXIop)
             header_output += SveContigMemSSOpDeclare.subst(loadCus_I2CELDIDXIop)
+            header_output += SveContigMemSSOpDeclare.subst(loadCus_I2CE_LDTmpRes)
             header_output += SveContigMemSSOpDeclare.subst(storeIop)
             header_output += SveContigMemSSOpDeclare.subst(storeCusIop)
             header_output += SveContigMemSSOpDeclare.subst(storeCus_I2CE_Iop)
@@ -1765,6 +1812,9 @@ let {{
             SveContigLoadExecute.subst(loadCus_I2CELDIDXIop) +
             SveContigLoadInitiateAcc.subst(loadCus_I2CELDIDXIop) +
             SveContigLoadCompleteAcc.subst(loadCus_I2CELDIDXIop) +
+            SveContigLoadExecute.subst(loadCus_I2CE_LDTmpRes) +
+            SveContigLoadInitiateAcc.subst(loadCus_I2CE_LDTmpRes) +
+            SveContigLoadCompleteAcc.subst(loadCus_I2CE_LDTmpRes) +
             SveContigStoreExecute.subst(storeIop) +
             SveContigStoreInitiateAcc.subst(storeIop) +
             SveContigStoreCompleteAcc.subst(storeIop) +
@@ -1796,6 +1846,12 @@ let {{
             substDict = {'tpl_args': '<%s>' % ', '.join(args),
                          'class_name': 'SveContigLoadSI_I2CELDIDX' if offsetIsImm
                                        else 'SveContigLoadSS_I2CELDIDX'}
+            exec_output += SveContigMemExecDeclare.subst(substDict)
+
+        for args in loadTplArgs:
+            substDict = {'tpl_args': '<%s>' % ', '.join(args),
+                         'class_name': 'SveContigLoadSI_I2CE_LDTmpRes' if offsetIsImm
+                                       else 'SveContigLoadSS_I2CE_LDTmpRes'}
             exec_output += SveContigMemExecDeclare.subst(substDict)
 
         for args in storeTplArgs:
@@ -2743,7 +2799,7 @@ let {{
                     float value = bitsToFloat32(memDataView[i]);
                     // Tmp = 1;
                     Tmp = memDataView[i];
-                    i2ce_driver_ptr->push_tmp_res(i, value);
+                    i2ce_driver_ptr->ld_tmp_res(i, value);
                 }
         }
         '''
