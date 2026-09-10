@@ -11,8 +11,14 @@ void I2CE_accelerator::clock_thread()
     en_prev_reg.write(false);
     // en_reg.write(false);        // Probably it can be removed!
     idx_processed_cnt_reg.write(0);
+
+    mac_res_reset_reg.write(false);
+    // mac_res_reset_prev_reg.write(false);
+    rst_mac_prev_reg.write(false);
+
     red_en_reg.write(false);
     red_trigger_prev_reg.write(false);
+    
 
     for(int lane=0; lane<N_LANES; lane++){
         packed_idx_reg[lane] = 0;
@@ -33,16 +39,19 @@ void I2CE_accelerator::clock_thread()
         res_from_mem_reg[learner].write(0.0);
     }
 
-    // for(int add_stage=0; add_stage<ADD_DRAIN_EN; add_stage++){
-    //     add_drain_en_sig[add_stage].write(false);
-    // }
-
     wait();
 
     while(1){
 
 
         en_prev_reg.write(en_prev_nxt.read());
+
+
+        mac_res_reset_reg.write(mac_res_reset_nxt.read());
+        rst_mac_prev_reg.write(rst_mac_prev_nxt.read());
+        // mac_res_reset_reg.write(mac_res_reset_nxt.read());
+        // mac_res_reset_prev_reg.write(mac_res_reset_prev_nxt.read());
+
         red_en_reg.write(red_en_nxt.read());
         red_trigger_prev_reg.write(red_trigger_prev_nxt.read());
 
@@ -183,6 +192,19 @@ void I2CE_accelerator::trigger_reduce_comb_method()
         red_en_nxt.write(true);
     } else {
         red_en_nxt.write(false);
+    }
+}
+
+
+void I2CE_accelerator::trigger_mac_res_reset_comb_method()
+{
+    rst_mac_prev_nxt.write(rst_mac.read());
+
+
+    if(rst_mac.read() != rst_mac_prev_reg.read()){
+        mac_res_reset_nxt.write(true);
+    } else {
+        mac_res_reset_nxt.write(false);
     }
 }
 

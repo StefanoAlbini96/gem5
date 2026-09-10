@@ -16,6 +16,8 @@ SC_MODULE(simd_mac){
     sc_in<bool> mac_en; // Signals that the mac result should be registered
     sc_in<bool> add_en; // Enables the ADD DRAIN pipeline. This needs to have a delay so that the pipeline can be fully drained
 
+    // sc_in<bool> clear_res_toggle;   // Whenever this is changed, the result registers are cleared
+
     sc_signal<bool>     mul_en_sig[MUL_EN];
     sc_signal<bool>     add_drain_en_sig[ADD_DRAIN_EN];
 
@@ -64,6 +66,7 @@ SC_MODULE(simd_mac){
         for(int en=0; en<ADD_DRAIN_EN; en++){
             sensitive << add_drain_en_sig[en];
         }
+        // sensitive << clear_res_toggle;
         sensitive << add_en_sig;
         sensitive << n_adds_cnt_reg;
         for(int learner=0; learner<N_LEARNERS; learner++){

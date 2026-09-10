@@ -64,6 +64,7 @@ class I2CE_driver : public gem5::SimObject
         sc_core::sc_clock                           clk;
         // sc_core::sc_signal<bool>    clk;
         sc_core::sc_signal<bool>                    rst;
+        sc_core::sc_signal<bool>                    rst_mac;
         sc_core::sc_signal<bool>                    en;
         sc_core::sc_signal<bool>                    red_trigger;
 

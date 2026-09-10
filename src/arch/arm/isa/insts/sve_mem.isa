@@ -1556,8 +1556,10 @@ let {{
         gem5::I2CE_driver* i2ce_driver_ptr = xc->tcBase()->getCpuPtr()->get_I2CE_Driver();
         unsigned n_learners = i2ce_driver_ptr->get_n_learners();
 
+
         if(n_learners <= eCount){
             for (int i = 0; i < n_learners; i++) {        
+
                 i2ce_driver_ptr->ld_tmp_res(i, bitsToFloat32(memDataView[i]));
 
                 // if (GpOp_x[i]) {
@@ -2799,7 +2801,7 @@ let {{
                     float value = bitsToFloat32(memDataView[i]);
                     // Tmp = 1;
                     Tmp = memDataView[i];
-                    i2ce_driver_ptr->ld_tmp_res(i, value);
+                    //i2ce_driver_ptr->ld_tmp_res(i, value);
                 }
         }
         '''

@@ -180,6 +180,12 @@ void simd_mac::add_comb_method()
             sum += add_res_reg[learner][lane].read();
             res_nxt[learner][lane] = sum;
 
+            // if(!clear_res_toggle.read()){
+            //     res_nxt[learner][lane] = sum;
+            // } else {
+            //     res_nxt[learner][lane] = 0.0;
+            // }
+
             // Write the output
             out[learner][lane].write(res_reg[learner][lane].read());
         }

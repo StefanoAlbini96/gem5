@@ -23,6 +23,7 @@ I2CE_driver::I2CE_driver(const gem5::I2CE_driverParams &params) :
     accel->clk(clk);
 
     accel->en_input(en);
+    accel->rst_mac(rst_mac);
     accel->red_trigger(red_trigger);
     accel->rst(rst);
     // accel->a(ab);
@@ -72,11 +73,20 @@ I2CE_driver::startup()
     tf = sc_core::sc_create_vcd_trace_file("i2ce_wave");
     sc_core::sc_trace(tf, clk, "clk");
     sc_core::sc_trace(tf, rst, "rst");
-    
+
     sc_core::sc_trace(tf, en, "en");
     // sc_core::sc_trace(tf, accel->en_reg, "accel.en_reg");
     sc_core::sc_trace(tf, accel->tbl_mod->tbl_en, "accel.tbl_mod.tbl_mod_EN");
     sc_core::sc_trace(tf, accel->mac_mod->mac_en, "accel.mac_mod_EN");
+
+
+    sc_core::sc_trace(tf, accel->rst_mac, "accel.rst_mac");
+
+    sc_core::sc_trace(tf, accel->mac_res_reset_reg, "accel.mac_res_reset_reg");
+    sc_core::sc_trace(tf, accel->mac_res_reset_nxt, "accel.mac_res_reset_nxt");
+    sc_core::sc_trace(tf, accel->rst_mac_prev_reg, "accel.rst_mac_prev_reg");
+    sc_core::sc_trace(tf, accel->rst_mac_prev_nxt, "accel.rst_mac_prev_nxt");
+
 
     sc_core::sc_trace(tf, accel->red_trigger, "accel.red_trigger");
     sc_core::sc_trace(tf, accel->red_en_nxt, "accel.red_en_nxt");
@@ -221,59 +231,10 @@ I2CE_driver::reduce_enable()
 
 
 
-// void
-// I2CE_driver::compute()
-// {
-//     printf("--- Compute ---\n");
-
-//     int nelems = input_fifo.size();
-//     printf("[compute()] FIFO nelems = %d\n", nelems);
-
-//     bool enough_data = (nelems >= (N_LEARNERS * N_LANES));
-//     bool mac_ready = accel->mac_en_sig.read();
-
-//     if(enough_data){
-//         en.write(true);
-//         if(mac_ready){
-
-//             printf("Enough data --> EN\n");
-
-//             for(int learn=0; learn<N_LEARNERS; learn++){
-//                 for(int i=0; i<N_LANES; i++){
-//                     // input_vect[i].write(input_fifo.read());
-//                     input_vect[learn][i].write(input_fifo.front());
-//                     input_fifo.pop_front();
-
-//                     nelems = input_fifo.size();
-//                     printf("[compute() pop_front()] FIFO nelems = %d\n", nelems);
-//                 }
-//             }
-//         }
-//     } else {
-//         en.write(false);
-//         printf("Few data --> !EN\n");
-//     }
-
-
-// }
-
-
-
-
 
 void
 I2CE_driver::drive()
 {
-    
-    // std::cout << sc_core::sc_is_running() << "\n";
-    // printf("Driving with value 10.0...\n");
-
-    // en.write(true);
-
-    // ab.write(10.0);
-
-
-    // test();
 }
 
 
@@ -282,8 +243,6 @@ void I2CE_driver::stall()
     printf("Stalling....\n");
     en.write(false);
 
-    // Close VCD trace file
-    // sc_core::sc_close_vcd_trace_file(tf);
 }
 
 
@@ -323,9 +282,10 @@ void I2CE_driver::ld_tmp_res(int learner_id, float val)
 {
     // printf("Driver --> pushing tmp res = %d | %f\n", learner_id, val);
 
-    res_tmp[learner_id].write(val);
+    res_tmp[learner_id].write(val);    
 
     // Also reset the result registers used for the reduction
+    rst_mac.write(!rst_mac.read());
 }
 
 float I2CE_driver::get_out_value(int learner_id)

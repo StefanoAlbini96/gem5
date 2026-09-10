@@ -27,10 +27,12 @@ SC_MODULE(I2CE_accelerator){
     sc_in<bool>                             clk;
     sc_in<bool>                             rst;
 
+    sc_in<bool>                             rst_mac;
+    sc_signal<bool>                         mac_res_reset_reg, mac_res_reset_nxt;
+    sc_signal<bool>                         rst_mac_prev_reg, rst_mac_prev_nxt;
+    // sc_signal<bool>                         mac_res_reset_prev_reg, mac_res_reset_prev_nxt;
+
     sc_in<bool>                             en_input;
-
-    sc_in<bool>                             red_trigger;
-
     sc_signal<bool>                         en_prev_reg, en_prev_nxt;    // To detecet the rising edge --> start of compute loop
     // sc_signal<bool>                         en_reg, en_nxt;
 
@@ -38,6 +40,8 @@ SC_MODULE(I2CE_accelerator){
     sc_signal<bool>                         mac_en_sig, mac_en_nxt;
 
     sc_signal<bool>                         mac_en_out_wire;
+
+    sc_in<bool>                             red_trigger;
     sc_signal<bool>                         red_en_reg, red_en_nxt;
     sc_signal<bool>                         red_trigger_prev_reg, red_trigger_prev_nxt;
 
@@ -138,6 +142,11 @@ SC_MODULE(I2CE_accelerator){
         }
 
 
+        SC_METHOD(trigger_mac_res_reset_comb_method);
+        sensitive << rst_mac;
+        sensitive << mac_res_reset_reg;
+
+
         SC_METHOD(trigger_reduce_comb_method);
         sensitive << red_trigger;
         sensitive << red_en_reg;
@@ -146,6 +155,7 @@ SC_MODULE(I2CE_accelerator){
         // Bind the ports for the get_idx module
         getidx_mod->clk(clk);
         getidx_mod->rst(rst);
+        // getidx_mod->rst(mac_res_reset_reg);
         getidx_mod->get_idx_en(en_input);
         // getidx_mod->en_out(tbl_en_sig);
         for(int lane=0; lane<N_LANES; lane++){
@@ -172,9 +182,8 @@ SC_MODULE(I2CE_accelerator){
 
         // Bind the ports for the simd_mac module
         mac_mod->clk(clk);
-        mac_mod->rst(rst);
-        // mac_mod->mac_en(mac_en_sig);
-        // mac_mod->add_en(mac_en_sig);
+        mac_mod->rst(mac_res_reset_reg);
+        // mac_mod->clear_res_toggle(mac_res_reset_reg);
         mac_mod->mac_en(pipeline_en[1]);
         mac_mod->add_en(pipeline_en[2]);
         // mac_mod->en_out(red_en_sig);
@@ -222,6 +231,7 @@ SC_MODULE(I2CE_accelerator){
     void comb_method();
     void ld_res_mem();
     void trigger_reduce_comb_method();
+    void trigger_mac_res_reset_comb_method();
 
 
     void end_of_elaboration() override
