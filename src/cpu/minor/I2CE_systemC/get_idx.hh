@@ -20,7 +20,7 @@ SC_MODULE(get_idx){
     // sc_in<bool> ready;
 
 
-    // sc_signal<bool>                     idx_en_sig, idx_en_nxt;
+    sc_signal<bool>                     idx_en_sig, idx_en_nxt;
 
     // Selects which lane has to be unpacked
     sc_signal<sc_uint<LANE_IDX_BIT>>    sel_reg, sel_nxt;
