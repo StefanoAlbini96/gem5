@@ -642,52 +642,6 @@ output decoder {{
 
 
 
-    template <class etype>
-    StaticInstPtr
-    decodeSveStructMemSIInstsCusLdAddSt_I2CE(uint8_t esize, ExtMachInst machInst,
-            RegIndex dest, RegIndex gp, RegIndex xn,
-            int64_t imm)
-    {
-
-        static const char* mnem = "test";
-
-        return new SveLdAddStStructSICus_I2CE_SC<etype,
-                SveContigLoadSICusOutTMP_I2CE,
-                SveContigStoreSICus_I2CE>(
-                        mnem, machInst, MemReadOp,
-                        dest, gp, xn, imm);
-    }
-
-
-
-    StaticInstPtr
-    decodeSveStructMemSIInstsLdAddSt_I2CE(uint8_t esize, ExtMachInst machInst,
-            RegIndex dest, RegIndex gp, RegIndex xn,
-            int64_t imm)
-    {
-        switch (esize) {
-            case 0:
-                return decodeSveStructMemSIInstsCusLdAddSt_I2CE<uint8_t>(esize,
-                        machInst, dest, gp, xn, imm);
-            case 1:
-                return decodeSveStructMemSIInstsCusLdAddSt_I2CE<uint16_t>(esize,
-                        machInst, dest, gp, xn, imm);
-            case 2:
-                return decodeSveStructMemSIInstsCusLdAddSt_I2CE<uint32_t>(esize,
-                        machInst, dest, gp, xn, imm);
-            case 3:
-                return decodeSveStructMemSIInstsCusLdAddSt_I2CE<uint64_t>(esize,
-                        machInst, dest, gp, xn, imm);
-        }
-        return new Unknown64(machInst);
-    }
-
-
-
-
-
-
-
 
     template <class etype>
     StaticInstPtr
@@ -1600,19 +1554,28 @@ let {{
         storeMemAccCusCode_I2CE = '''
 
         gem5::I2CE_driver* i2ce_driver_ptr = xc->tcBase()->getCpuPtr()->get_I2CE_Driver();
+        unsigned n_learners = i2ce_driver_ptr->get_n_learners();
 
+        if(n_learners <= eCount){
 
-        for (int i = 0; i < eCount; i++) {
-            if (GpOp_x[i]) {
+            for(int i=0; i<n_learners; i++){
                 float out_val = i2ce_driver_ptr->get_out_value(i);
                 cout << \"out_val = \" << out_val << endl;
                 memDataView[i] = out_val;
-            } else {
-                memDataView[i] = 0;
-                for (int j = 0; j < sizeof(MemElemType); j++) {
-                    wrEn[sizeof(MemElemType) * i + j] = false;
-                }
             }
+
+            //for (int i = 0; i < eCount; i++) {
+            //    if (GpOp_x[i]) {
+            //        float out_val = i2ce_driver_ptr->get_out_value(i);
+            //        cout << \"out_val = \" << out_val << endl;
+            //        memDataView[i] = out_val;
+            //    } else {
+            //        memDataView[i] = 0;
+            //        for (int j = 0; j < sizeof(MemElemType); j++) {
+            //            wrEn[sizeof(MemElemType) * i + j] = false;
+            //        }
+            //    }
+            //}
         }
         //fup->reset_out_vals();
         '''

@@ -4158,6 +4158,8 @@ namespace Aarch64
     }  // decodeSveContigStoreSICus
 
 
+
+    // Used to store the final result for multiple learners
     StaticInstPtr
     decodeSveContigStoreSICus_I2CE(ExtMachInst machInst)
     {
@@ -4167,8 +4169,11 @@ namespace Aarch64
         RegIndex pg = (RegIndex) (uint8_t) bits(machInst, 12, 10);
 
         uint8_t msz = bits(machInst, 24, 23);
-        // uint8_t upPredLane = (uint8_t) bits(machInst, 4, 0);
-        return decodeSveStructMemSIInstsLdAddSt_I2CE(msz, machInst, zt, pg, rn, imm);
+
+        return decodeSveContigStoreSIInstsCus<SveContigStoreSICus_I2CE>(
+                    bits(machInst, 24, 21), machInst, zt, pg, rn, imm);
+
+        //return decodeSveStructMemSIInstsLdAddSt_I2CE(msz, machInst, zt, pg, rn, imm);
 
     }  // decodeSveContigStoreSICus_I2CE
 

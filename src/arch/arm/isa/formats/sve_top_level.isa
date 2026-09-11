@@ -499,7 +499,11 @@ namespace Aarch64
                 return new Reduce_en64(machInst, rdsp, rnsp);
                 }
             case 0x7:
-                //return decodeSveContigStoreSICus_I2CE(machInst);
+                {
+                // SC STORE
+                printf("Decoding SC_STORE\n");
+                return decodeSveContigStoreSICus_I2CE(machInst);
+                }
             default:
                 return new Unknown64(machInst);
 
