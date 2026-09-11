@@ -327,7 +327,7 @@ let {{
         auto tmp = Op1;
 
         """, # code
-        overrideOpClass="CusFUCompute_SCOp"
+        overrideOpClass="CusReduce_SCOp"
     )
 
 

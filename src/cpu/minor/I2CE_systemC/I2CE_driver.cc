@@ -290,7 +290,7 @@ void I2CE_driver::ld_tmp_res(int learner_id, float val)
 
 float I2CE_driver::get_out_value(int learner_id)
 {
-    // printf("Driver --> getting out value = %d --> %f\n", learner_id, red_out[learner_id]);
+    // printf("Driver --> getting out value = %d --> %f\n", learner_id, red_out[learner_id].read());
     return red_out[learner_id];
 }
 

@@ -35,8 +35,18 @@ void reduce_mod::comb_method()
 
         float res_tmp = 0.0;
 
+        // if(learner==0){
+        //     printf("\nREDUCING...\n");
+        // }
+
         for(int lane=0; lane<N_LANES; lane++){
+            // if(learner==0){
+            //     printf("%f += %f = ", res_tmp, mac_res[learner][lane].read());
+            // }
             res_tmp = res_tmp + mac_res[learner][lane].read();
+            // if(learner==0){
+            //     printf("%f\n", res_tmp);
+            // }
         }
 
         // Add the previous result from memory

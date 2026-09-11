@@ -207,7 +207,7 @@ SC_MODULE(I2CE_accelerator){
                 red_mod->mac_res[learner][lane](res_mac_mod_wire[learner][lane]);
             }
             red_mod->res_from_mem[learner](res_from_mem_reg[learner]);
-            red_mod->out[learner](res_red_mod_wire[learner]);
+            red_mod->out[learner](red_out[learner]);
         }
 
 
@@ -218,7 +218,7 @@ SC_MODULE(I2CE_accelerator){
         for(int learner=0; learner<N_LEARNERS; learner++){
             st_mod->red_res[learner](res_red_mod_wire[learner]);
             st_mod->res_tmp_from_mem[learner](res_tmp[learner]);
-            st_mod->out[learner](red_out[learner]);
+            st_mod->out[learner](res_red_mod_wire[learner]);
         }
 
 
