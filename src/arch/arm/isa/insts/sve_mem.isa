@@ -466,8 +466,8 @@ output decoder {{
     template <class etype>
     StaticInstPtr
     decodeSveStructLoadSIInstsByNRegCusLDINPUTS_I2CE(uint8_t esize, ExtMachInst machInst,
-            RegIndex pg, RegIndex xn,
-            uint8_t imm, int numregs)
+            uint16_t n_loads, RegIndex upPredLane, RegIndex xn,
+            int numregs)
     {
         static const char* nm[5][4] = {
             { nullptr, nullptr, nullptr, nullptr},
@@ -479,22 +479,22 @@ output decoder {{
         switch (numregs) {
             case 2:
                 return new SveLdStructSICus_multiInputs<etype,
-                        SveLoadRegImmMicroop,
+                        SveLoadRegImmMicroopCus,
                         SveDeIntrlv2MicroopCusLDINPUTS_I2CE>(
                                nm[numregs][esize], machInst, MemReadOp,
-                               pg, xn, numregs, imm);
+                               n_loads, upPredLane, xn, numregs);
             case 3:
                 return new SveLdStructSICus_multiInputs<etype,
-                        SveLoadRegImmMicroop,
+                        SveLoadRegImmMicroopCus,
                         SveDeIntrlv3MicroopCusLDINPUTS_I2CE>(
                                nm[numregs][esize], machInst, MemReadOp,
-                               pg, xn, numregs, imm);
+                               n_loads, upPredLane, xn, numregs);
             case 4:
                 return new SveLdStructSICus_multiInputs<etype,
-                        SveLoadRegImmMicroop,
+                        SveLoadRegImmMicroopCus,
                         SveDeIntrlv4MicroopCusLDINPUTS_I2CE>(
                                nm[numregs][esize], machInst, MemReadOp,
-                               pg, xn, numregs, imm);
+                               n_loads, upPredLane, xn, numregs);
         }
         return new Unknown64(machInst);
     }
@@ -503,22 +503,22 @@ output decoder {{
 
     StaticInstPtr
     decodeSveStructLoadSIInstsCusLDINPUTS_I2CE(uint8_t esize, ExtMachInst machInst,
-            RegIndex pg, RegIndex xn,
-            uint8_t imm, int numregs)
+            uint16_t n_loads, RegIndex upPredLane, RegIndex xn,
+            int numregs)
     {
         switch (esize) {
             case 0:
                 return decodeSveStructLoadSIInstsByNRegCusLDINPUTS_I2CE<uint8_t>(esize,
-                        machInst, pg, xn, imm, numregs);
+                        machInst, n_loads, upPredLane, xn, numregs);
             case 1:
                 return decodeSveStructLoadSIInstsByNRegCusLDINPUTS_I2CE<uint16_t>(esize,
-                        machInst, pg, xn, imm, numregs);
+                        machInst, n_loads, upPredLane, xn, numregs);
             case 2:
                 return decodeSveStructLoadSIInstsByNRegCusLDINPUTS_I2CE<uint32_t>(esize,
-                        machInst, pg, xn, imm, numregs);
+                        machInst, n_loads, upPredLane, xn, numregs);
             case 3:
                 return decodeSveStructLoadSIInstsByNRegCusLDINPUTS_I2CE<uint64_t>(esize,
-                        machInst, pg, xn, imm, numregs);
+                        machInst, n_loads, upPredLane, xn, numregs);
         }
         return new Unknown64(machInst);
     }
@@ -2748,9 +2748,9 @@ let {{
         loadMemAccCodeCus = '''
         for (int i = 0; i < eCount; i++) {
             int gpIdx = (regIndex * eCount + i) / numRegs;
-            // cout << \"gpIdx = \" << gpIdx << \"  | UpPredLane = \" << UpPredLane << endl;
+            
+            cout << \"gpIdx = \" << gpIdx << \"  | UpPredLane = \" << UpPredLane << endl;
             if (gpIdx <= UpPredLane) {
-                // float value = bitsToFloat32(memDataView[i]);
                 float value = memDataView[i];
                 AA64FpDest_x[i] = value;
                 // cout << \"Loading for lane \" << gpIdx << \" Value: \" << AA64FpDest_x[i] << \" | \" << bitsToFloat32(value) << endl;

@@ -459,9 +459,7 @@ namespace Aarch64
                 return decodeSveLoadStructsSICusLoadCodebooks_I2CE(machInst);
             case 0x3:
                 {
-                printf("Decoding LD TMP RES\n");
                 // SC LOAD TMP RESULT
-                // return decodeSveLoadStructsSICusLoadTmpRes_I2CE(machInst);
                 return decodeSveContigLoadSICusLDTmpRes_I2CE(machInst);
                 }
             case 0x4:

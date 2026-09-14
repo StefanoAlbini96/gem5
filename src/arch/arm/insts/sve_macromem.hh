@@ -364,41 +364,37 @@ template <typename Element,
 class SveLdStructSICus_multiInputs : public PredMacroOp
 {
   protected:
-    RegIndex gp;
+    uint16_t n_loads;         // How many lanes of packed indexes will be process --> used to determine how many inputs to load
+    RegIndex upPredLane;
     RegIndex base;
     uint8_t numregs;
-    uint8_t n_iters;
 
   public:
     SveLdStructSICus_multiInputs(const char* mnem, ExtMachInst machInst, OpClass __opClass,
-            RegIndex _gp, RegIndex _base,
-            uint8_t _numregs, uint8_t _n_iters)
+            uint16_t _n_loads, RegIndex _upPredLane, RegIndex _base,
+            uint8_t _numregs)
         : PredMacroOp(mnem, machInst, __opClass),
-          gp(_gp),
+          n_loads(_n_loads),
+          upPredLane(_upPredLane),
           base(_base),
-          numregs(_numregs),
-          n_iters(_n_iters)
+          numregs(_numregs)
     {
+
+        // Up Pred Lane for the load.
+        // int elems_per_lane = 16;
 
         uint8_t ld_imm = 0;
 
-        uint8_t n_microOps_per_iter = (numregs * 2);
-        numMicroops = n_microOps_per_iter * n_iters;
-
-
-        printf("N iters = %d\n", n_iters);
-        printf("N regs = %d\n", numregs);
+        printf("N SIMD loads = %d\n", n_loads);
+        printf("N learners = %d\n", numregs);
         printf("Num microops = %d\n", numMicroops);
-
+        
+        uint8_t n_microOps_per_iter = (numregs * 2);
+        numMicroops = n_microOps_per_iter * n_loads;
         microOps = new StaticInstPtr[numMicroops];
 
-
-        for(int it=0; it<n_iters; it++){
+        for(int it=0; it<n_loads; it++){
             uint8_t base_uop_idx = (it * n_microOps_per_iter);
-            
-            // printf("\nLD imm = %d\n", ld_imm);
-            // printf("IT %d\n", it);
-            // printf("Base idx %d\n", base_uop_idx);
 
             // printf("Adding a LD\n");
 
@@ -406,7 +402,7 @@ class SveLdStructSICus_multiInputs : public PredMacroOp
             for(int i=0; i<numregs; i++){
                 microOps[base_uop_idx + i] = new MicroopLdMemType<Element>(
                         mnem, machInst, static_cast<RegIndex>(INTRLVREG0 + i),
-                        gp, _base, ld_imm, _numregs, i);
+                        upPredLane, _base, ld_imm, _numregs, i);
             }
             // printf("LD added\n");
 
@@ -425,6 +421,9 @@ class SveLdStructSICus_multiInputs : public PredMacroOp
 
         //     printf("DEINT added\n");
         }
+
+        // Set to 0 all the other inputs of the accelerator
+        
 
         // printf("Added them all \n");
 
