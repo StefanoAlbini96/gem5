@@ -209,7 +209,7 @@ I2CE_driver::push(float new_in)
 void
 I2CE_driver::compute_enable()
 {
-    printf("Enabling the accelerator\n");
+    // printf("Enabling the accelerator\n");
     en.write(true);
 }
 
@@ -217,7 +217,7 @@ I2CE_driver::compute_enable()
 void
 I2CE_driver::compute_disable()
 {
-    printf("Disabling the accelerator\n");
+    // printf("Disabling the accelerator\n");
     en.write(false);
 }
 
@@ -225,7 +225,7 @@ I2CE_driver::compute_disable()
 void
 I2CE_driver::reduce_enable()
 {
-    printf("Triggering the reduce\n");
+    // printf("Triggering the reduce\n");
     red_trigger.write(!red_trigger.read());
 }
 
@@ -240,7 +240,7 @@ I2CE_driver::drive()
 
 void I2CE_driver::stall()
 {
-    printf("Stalling....\n");
+    // printf("Stalling....\n");
     en.write(false);
 
 }
@@ -248,7 +248,7 @@ void I2CE_driver::stall()
 
 void I2CE_driver::enable()
 {
-    printf("Enabling....\n");
+    // printf("Enabling....\n");
     // en.write(true);
 }
 

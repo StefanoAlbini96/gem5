@@ -1482,7 +1482,13 @@ let {{
         unsigned n_learners = i2ce_driver_ptr->get_n_learners();
 
         if(n_learners <= eCount){
-            for (int i = 0; i < n_learners; i++) {
+            //for (int i = 0; i < n_learners; i++) {
+            //    for (int j = 0; j < sizeof(MemElemType); j++) {
+            //        rdEn[sizeof(MemElemType) * i + j] = false;
+            //    }
+            //}
+
+            for (int i = n_learners; i < eCount; i++) {
                 for (int j = 0; j < sizeof(MemElemType); j++) {
                     rdEn[sizeof(MemElemType) * i + j] = false;
                 }
@@ -1530,8 +1536,7 @@ let {{
 
 
         if(n_learners <= eCount){
-            for (int i = 0; i < n_learners; i++) {        
-
+            for (int i = 0; i < n_learners; i++) {
                 i2ce_driver_ptr->ld_tmp_res(i, bitsToFloat32(memDataView[i]));
 
                 // if (GpOp_x[i]) {
@@ -1578,8 +1583,14 @@ let {{
 
             for(int i=0; i<n_learners; i++){
                 float out_val = i2ce_driver_ptr->get_out_value(i);
-                cout << \"out_val = \" << out_val << endl;
+                // cout << \"out_val = \" << out_val << endl;
                 memDataView[i] = out_val;
+            }
+            for(int i=n_learners; i<eCount; i++){
+                memDataView[i] = 0.0;
+                for (int j = 0; j < sizeof(MemElemType); j++) {
+                    wrEn[sizeof(MemElemType) * i + j] = false;
+                }
             }
 
 
