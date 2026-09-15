@@ -45,6 +45,13 @@ SC_MODULE(I2CE_accelerator){
     sc_signal<bool>                         red_en_reg, red_en_nxt;
     sc_signal<bool>                         red_trigger_prev_reg, red_trigger_prev_nxt;
 
+
+    sc_in<bool>             en_trigger;
+    sc_signal<bool>         en_reg, en_nxt;
+    sc_signal<sc_uint<5>>   en_count_reg, en_count_nxt;
+    sc_signal<bool>         en_trigger_prev_reg, en_trigger_prev_nxt;
+
+
     sc_signal<bool>                         pipeline_en[EN_STAGES];
 
     sc_in<sc_dt::sc_uint<32>>               packed_in[N_LANES];
@@ -121,8 +128,10 @@ SC_MODULE(I2CE_accelerator){
         // sensitive << mac_en_out_wire;
 
         SC_METHOD(comb_method);
-        sensitive << en_input;
+        // sensitive << en_input;
+        sensitive << en_reg;
         sensitive << en_prev_reg;
+
         sensitive << tbl_en_sig;
         sensitive << mac_en_sig;
         sensitive << in_ptr_reg;
@@ -152,11 +161,20 @@ SC_MODULE(I2CE_accelerator){
         sensitive << red_en_reg;
 
 
+        SC_METHOD(trigger_en_comb_method);
+        sensitive << en_trigger;
+        sensitive << en_reg;
+        sensitive << en_count_reg;
+
+
         // Bind the ports for the get_idx module
         getidx_mod->clk(clk);
         getidx_mod->rst(rst);
         // getidx_mod->rst(mac_res_reset_reg);
-        getidx_mod->get_idx_en(en_input);
+
+        // getidx_mod->get_idx_en(en_input);
+        getidx_mod->get_idx_en(en_reg);
+
         // getidx_mod->en_out(tbl_en_sig);
         for(int lane=0; lane<N_LANES; lane++){
             getidx_mod->packed_indexes[lane](packed_idx_reg[lane]);
@@ -232,6 +250,8 @@ SC_MODULE(I2CE_accelerator){
     void ld_res_mem();
     void trigger_reduce_comb_method();
     void trigger_mac_res_reset_comb_method();
+    void trigger_en_comb_method();
+
 
 
     void end_of_elaboration() override

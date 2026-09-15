@@ -7,6 +7,11 @@
 void I2CE_accelerator::clock_thread()
 {
 
+    en_reg.write(false);
+    en_count_reg.write(false);
+    en_trigger_prev_reg.write(false);
+
+
     in_ptr_reg.write(0);
     en_prev_reg.write(false);
     // en_reg.write(false);        // Probably it can be removed!
@@ -44,6 +49,11 @@ void I2CE_accelerator::clock_thread()
     while(1){
 
 
+
+        en_trigger_prev_reg.write(en_trigger_prev_nxt.read());
+        en_reg.write(en_nxt.read());
+        en_count_reg.write(en_count_nxt.read());
+
         en_prev_reg.write(en_prev_nxt.read());
 
 
@@ -55,12 +65,16 @@ void I2CE_accelerator::clock_thread()
         red_en_reg.write(red_en_nxt.read());
         red_trigger_prev_reg.write(red_trigger_prev_nxt.read());
 
-        bool rising_edge_en = (en_input.read() && !en_prev_reg.read());
+        // bool rising_edge_en = (en_input.read() && !en_prev_reg.read());
+        bool rising_edge_en = (en_reg.read() && !en_prev_reg.read());
 
         // The EN is coming externally and we start counting
         // if(en_input.read() && !pipeline_en[0].read()){
         if(rising_edge_en && !pipeline_en[0].read()){
-            pipeline_en[0].write(en_input.read());
+
+            // pipeline_en[0].write(en_input.read());
+            pipeline_en[0].write(en_reg.read());
+            
             idx_processed_cnt_reg.write(0);
         } 
         else if (pipeline_en[0].read()){
@@ -126,7 +140,8 @@ void I2CE_accelerator::comb_method()
 {
 
 
-    en_prev_nxt.write(en_input.read());
+    // en_prev_nxt.write(en_input.read());
+    en_prev_nxt.write(en_reg.read());
 
 
     // printf("Triggered\n");
@@ -207,6 +222,36 @@ void I2CE_accelerator::trigger_mac_res_reset_comb_method()
         mac_res_reset_nxt.write(false);
     }
 }
+
+
+
+void I2CE_accelerator::trigger_en_comb_method()
+{
+
+    en_trigger_prev_nxt.write(en_trigger.read());
+
+    // A changed happened
+    if (en_trigger.read() != en_trigger_prev_reg.read()){
+
+        // New trigger start
+        en_nxt.write(true);
+        en_count_nxt.write( (EN_NUM_CC - 1) );
+    
+    } else if (en_count_reg.read() > 0 ){
+        
+        // Continue the pulse
+        en_nxt.write(true);
+        en_count_nxt.write(en_count_reg.read() - 1);
+    
+    } else {
+
+        // Conclude the pulse
+        en_nxt.write(false);
+        en_count_nxt.write(0);
+    }
+}
+
+
 
 
 I2CE_accelerator *

@@ -2749,7 +2749,7 @@ let {{
         for (int i = 0; i < eCount; i++) {
             int gpIdx = (regIndex * eCount + i) / numRegs;
             
-            cout << \"gpIdx = \" << gpIdx << \"  | UpPredLane = \" << UpPredLane << endl;
+            // cout << \"gpIdx = \" << gpIdx << \"  | UpPredLane = \" << UpPredLane << endl;
             if (gpIdx <= UpPredLane) {
                 float value = memDataView[i];
                 AA64FpDest_x[i] = value;

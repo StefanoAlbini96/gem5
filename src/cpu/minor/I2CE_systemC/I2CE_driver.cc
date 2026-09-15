@@ -22,7 +22,11 @@ I2CE_driver::I2CE_driver(const gem5::I2CE_driverParams &params) :
 
     accel->clk(clk);
 
-    accel->en_input(en);
+
+    accel->en_trigger(en_trigger);
+    // accel->en_input(en);
+    accel->en_input(en_trigger);
+
     accel->rst_mac(rst_mac);
     accel->red_trigger(red_trigger);
     accel->rst(rst);
@@ -50,6 +54,7 @@ I2CE_driver::I2CE_driver(const gem5::I2CE_driverParams &params) :
 
 
 
+
     rst.write(false);
 
 }
@@ -74,11 +79,16 @@ I2CE_driver::startup()
     sc_core::sc_trace(tf, clk, "clk");
     sc_core::sc_trace(tf, rst, "rst");
 
-    sc_core::sc_trace(tf, en, "en");
+    // sc_core::sc_trace(tf, en, "en");
     // sc_core::sc_trace(tf, accel->en_reg, "accel.en_reg");
     sc_core::sc_trace(tf, accel->tbl_mod->tbl_en, "accel.tbl_mod.tbl_mod_EN");
     sc_core::sc_trace(tf, accel->mac_mod->mac_en, "accel.mac_mod_EN");
 
+    sc_core::sc_trace(tf, en_trigger, "en_trigger");
+
+    sc_core::sc_trace(tf, accel->en_reg, "accel.en_reg");
+    sc_core::sc_trace(tf, accel->en_count_reg, "accel.en_count_reg");
+    sc_core::sc_trace(tf, accel->en_trigger_prev_reg, "accel.en_trigger_prev_reg");
 
     sc_core::sc_trace(tf, accel->rst_mac, "accel.rst_mac");
 
@@ -210,7 +220,9 @@ void
 I2CE_driver::compute_enable()
 {
     // printf("Enabling the accelerator\n");
-    en.write(true);
+    // en.write(true);
+
+    en_trigger.write(!en_trigger.read());
 }
 
 
@@ -218,7 +230,7 @@ void
 I2CE_driver::compute_disable()
 {
     // printf("Disabling the accelerator\n");
-    en.write(false);
+    // en.write(false);
 }
 
 
@@ -241,7 +253,7 @@ I2CE_driver::drive()
 void I2CE_driver::stall()
 {
     // printf("Stalling....\n");
-    en.write(false);
+    // en.write(false);
 
 }
 

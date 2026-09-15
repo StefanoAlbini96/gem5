@@ -103,4 +103,8 @@
 #define ADD_DRAIN_EN    (MUL_STAGES + ADD_STAGES + 1)
 
 
+// Number of CC that the EN should stay high to ensure full computation
+#define EN_NUM_CC       22
+
+
 #endif
