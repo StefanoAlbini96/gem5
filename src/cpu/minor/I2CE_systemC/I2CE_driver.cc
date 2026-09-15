@@ -259,6 +259,14 @@ void I2CE_driver::ld_inputs(int learner, int lane, int in_idx, float input_val)
     // printf("LD inputs --> %d %d %d --> %f\n", learner, lane, in_idx, input_val);
 
     input_vect[learner][lane][in_idx] = input_val;
+
+
+    // Set all the subsequent ones to 0
+    for(int idx=(in_idx+1); idx<ACT_BUF_SIZE; idx++){
+        // printf("CLEARING FOR [%d][%d][%d]\n", learner, lane, idx);
+        input_vect[learner][lane][idx] = 0.0;
+    }
+
 }
 
 
