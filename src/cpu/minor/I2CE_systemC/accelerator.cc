@@ -48,6 +48,12 @@ void I2CE_accelerator::clock_thread()
 
     while(1){
 
+        // std::cout
+        //     << "[SC CLK]"
+        //     << " time=" << sc_time_stamp()
+        //     << " delta=" << sc_delta_count()
+        //     << std::endl;
+
 
 
         en_trigger_prev_reg.write(en_trigger_prev_nxt.read());

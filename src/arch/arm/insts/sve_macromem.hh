@@ -385,9 +385,9 @@ class SveLdStructSICus_multiInputs : public PredMacroOp
 
         uint8_t ld_imm = 0;
 
-        printf("N SIMD loads = %d\n", n_loads);
-        printf("N learners = %d\n", numregs);
-        printf("Num microops = %d\n", numMicroops);
+        // printf("N SIMD loads = %d\n", n_loads);
+        // printf("N learners = %d\n", numregs);
+        // printf("Num microops = %d\n", numMicroops);
         
         uint8_t n_microOps_per_iter = (numregs * 2);
         numMicroops = n_microOps_per_iter * n_loads;

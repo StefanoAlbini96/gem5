@@ -285,12 +285,23 @@ let {{
         1, # num of regs interfaced
         """
 
+        //std::cout
+        //    << "[EXEC COMPUTE]"
+        //    << " curTick=" << curTick()
+        //    << " curCycle=" << xc->tcBase()->getCpuPtr()->curCycle()
+        //    << " SC=" << sc_time_stamp()
+        //    << std::endl;
+
         gem5::I2CE_driver* i2ce_driver_ptr = xc->tcBase()->getCpuPtr()->get_I2CE_Driver();
 
-        cout << "Calling COMPUTE EN" << endl;
-        i2ce_driver_ptr->compute_enable();
+        // cout << "Calling COMPUTE EN" << endl;
+        // i2ce_driver_ptr->compute_enable();
 
-        Dest = 0;
+        //auto value = Op1;
+        Dest = Op1;
+
+        //std::cout << "Value " << value << std::endl;
+        //std::cout << "Dest " << Dest << std::endl;
 
         """, # code
         overrideOpClass="CusFUCompute_SCOp"
@@ -308,7 +319,6 @@ let {{
         i2ce_driver_ptr->compute_disable();
 
         auto tmp = Op1;
-
         """, # code
         overrideOpClass="CusFUCompute_SCOp"
     )
@@ -320,11 +330,20 @@ let {{
         1, # num of regs interfaced
         """
 
+        // std::cout
+        //     << "[EXEC REDUCE]"
+        //     << " curTick=" << curTick()
+        //     << " curCycle=" << xc->tcBase()->getCpuPtr()->curCycle()
+        //     << " SC=" << sc_time_stamp()
+        //     << std::endl;
+
         gem5::I2CE_driver* i2ce_driver_ptr = xc->tcBase()->getCpuPtr()->get_I2CE_Driver();
 
         i2ce_driver_ptr->reduce_enable();
 
-        auto tmp = Op1;
+        //std::cout << "Res " << Op1 << std::endl;
+        //Op1 = Op1 + Op1;
+        //std::cout << "Res " << Op1 << std::endl;
 
         """, # code
         overrideOpClass="CusReduce_SCOp"

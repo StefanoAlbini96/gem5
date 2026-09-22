@@ -56,6 +56,7 @@
 #include "cpu/minor/pipe_data.hh"
 #include "cpu/minor/scoreboard.hh"
 #include "cpu/minor/cusFU_sve_tblMAC.hh"
+#include "cpu/minor/I2CE_systemC/I2CE_driver.hh"
 
 namespace gem5
 {
@@ -135,6 +136,7 @@ class Execute : public Named
     /** Direct pointer to the Custom FU so that it can be returned back to execute
     its instructions */
     CusFU_SVE_tblMAC* tblmac_fu;
+    // I2CE_driver* i2ce_driver_fu;
 
   protected:
     /** Stage cycle-by-cycle state */

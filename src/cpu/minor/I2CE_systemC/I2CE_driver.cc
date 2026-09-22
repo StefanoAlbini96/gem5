@@ -9,9 +9,9 @@ namespace gem5
 
 I2CE_driver::I2CE_driver(const gem5::I2CE_driverParams &params) :
     gem5::SimObject(params), 
-    // gem5::ClockedObject(params), 
     accel(params.accel),
-    clk("clk", sc_core::sc_time(0.2, sc_core::SC_NS))
+    clk("clk", sc_core::sc_time(250, sc_core::SC_PS))
+    // clk("clk", sc_core::sc_time(1, sc_core::SC_NS))
     // clk("clk", sc_core::sc_time(clockPeriod(), sc_core::SC_PS))
     // clk(params.clk_domain)
 {
@@ -221,8 +221,16 @@ I2CE_driver::compute_enable()
 {
     // printf("Enabling the accelerator\n");
     // en.write(true);
+    // std::cout
+    //     << "[COMPUTE]"
+    //     << " gem5 tick=" << curTick()
+    //     << " SC time=" << sc_time_stamp()
+    //     << " SC delta=" << sc_delta_count()
+    //     << std::endl;
 
     en_trigger.write(!en_trigger.read());
+
+
 }
 
 
@@ -238,6 +246,14 @@ void
 I2CE_driver::reduce_enable()
 {
     // printf("Triggering the reduce\n");
+    
+    // std::cout
+    //     << "[REDUCE]"
+    //     << " gem5 tick=" << curTick()
+    //     << " SC time=" << sc_time_stamp()
+    //     << " SC delta=" << sc_delta_count()
+    //     << std::endl;
+
     red_trigger.write(!red_trigger.read());
 }
 

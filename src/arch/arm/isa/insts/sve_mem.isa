@@ -3011,7 +3011,7 @@ let {{
             // Tmp = Tmp + Tmp;
 
             gem5::I2CE_driver* i2ce_driver_ptr = xc->tcBase()->getCpuPtr()->get_I2CE_Driver();
-            i2ce_driver_ptr->compute_enable();
+            // i2ce_driver_ptr->compute_enable();
 
         '''
 
@@ -3021,7 +3021,7 @@ let {{
             // Tmp = Tmp + Tmp;
 
             gem5::I2CE_driver* i2ce_driver_ptr = xc->tcBase()->getCpuPtr()->get_I2CE_Driver();
-            i2ce_driver_ptr->compute_enable();
+            // i2ce_driver_ptr->compute_enable();
         '''
 
 

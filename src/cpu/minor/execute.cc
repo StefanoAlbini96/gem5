@@ -53,6 +53,7 @@
 #include "debug/MinorMem.hh"
 #include "debug/MinorTrace.hh"
 #include "debug/PCEvent.hh"
+// #include "cpu/minor/I2CE_systemC/I2CE_driver.hh"
 
 namespace gem5
 {
@@ -92,6 +93,7 @@ Execute::Execute(const std::string &name_,
             ExecuteThreadInfo(params.executeCommitLimit)),
     interruptPriority(0),
     issuePriority(0),
+    // i2ce_driver_fu(params.i2ce_accel),
     commitPriority(0)
 {
     if (commitLimit < 1) {
@@ -153,6 +155,7 @@ Execute::Execute(const std::string &name_,
         }
 
         FUPipeline *fu;
+        // I2CE_driver *fu_driver;
         if (hasCusAlu){
 
             uint8_t vector_len = 4;
@@ -167,6 +170,12 @@ Execute::Execute(const std::string &name_,
             fu = new CusFU_SVE_tblMAC(fu_name.str(), *fu_description, cpu, vector_len, idx_per_lane, n_codebooks, bits_per_idx, mask);
             tblmac_fu = (CusFU_SVE_tblMAC*)fu;
             setMyFUPInMinorCPU();
+
+
+            // fu_driver = new I2CE_driver();
+            // i2ce_driver_fu = fu_driver;
+            // i2ce_driver_fu->drive();
+            // i2ce_driver_fu->test();
 
         } else {
             fu = new FUPipeline(fu_name.str(), *fu_description, cpu);
@@ -195,6 +204,24 @@ Execute::Execute(const std::string &name_,
                 enums::OpClassStrings[op_class]);
         }
     }
+
+    // Prints the functional units
+    // for(int i=0; i<numFuncUnits; i++){
+    //     printf("---------------\n");
+    //     printf("FUNC UNIT found [%d];\n", i);
+    //     printf("opLat = %d\n", funcUnits[i]->description.opLat);
+    //     printf("issueLat = %d\n", funcUnits[i]->description.issueLat);
+
+    //     for(int opc=0; opc<funcUnits[i]->description.opClasses->opClasses.size(); opc++){
+    //         std::cout
+    //             << enums::OpClassStrings[op->opClass]
+    //             << std::endl;
+    //     }
+
+    //     for (auto *op : funcUnits[i]->description.opClasses->opClasses) {
+    //         std::cout << enums::OpClassStrings[op->opClass] << std::endl;
+    //     }
+    // }
 
     /* Per-thread structures */
     for (ThreadID tid = 0; tid < params.numThreads; tid++) {
@@ -582,6 +609,10 @@ cyclicIndexDec(unsigned int index, unsigned int cycle_size)
 Cycles issue_cycle_ld   = Cycles(0);
 Cycles issue_cycle_add  = Cycles(0);
 Cycles issue_cycle_st   = Cycles(0);
+Cycles issue_cycle_cmpt_en  = Cycles(0);
+Cycles issue_cycle_reduce  = Cycles(0);
+int cnt_cmpt_en = 0;
+int cnt_red_en = 0;
 
 unsigned int
 Execute::issue(ThreadID thread_id)
@@ -786,15 +817,64 @@ Execute::issue(ThreadID thread_id)
 
                         // printf("Instruction %s in %d\n", inst->staticInst->getName().c_str(), fu_index);
 
+
+                        // i2ce_driver_fu->test();
+                        // i2ce_driver_fu->drive();
+
+
+                        // cout << "OP CLASS = " << inst->staticInst->opClass() << endl;
+                        // if(inst->staticInst->opClass() == enums::CusFUCompute_SC){
+                        //     i2ce_driver_fu->drive();
+                        // }
+
                         /* Issue to FU */
                         fu->push(fu_inst);
 
-                        // /* Record the cycle at which this microop entered
-                        //  * the FU pipeline.  We do this AFTER fu->push() so
-                        //  * the measurement starts at the first FU stage, not
-                        //  * at the scoreboard-wait or issue-arbitration stage.
-                        //  * cpu.curCycle() + 1 because push() makes the inst
-                        //  * available from the *next* cycle onward. */
+                        /* Record the cycle at which this microop entered
+                         * the FU pipeline.  We do this AFTER fu->push() so
+                         * the measurement starts at the first FU stage, not
+                         * at the scoreboard-wait or issue-arbitration stage.
+                         * cpu.curCycle() + 1 because push() makes the inst
+                         * available from the *next* cycle onward. */
+
+                        if(inst->staticInst->opClass() == enums::CusFUCompute_SC) {
+                            // issue_cycle_cmpt_en = cpu.curCycle() + Cycles(1);
+                            // printf("[TIMING] CusFUCompute_SC  entered FU at cycle %lu: %s\n",
+                            //         (uint64_t)issue_cycle_cmpt_en,
+                            //         inst->staticInst->getName().c_str()
+                            //     );
+
+                            // issue_cycle_cmpt_en = cpu.curCycle();
+                            // printf("[CMPT IN] CC = %lu, ID = %d\n", (uint64_t)issue_cycle_cmpt_en, cnt_cmpt_en);
+                            // cnt_cmpt_en++;
+
+                            gem5::I2CE_driver* i2ce_driver_ptr = cpu.get_I2CE_Driver();
+                            i2ce_driver_ptr->compute_enable();
+                        }
+
+                        if (inst->staticInst->opClass() == enums::CusReduce_SC) {
+                            // issue_cycle_reduce = cpu.curCycle() + Cycles(1);
+                            // printf("[TIMING] CusReduce_SC  entered FU at cycle %lu: %s\n",
+                            //         (uint64_t)issue_cycle_reduce,
+                            //     inst->staticInst->getName().c_str()
+                            // );
+
+                            // issue_cycle_reduce = cpu.curCycle();
+                            // printf("[RED IN] CC = %lu, ID = %d\n", (uint64_t)issue_cycle_reduce, cnt_red_en);
+                            // cnt_red_en++;
+
+                            // gem5::I2CE_driver* i2ce_driver_ptr = cpu.get_I2CE_Driver();
+                            // i2ce_driver_ptr->reduce_enable();
+
+                        }
+
+                        // if(inst->staticInst->opClass() == enums::MemRead) {
+                        // issue_cycle_ld = cpu.curCycle() + Cycles(1);
+                        // printf("[TIMING] LOAD  entered FU at cycle %lu\n",
+                        //         (uint64_t)issue_cycle_ld);
+                        // }
+
+
                         // if (inst->staticInst->getName() == "testLD") {
                         //     issue_cycle_ld = cpu.curCycle() + Cycles(1);
                         //     printf("[TIMING] testLD  entered FU at cycle %lu\n",
@@ -1433,12 +1513,43 @@ Execute::commit(ThreadID thread_id, bool only_commit_microops, bool discard,
              *  clear its dependencies */
             ex_info.inFlightInsts->pop();
 
-            // /* FU latency = commit cycle - first FU cycle.
-            //  * At this point the instruction has just exited the FU and
-            //  * is being retired.  cpu.curCycle() is the commit cycle.
-            //  * The difference is exactly the number of cycles the
-            //  * instruction occupied the FU pipeline (== opLat +
-            //  * extraCommitDelay, with no RAW-stall contamination). */
+            /* FU latency = commit cycle - first FU cycle.
+             * At this point the instruction has just exited the FU and
+             * is being retired.  cpu.curCycle() is the commit cycle.
+             * The difference is exactly the number of cycles the
+             * instruction occupied the FU pipeline (== opLat +
+             * extraCommitDelay, with no RAW-stall contamination). */
+            if (inst->staticInst->opClass() == enums::CusFUCompute_SC && issue_cycle_cmpt_en != Cycles(0)) {
+            //     Cycles fu_lat = cpu.curCycle() - issue_cycle_cmpt_en;
+            //     printf("[TIMING] CusFUCompute_SC  commit cycle %lu  FU latency = %lu cycles\n",
+            //             (uint64_t)cpu.curCycle(), (uint64_t)fu_lat);
+            //             printf("inst=%p static=%p cycle=%lu\n",
+            //             inst.get(),
+            //             inst->staticInst.get(),
+            //             (uint64_t)cpu.curCycle());
+
+                // Cycles fu_lat = cpu.curCycle();
+                // printf("[CMPT OUT] CC = %ld, ID = %d\n", fu_lat, cnt_cmpt_en);
+                // cnt_cmpt_en--;
+            }
+
+            if (inst->staticInst->opClass() == enums::CusReduce_SC && issue_cycle_reduce != Cycles(0)) {
+            //     Cycles fu_lat = cpu.curCycle() - issue_cycle_reduce;
+            //     printf("[TIMING] CusReduce_SC  commit cycle %lu  FU latency = %lu cycles\n",
+            //             (uint64_t)cpu.curCycle(), (uint64_t)fu_lat);
+            //             printf("inst=%p static=%p cycle=%lu\n",
+            //             inst.get(),
+            //             inst->staticInst.get(),
+            //             (uint64_t)cpu.curCycle());
+
+                // Cycles fu_lat = cpu.curCycle();
+                // printf("[RED OUT] CC = %ld, ID = %d\n", fu_lat, cnt_red_en);
+                // cnt_red_en--;
+            }
+
+                // i2ce_driver_fu->enable();
+            // }
+
             // if (inst->staticInst->getName() == "testLD" && issue_cycle_ld != Cycles(0)) {
             //     Cycles fu_lat = cpu.curCycle() - issue_cycle_ld;
             //     printf("[TIMING] testLD  commit cycle %lu  FU latency = %lu cycles\n",

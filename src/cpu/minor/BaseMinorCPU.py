@@ -196,7 +196,7 @@ class MinorDefaultCusCompute_SC(MinorFU):
         MinorFUTiming(description="CusFUCompute_SC", srcRegsRelativeLats=[2])
     ]
     issueLat = 1
-    opLat = 20
+    opLat = 21
 
 class MinorDefaultCusStall_SC(MinorFU):
     opClasses = minorMakeOpClassSet(["CusFUStall_SC"])
@@ -206,7 +206,7 @@ class MinorDefaultCusStall_SC(MinorFU):
     issueLat = 1
     opLat = 1
 
-class MinorDefaultCisReduce_SC(MinorFU):
+class MinorDefaultCusReduce_SC(MinorFU):
     opClasses = minorMakeOpClassSet(["CusReduce_SC"])
     timings = [
         MinorFUTiming(description="CusReduce_SC", srcRegsRelativeLats=[2])
@@ -395,7 +395,7 @@ class MinorDefaultFUPool(MinorFUPool):
         MinorDefaultCusFakeLoad_SC(),
         MinorDefaultCusCompute_SC(),
         MinorDefaultCusStall_SC(),
-        MinorDefaultCisReduce_SC()
+        MinorDefaultCusReduce_SC()
 
         # MinorDefaultCusFU(),
         # MinorDefaultCusSVEFU(),

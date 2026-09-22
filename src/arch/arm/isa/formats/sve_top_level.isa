@@ -471,7 +471,7 @@ namespace Aarch64
                 RegIndex rn = (RegIndex)(uint32_t)bits(machInst, 9, 5);
                 RegIndex rnsp = makeSP(rn);
 
-                cout << "Decoding COMPUTE EN" << endl;
+                // cout << "Decoding COMPUTE EN with: " << rdsp << "  |  " << rnsp << endl;
                 return new Compute_en64(machInst, rdsp, rnsp);
                 }
             case 0x5:
@@ -480,7 +480,7 @@ namespace Aarch64
                 RegIndex rd = (RegIndex)(uint32_t)bits(machInst, 4, 0);
                 RegIndex rdsp = makeSP(rd);
 
-                RegIndex rn = (RegIndex)(uint32_t)bits(machInst, 4, 0);
+                RegIndex rn = (RegIndex)(uint32_t)bits(machInst, 9, 5);
                 RegIndex rnsp = makeSP(rn); // op1, must be destination of the first instruction to create dependency
 
                 return new StopCompute_en64(machInst, rdsp, rnsp);
@@ -491,9 +491,10 @@ namespace Aarch64
                 RegIndex rd = (RegIndex)(uint32_t)bits(machInst, 4, 0);
                 RegIndex rdsp = makeSP(rd);
 
-                RegIndex rn = (RegIndex)(uint32_t)bits(machInst, 4, 0);
+                RegIndex rn = (RegIndex)(uint32_t)bits(machInst, 9, 5);
                 RegIndex rnsp = makeSP(rn); // op1, must be destination of the first instruction to create dependency
 
+                // cout << "Decoding REDUCE EN with: " << rdsp << "  |  " << rnsp << endl;
                 return new Reduce_en64(machInst, rdsp, rnsp);
                 }
             case 0x7:
