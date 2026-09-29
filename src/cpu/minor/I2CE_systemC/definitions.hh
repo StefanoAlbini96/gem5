@@ -103,6 +103,11 @@
 #define ADD_DRAIN_EN    (MUL_STAGES + ADD_STAGES + 1)
 
 
+
+#define GET_IDX_LAT_CC      1
+#define TBL_LAT_CC          1
+#define MAC_LAT_CC          (4 + ACT_BUF_SIZE)
+
 // Number of CC that the EN should stay high to ensure full computation
 #define EN_NUM_CC       22
 

@@ -43,6 +43,8 @@ class I2CE_driver : public gem5::SimObject
 
 
         void ld_inputs(int learner, int lane, int in_idx, float input_val);
+        void notify_ld_complete();
+        bool is_ld_complete();
 
         void ld_codebooks(int learner, int lane, float cb_word);
         void load_packed_idxs(int lane, uint32_t idx_word);
@@ -86,6 +88,10 @@ class I2CE_driver : public gem5::SimObject
         sc_core::sc_signal<float>                   res_tmp[N_LEARNERS];
 
         // sc_core::sc_signal<float> ab;
+
+        sc_core::sc_signal<bool> ld_input_complete;
+
+        sc_core::sc_signal<bool> debug;
 
         void startup() override;
 

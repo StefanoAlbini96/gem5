@@ -57,6 +57,11 @@ I2CE_driver::I2CE_driver(const gem5::I2CE_driverParams &params) :
 
     rst.write(false);
 
+
+    ld_input_complete.write(false);
+
+    debug.write(false);
+
 }
 
 
@@ -78,6 +83,10 @@ I2CE_driver::startup()
     tf = sc_core::sc_create_vcd_trace_file("i2ce_wave");
     sc_core::sc_trace(tf, clk, "clk");
     sc_core::sc_trace(tf, rst, "rst");
+
+
+    sc_core::sc_trace(tf, ld_input_complete, "ld_input_complete");
+    sc_core::sc_trace(tf, debug, "debug");
 
     // sc_core::sc_trace(tf, en, "en");
     // sc_core::sc_trace(tf, accel->en_reg, "accel.en_reg");
@@ -230,6 +239,8 @@ I2CE_driver::compute_enable()
 
     en_trigger.write(!en_trigger.read());
 
+    ld_input_complete.write(false);
+
 
 }
 
@@ -298,6 +309,18 @@ void I2CE_driver::ld_inputs(int learner, int lane, int in_idx, float input_val)
 }
 
 
+void I2CE_driver::notify_ld_complete()
+{
+    ld_input_complete.write(true);
+}
+
+
+bool I2CE_driver::is_ld_complete()
+{
+    return ld_input_complete.read();
+}
+
+
 void I2CE_driver::ld_codebooks(int learner, int lane, float cb_word)
 {
 
@@ -326,6 +349,16 @@ void I2CE_driver::ld_tmp_res(int learner_id, float val)
 
 float I2CE_driver::get_out_value(int learner_id)
 {
+
+
+    // std::cout
+    //     << "[GETOUTVALS]"
+    //     << " gem5 tick=" << curTick()
+    //     << " SC time=" << sc_time_stamp()
+    //     << " SC delta=" << sc_delta_count()
+    //     << std::endl;
+
+    debug.write(!debug.read());
     // printf("Driver --> getting out value = %d --> %f\n", learner_id, red_out[learner_id].read());
     return red_out[learner_id];
 }

@@ -639,6 +639,9 @@ Execute::issue(ThreadID thread_id)
     /* Number of memory ops issues this cycle to check for memoryIssueLimit */
     unsigned num_mem_insts_issued = 0;
 
+
+    gem5::I2CE_driver* i2ce_driver_ptr = cpu.get_I2CE_Driver();
+
     do {
         MinorDynInstPtr inst = insts_in->insts[thread.inputIndex];
         Fault fault = inst->fault;
@@ -748,6 +751,10 @@ Execute::issue(ThreadID thread_id)
                     {
                         DPRINTF(MinorExecute, "Can't issue inst: %s yet\n",
                             *inst);
+                    } else if( (inst->staticInst->opClass() == enums::CusFUCompute_SC) && (!i2ce_driver_ptr->is_ld_complete()))
+                    {
+                        DPRINTF(MinorExecute, "Can't issue I2CE compute since LD has not finished\n");
+                    
                     } else {
                         /* Can insert the instruction into this FU */
                         DPRINTF(MinorExecute, "Issuing inst: %s"
@@ -848,7 +855,7 @@ Execute::issue(ThreadID thread_id)
                             // printf("[CMPT IN] CC = %lu, ID = %d\n", (uint64_t)issue_cycle_cmpt_en, cnt_cmpt_en);
                             // cnt_cmpt_en++;
 
-                            gem5::I2CE_driver* i2ce_driver_ptr = cpu.get_I2CE_Driver();
+                            // gem5::I2CE_driver* i2ce_driver_ptr = cpu.get_I2CE_Driver();
                             i2ce_driver_ptr->compute_enable();
                         }
 
@@ -1512,6 +1519,22 @@ Execute::commit(ThreadID thread_id, bool only_commit_microops, bool discard,
             /* Finished with the inst, remove it from the inst queue and
              *  clear its dependencies */
             ex_info.inFlightInsts->pop();
+
+
+            // if(inst->staticInst->opClass() == enums::CusFUCompute_SC) {
+            //     // issue_cycle_cmpt_en = cpu.curCycle() + Cycles(1);
+            //     // printf("[TIMING] CusFUCompute_SC  entered FU at cycle %lu: %s\n",
+            //     //         (uint64_t)issue_cycle_cmpt_en,
+            //     //         inst->staticInst->getName().c_str()
+            //     //     );
+
+            //     // issue_cycle_cmpt_en = cpu.curCycle();
+            //     // printf("[CMPT IN] CC = %lu, ID = %d\n", (uint64_t)issue_cycle_cmpt_en, cnt_cmpt_en);
+            //     // cnt_cmpt_en++;
+
+            //     gem5::I2CE_driver* i2ce_driver_ptr = cpu.get_I2CE_Driver();
+            //     i2ce_driver_ptr->compute_enable();
+            // }
 
             /* FU latency = commit cycle - first FU cycle.
              * At this point the instruction has just exited the FU and

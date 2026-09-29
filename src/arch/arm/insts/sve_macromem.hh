@@ -398,11 +398,19 @@ class SveLdStructSICus_multiInputs : public PredMacroOp
 
             // printf("Adding a LD\n");
 
+            uint8_t use_pred = 1;
+            if(it == (n_loads - 1)){
+                use_pred = 0;
+            }
+
+            // By default, load all the lanes, unless it is the last LOAD
+            // printf("Adding a LD with use_pred = %d\n", use_pred);
+
             // LOAD
             for(int i=0; i<numregs; i++){
                 microOps[base_uop_idx + i] = new MicroopLdMemType<Element>(
                         mnem, machInst, static_cast<RegIndex>(INTRLVREG0 + i),
-                        upPredLane, _base, ld_imm, _numregs, i);
+                        upPredLane, _base, ld_imm, _numregs, i, use_pred);
             }
             // printf("LD added\n");
 

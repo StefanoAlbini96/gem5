@@ -479,19 +479,19 @@ output decoder {{
         switch (numregs) {
             case 2:
                 return new SveLdStructSICus_multiInputs<etype,
-                        SveLoadRegImmMicroopCus,
+                        SveLoadRegImmMicroopCus_I2CE,
                         SveDeIntrlv2MicroopCusLDINPUTS_I2CE>(
                                nm[numregs][esize], machInst, MemReadOp,
                                n_loads, upPredLane, xn, numregs);
             case 3:
                 return new SveLdStructSICus_multiInputs<etype,
-                        SveLoadRegImmMicroopCus,
+                        SveLoadRegImmMicroopCus_I2CE,
                         SveDeIntrlv3MicroopCusLDINPUTS_I2CE>(
                                nm[numregs][esize], machInst, MemReadOp,
                                n_loads, upPredLane, xn, numregs);
             case 4:
                 return new SveLdStructSICus_multiInputs<etype,
-                        SveLoadRegImmMicroopCus,
+                        SveLoadRegImmMicroopCus_I2CE,
                         SveDeIntrlv4MicroopCusLDINPUTS_I2CE>(
                                nm[numregs][esize], machInst, MemReadOp,
                                n_loads, upPredLane, xn, numregs);
@@ -2760,6 +2760,59 @@ let {{
         }
         '''
 
+
+        loadMemAccCodeCus_I2CE = '''
+
+        bool use_predication = false;
+        if (this->use_pred == 0) {
+            use_predication = true;
+        }
+
+        // Remove 1 to load FULL if predicate is 0
+        uint8_t last_lane = (UpPredLane - 1);
+
+        //cout << endl;
+        //cout << \"LD INPUTS with use_pred = \" << use_predication  << endl;
+
+        for (int i = 0; i < eCount; i++) {
+            int gpIdx = (regIndex * eCount + i) / numRegs;
+            
+            //cout << \"gpIdx = \" << gpIdx << \"  | UpPredLane = \" << UpPredLane  << \"  | LastLane = \" << last_lane << endl;
+
+            if (use_predication){
+                if (gpIdx <= last_lane) {
+                    float value = memDataView[i];
+                    AA64FpDest_x[i] = value;
+                    //cout << \"      Loading for lane \" << gpIdx << \" Value: \" << AA64FpDest_x[i] << \" | \" << bitsToFloat32(value) << endl;
+                } else {
+                    AA64FpDest_x[i] = 0;
+                }
+            } else {
+                    float value = memDataView[i];
+                    //cout << \"      Loading for lane \" << gpIdx << \" Value: \" << AA64FpDest_x[i] << \" | \" << bitsToFloat32(value) << endl;
+                    AA64FpDest_x[i] = value;
+            }
+        }
+        '''
+
+        complete_custom_code_I2CE = '''
+        
+        bool notify_end_ld = false;
+        if (this->use_pred == 0) {
+            notify_end_ld = true;
+        }
+
+        // cout << \"COMPLETE with notify = \" << notify_end_ld  << endl;
+
+        if(notify_end_ld){
+            gem5::I2CE_driver* i2ce_driver_ptr = xc->tcBase()->getCpuPtr()->get_I2CE_Driver();
+
+            i2ce_driver_ptr->notify_ld_complete();
+        }
+
+        '''
+
+
         loadMemAccInputsCodeCus = '''
         for (int i = 0; i < eCount; i++) {
             float value = memDataView[i];
@@ -2839,6 +2892,18 @@ let {{
             ['IsLoad', 'IsMicroop'])
 
 
+        loadIopCus_I2CE = ArmInstObjParams('ldxx',
+            'SveLoadRegImmMicroopCus_I2CE' if offsetIsImm else 'SveLoadRegRegMicroopCus_I2CE',
+            'MicroOp',
+            {'targs': 'Element',
+             'memacc_code': loadMemAccCodeCus_I2CE,
+             'ea_code' : sveEnabledCheckCode + eaCode,
+             'fa_code' : '',
+             'complete_custom' : complete_custom_code_I2CE
+            },
+            ['IsLoad', 'IsMicroop'])
+
+
         loadInputsIopCus = ArmInstObjParams('ldxx',
             'SveLoadRegImmInputsMicroopCus' if offsetIsImm else 'SveLoadRegRegInputsMicroopCus',
             'MicroOp',
@@ -2882,6 +2947,7 @@ let {{
         if offsetIsImm:
             header_output += SveStructMemSIMicroopDeclare.subst(loadIop)
             header_output += SveStructMemSIMicroopDeclareCus.subst(loadIopCus)
+            header_output += SveStructMemSIMicroopDeclareCus_I2CE.subst(loadIopCus_I2CE)
             header_output += SveStructMemSIInputsMicroopDeclareCus.subst(loadInputsIopCus)
             header_output += SveContigLoadSIMicroOPCusOutTMP.subst(loadCusOutTmpIop)
             header_output += SveContigLoadSIMicroOPCusOutTMP_I2CE.subst(loadCusOutTmpIop_I2CE)
@@ -2889,6 +2955,7 @@ let {{
         else:
             header_output += SveStructMemSSMicroopDeclare.subst(loadIop)
             header_output += SveStructMemSSMicroopDeclareCus.subst(loadIopCus)
+            header_output += SveStructMemSSMicroopDeclareCus_I2CE.subst(loadIopCus_I2CE)
             header_output += SveStructMemSSInputsMicroopDeclareCus.subst(loadInputsIopCus)
             header_output += SveContigLoadSSMicroOPCusOutTMP.subst(loadCusOutTmpIop)
             header_output += SveContigLoadSSMicroOPCusOutTMP_I2CE.subst(loadCusOutTmpIop_I2CE)
@@ -2900,6 +2967,9 @@ let {{
             SveStructLoadExecute.subst(loadIopCus) +
             SveStructLoadInitiateAcc.subst(loadIopCus) +
             SveStructLoadCompleteAcc.subst(loadIopCus) +
+            SveStructLoadExecute.subst(loadIopCus_I2CE) +
+            SveStructLoadInitiateAcc.subst(loadIopCus_I2CE) +
+            SveStructLoadCompleteAcc_I2CE.subst(loadIopCus_I2CE) +
             SveStructLoadExecute.subst(loadInputsIopCus) +
             SveStructLoadInitiateAcc.subst(loadInputsIopCus) +
             SveStructLoadCompleteAcc.subst(loadInputsIopCus) +
@@ -2921,6 +2991,10 @@ let {{
 
             substDict['class_name'] = ('SveLoadRegImmMicroopCus' if offsetIsImm
                                        else 'SveLoadRegRegMicroopCus')
+            exec_output += SveStructMemExecDeclare.subst(substDict)
+
+            substDict['class_name'] = ('SveLoadRegImmMicroopCus_I2CE' if offsetIsImm
+                                       else 'SveLoadRegRegMicroopCus_I2CE')
             exec_output += SveStructMemExecDeclare.subst(substDict)
 
             substDict['class_name'] = ('SveLoadRegImmInputsMicroopCus' if offsetIsImm

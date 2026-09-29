@@ -212,7 +212,7 @@ class MinorDefaultCusReduce_SC(MinorFU):
         MinorFUTiming(description="CusReduce_SC", srcRegsRelativeLats=[2])
     ]
     issueLat = 1
-    opLat = 1
+    opLat = 2
 
 
 
