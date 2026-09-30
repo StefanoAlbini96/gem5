@@ -2611,6 +2611,7 @@ def template SveDeIntrlvMicroopDeclareCus_multiInputs {{
         typedef _Element TPElem;
         uint8_t numRegs;
         int regIndex;
+        uint8_t is_last;
 
         StaticInst *macroOp;
 
@@ -2619,9 +2620,9 @@ def template SveDeIntrlvMicroopDeclareCus_multiInputs {{
       public:
         %(class_name)s(const char* mnem, ExtMachInst machInst,
                 uint8_t _numRegs, int _regIndex,
-                StaticInst *_macroOp, int _in_idx) :
+                StaticInst *_macroOp, int _in_idx, uint8_t _is_last) :
             MicroOp(mnem, machInst, SimdAluOp),
-            numRegs(_numRegs), regIndex(_regIndex), macroOp(_macroOp), input_index(_in_idx)
+            numRegs(_numRegs), regIndex(_regIndex), macroOp(_macroOp), input_index(_in_idx), is_last(_is_last)
         {
             %(set_reg_idx_arr)s;
             %(constructor)s;

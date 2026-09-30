@@ -2320,6 +2320,7 @@ let {{
             unsigned int absIdx = (regIndex + numRegs * i);
             unsigned int srcIdx = absIdx % eCount;
             unsigned int srcVec = absIdx / eCount;
+            // cout << \"LOADING CB --> \" << this->regIndex << \", \" << i << \", \" << bitsToFloat32(AA64IntrlvReg0_x[srcIdx]) << \", \" << endl;
             if (srcVec == 0)
                 i2ce_driver_ptr->ld_codebooks(this->regIndex, i, bitsToFloat32(AA64IntrlvReg0_x[srcIdx]));
             else if(srcVec == 1)
@@ -2423,7 +2424,16 @@ let {{
             else if(srcVec == 1) {
                 i2ce_driver_ptr->ld_inputs(this->regIndex, i, input_index, bitsToFloat32(AA64IntrlvReg1_x[srcIdx]));
             }   
-        }'''
+        }
+        
+
+        if(this->is_last){
+            cout << \"De-interleaved with notify...\" << endl;
+
+            i2ce_driver_ptr->notify_ld_complete();
+        }
+
+        '''
 
         code3 = sveEnabledCheckCode + '''
         unsigned eCount = ArmStaticInst::getCurSveVecLen<Element>(
@@ -2804,11 +2814,11 @@ let {{
 
         // cout << \"COMPLETE with notify = \" << notify_end_ld  << endl;
 
-        if(notify_end_ld){
-            gem5::I2CE_driver* i2ce_driver_ptr = xc->tcBase()->getCpuPtr()->get_I2CE_Driver();
+        // if(notify_end_ld){
+        //   gem5::I2CE_driver* i2ce_driver_ptr = xc->tcBase()->getCpuPtr()->get_I2CE_Driver();
 
-            i2ce_driver_ptr->notify_ld_complete();
-        }
+        //    i2ce_driver_ptr->notify_ld_complete();
+        //}
 
         '''
 

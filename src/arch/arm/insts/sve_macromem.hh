@@ -418,9 +418,18 @@ class SveLdStructSICus_multiInputs : public PredMacroOp
 
             // DE-INTERLEAVE
             for (int i = 0; i < numregs; ++i) {
+
+                use_pred = 1;
+                if(it == (n_loads - 1)){
+                    if(i == (numregs - 1))
+                    use_pred = 0;
+                }
+
+                // printf("DE INTERL decoding --> use_pred = %d\n", use_pred);
+
                 microOps[base_uop_idx + (i + numregs)] = new MicroopDeIntrlvType<Element>(
                         mnem, machInst,
-                        _numregs, i, this, it);
+                        _numregs, i, this, it, use_pred);
             }
 
             // TODO: update based on the SIMD width
