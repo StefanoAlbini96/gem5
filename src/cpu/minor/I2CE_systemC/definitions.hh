@@ -1,6 +1,19 @@
 #ifndef _DEFINITIONS_H_
 #define _DEFINITIONS_H_
 
+#include <systemc.h>
+#include <vector>
+
+
+
+template <typename T>
+using SIMD_reg = sc_vector<T>;
+
+template <typename T>
+using multi_learner_SIMD_regs = sc_vector<SIMD_reg<T>>;
+
+
+
 
 /**
  * Support LUT macro for log2 computation of power-of-2 numbers 
@@ -28,7 +41,7 @@
  * The number of learners in the model.
  * This reflects in the number of vector register in some modules.
  */
-#define N_LEARNERS      2
+// #define N_LEARNERS      2
 
 
 /**
@@ -55,7 +68,7 @@
 #define IDX_BIT         (log2_pow2(CB_SIZE))
 
 
-#define MY_MAC  5
+// #define MY_MAC  5
 
 /**
  * Mask for the codebook index extraction
@@ -66,7 +79,7 @@
 /**
  * Bit-width of the index to a specific lane
  */
-#define LANE_IDX_BIT    (log2_pow2(N_LANES))
+#define LANE_IDX_BIT        (log2_pow2(N_LANES))
 
 
 /**

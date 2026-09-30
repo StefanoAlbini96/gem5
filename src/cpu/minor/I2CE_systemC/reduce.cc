@@ -6,7 +6,7 @@ void reduce_mod::clock_thread()
 {
 
     // Initialize
-    for(int learner=0; learner<N_LEARNERS; learner++){
+    for(int learner=0; learner<n_learners; learner++){
         reduced_reg[learner] = 0.0;
     }
 
@@ -15,7 +15,7 @@ void reduce_mod::clock_thread()
     // Clocked behaviour
     while(1){
         if(red_en){
-            for(int learner=0; learner<N_LEARNERS; learner++){
+            for(int learner=0; learner<n_learners; learner++){
 
                 reduced_reg[learner].write(reduced_nxt[learner]);
             }
@@ -31,7 +31,7 @@ void reduce_mod::clock_thread()
 void reduce_mod::comb_method()
 {
 
-    for(int learner=0; learner<N_LEARNERS; learner++){
+    for(int learner=0; learner<n_learners; learner++){
 
         float res_tmp = 0.0;
 
@@ -39,7 +39,7 @@ void reduce_mod::comb_method()
         //     printf("\nREDUCING...\n");
         // }
 
-        for(int lane=0; lane<N_LANES; lane++){
+        for(int lane=0; lane<simd_lanes; lane++){
             // if(learner==0){
             //     printf("%f += %f = ", res_tmp, mac_res[learner][lane].read());
             // }

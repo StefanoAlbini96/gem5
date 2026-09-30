@@ -15,12 +15,12 @@ SC_MODULE(store_mod){
     
     sc_in<bool> st_en;
 
-    sc_in<float> red_res[N_LEARNERS];
+    sc_in<float> red_res[4];
 
-    sc_in<float> res_tmp_from_mem[N_LEARNERS];
+    sc_in<float> res_tmp_from_mem[4];
 
 
-    sc_out<float> out[N_LEARNERS];
+    sc_out<float> out[4];
 
 
     SC_CTOR(store_mod)
@@ -29,7 +29,7 @@ SC_MODULE(store_mod){
         async_reset_signal_is(rst, true);
 
         SC_METHOD(comb_method);
-        for(int learner=0; learner<N_LEARNERS; learner++){
+        for(int learner=0; learner<4; learner++){
             sensitive << red_res[learner];
             sensitive << res_tmp_from_mem[learner];
         }

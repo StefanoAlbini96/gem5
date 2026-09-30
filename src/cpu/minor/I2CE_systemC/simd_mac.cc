@@ -7,8 +7,8 @@ void simd_mac::clock_thread()
 
     // Initialize
 
-    for(int learner=0; learner<N_LEARNERS; learner++){
-        for(int lane=0; lane<N_LANES; lane++){
+    for(int learner=0; learner<n_learners; learner++){
+        for(int lane=0; lane<simd_lanes; lane++){
 
             mul_res_reg[learner][lane] = 0.0;
             add_res_reg[learner][lane] = 0.0;
@@ -70,8 +70,8 @@ void simd_mac::clock_thread()
         */
         if(mac_en.read()){
 
-            for(int learner=0; learner<N_LEARNERS; learner++){
-                for(int lane=0; lane<N_LANES; lane++){
+            for(int learner=0; learner<n_learners; learner++){
+                for(int lane=0; lane<simd_lanes; lane++){
 
                     for(int m_stage=(MUL_STAGES-1); m_stage>0; m_stage--){
                         pipeline_mul[learner][lane][m_stage] = pipeline_mul[learner][lane][m_stage-1];
@@ -82,8 +82,8 @@ void simd_mac::clock_thread()
         }
 
 
-        for(int learner=0; learner<N_LEARNERS; learner++){
-            for(int lane=0; lane<N_LANES; lane++){
+        for(int learner=0; learner<n_learners; learner++){
+            for(int lane=0; lane<simd_lanes; lane++){
                 mul_res_reg[learner][lane].write(mul_res_nxt[learner][lane]);
             }
         }
@@ -96,8 +96,8 @@ void simd_mac::clock_thread()
 
         if(mul_en_sig[0].read() || add_drain_en_sig[ADD_DRAIN_EN-1].read()){
 
-            for(int learner=0; learner<N_LEARNERS; learner++){
-                for(int lane=0; lane<N_LANES; lane++){
+            for(int learner=0; learner<n_learners; learner++){
+                for(int lane=0; lane<simd_lanes; lane++){
                     for(int add_stage=(ADD_STAGES-1); add_stage>0; add_stage--){
                         pipeline_add[learner][lane][add_stage] = pipeline_add[learner][lane][add_stage-1];
                     }
@@ -112,8 +112,8 @@ void simd_mac::clock_thread()
         // Update the Pipeline ADD drain
         if(add_drain_en_sig[ADD_DRAIN_EN-2].read()){
 
-            for(int learner=0; learner<N_LEARNERS; learner++){
-                for(int lane=0; lane<N_LANES; lane++){
+            for(int learner=0; learner<n_learners; learner++){
+                for(int lane=0; lane<simd_lanes; lane++){
                     for(int add_stage=(ADD_STAGES-1); add_stage>0; add_stage--){
                         pipeline_add_drain[learner][lane][add_stage] = pipeline_add_drain[learner][lane][add_stage-1];
                     }
@@ -127,8 +127,8 @@ void simd_mac::clock_thread()
         // Update the result
         if(add_drain_en_sig[ADD_DRAIN_EN-1].read()){
 
-            for(int learner=0; learner<N_LEARNERS; learner++){
-                for(int lane=0; lane<N_LANES; lane++){
+            for(int learner=0; learner<n_learners; learner++){
+                for(int lane=0; lane<simd_lanes; lane++){
                     res_reg[learner][lane].write(res_nxt[learner][lane].read());
                 }
             }
@@ -145,8 +145,8 @@ void simd_mac::clock_thread()
 
 void simd_mac::mult_comb_method()
 {
-    for(int learner=0; learner<N_LEARNERS; learner++){
-        for(int lane=0; lane<N_LANES; lane++){
+    for(int learner=0; learner<n_learners; learner++){
+        for(int lane=0; lane<simd_lanes; lane++){
 
             mul_comb_res[learner][lane] = activation[learner][lane].read() * weight[learner][lane].read();
 
@@ -165,8 +165,8 @@ void simd_mac::mult_comb_method()
 void simd_mac::add_comb_method()
 {   
 
-    for(int learner=0; learner<N_LEARNERS; learner++){
-        for(int lane=0; lane<N_LANES; lane++){
+    for(int learner=0; learner<n_learners; learner++){
+        for(int lane=0; lane<simd_lanes; lane++){
 
             float sum = 0.0;
             

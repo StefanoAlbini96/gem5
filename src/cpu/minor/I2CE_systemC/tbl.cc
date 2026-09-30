@@ -6,8 +6,8 @@ void tbl::clock_thread()
 {
 
     // Initialize
-    for(int learner=0; learner<N_LEARNERS; learner++){
-        for(int lane=0; lane<N_LANES; lane++){
+    for(int learner=0; learner<n_learners; learner++){
+        for(int lane=0; lane<simd_lanes; lane++){
             weights_reg[learner][lane].write(0.0);
         }
     }
@@ -18,8 +18,8 @@ void tbl::clock_thread()
     // Clocked behaviour
     while(1)
     {
-        for(int learner=0; learner<N_LEARNERS; learner++){
-            for(int lane=0; lane<N_LANES; lane++){
+        for(int learner=0; learner<n_learners; learner++){
+            for(int lane=0; lane<simd_lanes; lane++){
 
                 // if(tbl_en.read() && ready.read()){
                 if(tbl_en.read()){
@@ -37,10 +37,10 @@ void tbl::comb_method()
 {
 
     sc_uint<IDX_BIT> index;
-    for(int lane=0; lane<N_LANES; lane++){
+    for(int lane=0; lane<simd_lanes; lane++){
         index = idxs[lane].read();
         
-        for(int learner=0; learner<N_LEARNERS; learner++){
+        for(int learner=0; learner<n_learners; learner++){
 
 
             weights_nxt[learner][lane].write(codebook[learner][index].read());

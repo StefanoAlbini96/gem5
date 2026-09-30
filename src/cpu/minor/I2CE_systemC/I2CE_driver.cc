@@ -9,16 +9,41 @@ namespace gem5
 
 I2CE_driver::I2CE_driver(const gem5::I2CE_driverParams &params) :
     gem5::SimObject(params), 
+    n_learners(params.n_learners),
+    simd_lanes(params.simd_lanes),
     accel(params.accel),
     clk("clk", sc_core::sc_time(250, sc_core::SC_PS))
+    // codebooks(N_LEARNERS, sc_vector<sc_signal<float>>(N_LANES, 0.0))
     // clk("clk", sc_core::sc_time(1, sc_core::SC_NS))
     // clk("clk", sc_core::sc_time(clockPeriod(), sc_core::SC_PS))
     // clk(params.clk_domain)
 {
 
-    // I2CE_accelerator *acc = new I2CE_accelerator("accelerator");
+    printf("Crating DRIVER with n_learners = %d\n", n_learners);
+
     // accel = acc;
     delay = 1;
+
+
+    // Initialize sc_vectors //
+
+    input_vect.init(n_learners);
+    codebooks.init(n_learners);
+    packed_indexes.init(simd_lanes);
+    red_out.init(n_learners);
+    res_tmp.init(n_learners);
+
+    for(int learner=0; learner<n_learners; learner++){
+        input_vect[learner].init(simd_lanes);
+        codebooks[learner].init(simd_lanes);
+
+        for(int lane=0; lane<simd_lanes; lane++){
+            input_vect[learner][lane].init(ACT_BUF_SIZE);
+        }
+    }
+
+
+
 
     accel->clk(clk);
 
@@ -34,13 +59,15 @@ I2CE_driver::I2CE_driver(const gem5::I2CE_driverParams &params) :
     // accel->b(ab);
 
     // Connect the packed indexes
-    for(int lane=0; lane<N_LANES; lane++){
+    for(int lane=0; lane<simd_lanes; lane++){
         accel->packed_in[lane](packed_indexes[lane]);
     }
 
 
-    for(int learn=0; learn<N_LEARNERS; learn++){
-        for(int lane=0; lane<N_LANES; lane++){
+    // Bind the ports to the SystemC module //
+
+    for(int learn=0; learn<n_learners; learn++){
+        for(int lane=0; lane<simd_lanes; lane++){
             accel->codebook_in[learn][lane](codebooks[learn][lane]);
 
             for(int i=0; i<ACT_BUF_SIZE; i++){
@@ -135,8 +162,8 @@ I2CE_driver::startup()
     }
 
 
-    for(int learner=0; learner<N_LEARNERS; learner++){
-        for(int lane=0; lane<N_LANES; lane++){
+    for(int learner=0; learner<n_learners; learner++){
+        for(int lane=0; lane<simd_lanes; lane++){
 
             for(int i=0; i<ACT_BUF_SIZE; i++){
                 sc_core::sc_trace(tf, input_vect[learner][lane][i], "input_vect[" + std::to_string(learner) + "][" + std::to_string(lane) + "][" + std::to_string(i) + "]");
@@ -190,7 +217,7 @@ I2CE_driver::startup()
     
     }
 
-    for(int lane=0; lane<N_LANES; lane++){
+    for(int lane=0; lane<simd_lanes; lane++){
         sc_core::sc_trace(tf, accel->packed_in[lane], "accel.packed_in[" + std::to_string(lane) + "]");
         sc_core::sc_trace(tf, accel->packed_idx_nxt[lane], "accel.packed_idx_nxt[" + std::to_string(lane) + "]");
         sc_core::sc_trace(tf, accel->packed_idx_reg[lane], "accel.packed_idx_reg[" + std::to_string(lane) + "]");
@@ -366,7 +393,7 @@ float I2CE_driver::get_out_value(int learner_id)
 
 int I2CE_driver::get_n_learners()
 {
-    return N_LEARNERS;
+    return n_learners;
 }
 
 

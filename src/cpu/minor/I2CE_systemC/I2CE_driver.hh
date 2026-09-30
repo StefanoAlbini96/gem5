@@ -56,6 +56,18 @@ class I2CE_driver : public gem5::SimObject
 
 
     private:
+
+        ///////////////////
+        // HW parameters //
+        ///////////////////
+        
+        int n_learners;
+        int simd_lanes;
+
+        ///////////////////
+
+
+
         I2CE_accelerator *accel;
 
         gem5::Tick delay;
@@ -76,16 +88,24 @@ class I2CE_driver : public gem5::SimObject
         // std::deque<float>           input_fifo;
 
         // This is the vector signal of the inputs that triggers the accelerator
-        // sc_core::sc_signal<std::array<float, N_LANES>> input_vect;
-        sc_core::sc_signal<float>                   input_vect[N_LEARNERS][N_LANES][ACT_BUF_SIZE];
+        // sc_core::sc_signal<float>                   input_vect[N_LEARNERS][N_LANES][ACT_BUF_SIZE];
+        multi_learner_SIMD_regs<sc_vector<sc_signal<float>>>    input_vect;
 
 
 
-        sc_core::sc_signal<float>                   codebooks[N_LEARNERS][N_LANES];
-        sc_core::sc_signal<sc_dt::sc_uint<32>>      packed_indexes[N_LANES];
 
-        sc_core::sc_signal<float>                   red_out[N_LEARNERS];
-        sc_core::sc_signal<float>                   res_tmp[N_LEARNERS];
+
+        // sc_core::sc_signal<float>                   codebooks[N_LEARNERS][N_LANES];
+        multi_learner_SIMD_regs<sc_signal<float>>       codebooks;
+
+        // sc_core::sc_signal<sc_dt::sc_uint<32>>      packed_indexes[N_LANES];
+        SIMD_reg<sc_signal<sc_dt::sc_uint<32>>>     packed_indexes;
+
+        // sc_core::sc_signal<float>                   red_out[N_LEARNERS];
+        SIMD_reg<sc_signal<float>>                  red_out;
+
+        // sc_core::sc_signal<float>                   res_tmp[N_LEARNERS];
+        SIMD_reg<sc_signal<float>>                  res_tmp;
 
         // sc_core::sc_signal<float> ab;
 

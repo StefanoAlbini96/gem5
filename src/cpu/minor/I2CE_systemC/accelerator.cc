@@ -25,7 +25,7 @@ void I2CE_accelerator::clock_thread()
     red_trigger_prev_reg.write(false);
     
 
-    for(int lane=0; lane<N_LANES; lane++){
+    for(int lane=0; lane<simd_lanes; lane++){
         packed_idx_reg[lane] = 0;
     }
 
@@ -33,8 +33,8 @@ void I2CE_accelerator::clock_thread()
         pipeline_en[stage] = 0;
     }
     
-    for(int learner=0; learner<N_LEARNERS; learner++){
-        for(int lane=0; lane<N_LANES; lane++){
+    for(int learner=0; learner<n_learners; learner++){
+        for(int lane=0; lane<simd_lanes; lane++){
 
             codebook_reg[learner][lane] = 0;
             inputs_reg[learner][lane] = 0;
@@ -47,12 +47,6 @@ void I2CE_accelerator::clock_thread()
     wait();
 
     while(1){
-
-        // std::cout
-        //     << "[SC CLK]"
-        //     << " time=" << sc_time_stamp()
-        //     << " delta=" << sc_delta_count()
-        //     << std::endl;
 
 
 
@@ -97,16 +91,13 @@ void I2CE_accelerator::clock_thread()
 
 
 
-        // int nelems = input_fifo.size();
-        // bool enough_data = (nelems >= (N_LEARNERS * N_LANES));
-
         // Packed indexes
-        for(int lane=0; lane<N_LANES; lane++){
+        for(int lane=0; lane<simd_lanes; lane++){
             packed_idx_reg[lane].write(packed_idx_nxt[lane]);
         }
 
-        for(int learner=0; learner<N_LEARNERS; learner++){
-            for(int lane=0; lane<N_LANES; lane++){
+        for(int learner=0; learner<n_learners; learner++){
+            for(int lane=0; lane<simd_lanes; lane++){
                 codebook_reg[learner][lane].write(codebook_nxt[learner][lane]);
             }
 
@@ -127,8 +118,8 @@ void I2CE_accelerator::clock_thread()
 
             sum_reg.write(sum_nxt.read());
 
-            for(int learner=0; learner<N_LEARNERS; learner++){
-                for(int lane=0; lane<N_LANES; lane++){
+            for(int learner=0; learner<n_learners; learner++){
+                for(int lane=0; lane<simd_lanes; lane++){
                     inputs_reg[learner][lane] = inputs_nxt[learner][lane];
                 }
             }
@@ -152,7 +143,7 @@ void I2CE_accelerator::comb_method()
 
     // printf("Triggered\n");
     // Packed indexes
-    for(int lane=0; lane<N_LANES; lane++){
+    for(int lane=0; lane<simd_lanes; lane++){
         // std::cout << sc_time_stamp()
         //   << " packed_in = "
         //   << packed_in[lane].read()
@@ -165,8 +156,8 @@ void I2CE_accelerator::comb_method()
     uint16_t input_pointer = in_ptr_reg.read();
 
     // Inputs
-    for(int learner=0; learner<N_LEARNERS; learner++){
-        for(int lane=0; lane<N_LANES; lane++){
+    for(int learner=0; learner<n_learners; learner++){
+        for(int lane=0; lane<simd_lanes; lane++){
 
             codebook_nxt[learner][lane] = codebook_in[learner][lane];
 
@@ -263,6 +254,15 @@ void I2CE_accelerator::trigger_en_comb_method()
 I2CE_accelerator *
 gem5::I2CE_acceleratorParams::create() const
 {
-    I2CE_accelerator *acc = new I2CE_accelerator(name.c_str());
+    I2CE_accelerator *acc = new I2CE_accelerator(name.c_str(), n_learners, simd_lanes);
+
+    // acc->test_nlearn = n_learners;
+
+    printf("\n------------------------------------------------------\n");
+    printf("CREATING accel with:\n");
+    printf("n_learners = %d\n", acc->n_learners);
+    printf("simd_lanes = %d\n", acc->simd_lanes);
+    printf("------------------------------------------------------\n");
+
     return acc;
 }

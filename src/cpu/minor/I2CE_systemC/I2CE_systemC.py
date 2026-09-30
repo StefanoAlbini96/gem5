@@ -15,6 +15,9 @@ class I2CE_accelerator(SystemC_ScModule):
     cxx_class = "I2CE_accelerator"
     cxx_header = "cpu/minor/I2CE_systemC/accelerator.hh"
 
+    n_learners = Param.UInt32(2, "Number of learners")
+    simd_lanes = Param.UInt32(4, "Number of lanes in accelerator SIMD registers")
+
 
 
 # This is a standard gem5 SimObject class with no special accomodation for the
@@ -25,7 +28,11 @@ class I2CE_driver(SimObject):
     cxx_class = "gem5::I2CE_driver"
     cxx_header = "cpu/minor/I2CE_systemC/I2CE_driver.hh"
 
-    accel = Param.I2CE_accelerator(NULL, "I2CE SC accelerator ")
+
+    n_learners = Param.UInt32(2, "Number of learners")
+    simd_lanes = Param.UInt32(4, "Number of lanes in accelerator SIMD registers")
+
+    accel = Param.I2CE_accelerator(NULL, "I2CE SC accelerator")
 
     # clk_domain = Param.SrcClockDomain(SrcClockDomain(clock='1GHz'),
     #                                    "Clock domain for the SystemC bridge")

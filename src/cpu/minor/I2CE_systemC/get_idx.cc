@@ -5,7 +5,7 @@ void get_idx::clock_thread()
 {
 
     // Initialize
-    for(int lane=0; lane<N_LANES; lane++){
+    for(int lane=0; lane<simd_lanes; lane++){
         idxs_reg[lane] = 0;
         shamt_reg[lane] = (lane * IDX_BIT);
     }
@@ -13,7 +13,7 @@ void get_idx::clock_thread()
 
     mask_reg = IDX_MASK;    // Remains constant
 
-    // idx_en_sig.write(false);
+    idx_en_sig.write(false);
 
     wait();
 
@@ -22,16 +22,16 @@ void get_idx::clock_thread()
     while(1)
     {
 
-        // idx_en_sig.write(idx_en_nxt.read());
+        idx_en_sig.write(idx_en_nxt.read());
 
 
         // if(get_idx_en.read() && ready.read()){
-        // if(get_idx_en.read() || idx_en_sig.read()){
-        if(get_idx_en.read()){
+        if(get_idx_en.read() || idx_en_sig.read()){
+        // if(get_idx_en.read()){
 
 
             // For the duplicated packed lane
-            for(int lane=0; lane<N_LANES; lane++){
+            for(int lane=0; lane<simd_lanes; lane++){
 
                 idxs_reg[lane].write(idxs_nxt[lane]);
 
@@ -59,7 +59,7 @@ void get_idx::comb_method()
 
     sc_uint<LANE_IDX_BIT>           sel_updated;
 
-    for(int lane=0; lane<N_LANES; lane++){
+    for(int lane=0; lane<simd_lanes; lane++){
 
         // Get the correct lane of packed indexes        
         packed_lane = packed_indexes[sel_reg.read()].read();
@@ -74,14 +74,14 @@ void get_idx::comb_method()
 
         // shamt_prev = shamt_nxt[lane].read();
         shamt_prev = shamt_reg[lane].read();
-        shamt_updated = shamt_reg[lane].read() + (N_LANES * IDX_BIT);
+        shamt_updated = shamt_reg[lane].read() + (simd_lanes * IDX_BIT);
         shamt_nxt[lane].write(shamt_updated);
 
         // Overflow occurred --> need to use the next lane of packed indexes
         // printf("%d < %d\n", (uint32_t)shamt_updated, (uint32_t)shamt_prev);
         if (shamt_updated < shamt_prev){
-            sel_nxt.write((sel_reg.read() + 1) % N_LANES);
-            sel_updated = (sel_reg.read() + 1) % N_LANES;
+            sel_nxt.write((sel_reg.read() + 1) % simd_lanes);
+            sel_updated = (sel_reg.read() + 1) % simd_lanes;
         } else {
             sel_nxt.write(sel_reg.read());
             sel_updated = sel_reg.read();
@@ -92,16 +92,16 @@ void get_idx::comb_method()
     }
     
 
-    // idx_en_nxt.write(idx_en_sig.read());
+    idx_en_nxt.write(idx_en_sig.read());
 
-    // if(get_idx_en.read()){
-    //     idx_en_nxt.write(true);
-    // }
+    if(get_idx_en.read()){
+        idx_en_nxt.write(true);
+    }
 
-    // // Detect overflow for the sel_reg
-    // if(sel_updated < sel_reg.read()){
-    //     idx_en_nxt.write(false);
-    // }
+    // Detect overflow for the sel_reg
+    if(sel_updated < sel_reg.read()){
+        idx_en_nxt.write(false);
+    }
 
     // en_out.write(idx_en_sig.read());
 }
