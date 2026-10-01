@@ -2425,10 +2425,9 @@ let {{
                 i2ce_driver_ptr->ld_inputs(this->regIndex, i, input_index, bitsToFloat32(AA64IntrlvReg1_x[srcIdx]));
             }   
         }
-        
 
         if(this->is_last){
-            cout << \"De-interleaved with notify...\" << endl;
+            // cout << \"De-interleaved with notify...\" << endl;
 
             i2ce_driver_ptr->notify_ld_complete();
         }
@@ -2727,6 +2726,7 @@ let {{
     # Generates definitions for SVE struct load/store microops
     def emitSveStructMemInsts(offsetIsImm):
         global header_output, exec_output, decoders
+
         eaCode = SPAlignmentCheckCode + '''
         int memAccessSize = eCount * sizeof(Element);
         EA = memAccessSize * regIndex + XBase + '''
@@ -2738,13 +2738,18 @@ let {{
 
         if offsetIsImm:
             eaCode += '((int64_t) this->imm * eCount * sizeof(Element))'
+
             eaCodeCUS += '((int64_t) this->imm * eCount * sizeof(Element));'
             eaCodeCUS += 'cout << \"<- \" << this->imm << \" * \" << eCount << \" * \" << sizeof(Element) << endl;'
             eaCodeCUS += 'cout << \"EA = \" << EA << endl;\n'
             eaCodeCUS += 'fup->update_input_pointer(memAccessSize);'
+
         else:
             eaCode += '(XOffset * sizeof(Element));'
             eaCodeCUS += '(XOffset * sizeof(Element));'
+
+
+        
         loadMemAccCode = '''
         for (int i = 0; i < eCount; i++) {
             int gpIdx = (regIndex * eCount + i) / numRegs;
@@ -2773,23 +2778,15 @@ let {{
 
         loadMemAccCodeCus_I2CE = '''
 
-        bool use_predication = false;
-        if (this->use_pred == 0) {
-            use_predication = true;
-        }
-
         // Remove 1 to load FULL if predicate is 0
         uint8_t last_lane = (UpPredLane - 1);
-
-        //cout << endl;
-        //cout << \"LD INPUTS with use_pred = \" << use_predication  << endl;
 
         for (int i = 0; i < eCount; i++) {
             int gpIdx = (regIndex * eCount + i) / numRegs;
             
-            //cout << \"gpIdx = \" << gpIdx << \"  | UpPredLane = \" << UpPredLane  << \"  | LastLane = \" << last_lane << endl;
+            // cout << \"gpIdx = \" << gpIdx << \"  | UpPredLane = \" << UpPredLane  << \"  | LastLane = \" << last_lane << endl;
 
-            if (use_predication){
+            if (this->use_pred){
                 if (gpIdx <= last_lane) {
                     float value = memDataView[i];
                     AA64FpDest_x[i] = value;

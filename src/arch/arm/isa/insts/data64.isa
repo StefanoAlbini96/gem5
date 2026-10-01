@@ -309,20 +309,6 @@ let {{
 
 
 
-    buildDataXRegInst(
-        "stopCompute_en", # mnem
-        1, # num of regs interfaced
-        """
-
-        gem5::I2CE_driver* i2ce_driver_ptr = xc->tcBase()->getCpuPtr()->get_I2CE_Driver();
-
-        i2ce_driver_ptr->compute_disable();
-
-        auto tmp = Op1;
-        """, # code
-        overrideOpClass="CusFUCompute_SCOp"
-    )
-
 
 
     buildDataXRegInst(

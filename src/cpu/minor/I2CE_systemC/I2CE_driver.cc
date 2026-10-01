@@ -150,6 +150,9 @@ I2CE_driver::startup()
     // sc_core::sc_trace(tf, accel->getidx_mod->idx_en_sig, "accel.GET_IDX.idx_en_sig");
 
 
+    // sc_core::sc_trace(tf, accel->getidx_mod->lane_ptr_reg, "accel.GET_IDX.lane_ptr_reg");
+    // sc_core::sc_trace(tf, accel->getidx_mod->lane_ptr_nxt, "accel.GET_IDX.lane_ptr_nxt");
+
     for(int stage=0; stage<EN_STAGES; stage++){
         sc_core::sc_trace(tf, accel->pipeline_en[stage], "accel.pipeline_en[" + std::to_string(stage) + "]");
     }
@@ -166,7 +169,12 @@ I2CE_driver::startup()
         for(int lane=0; lane<simd_lanes; lane++){
 
             for(int i=0; i<ACT_BUF_SIZE; i++){
-                sc_core::sc_trace(tf, input_vect[learner][lane][i], "input_vect[" + std::to_string(learner) + "][" + std::to_string(lane) + "][" + std::to_string(i) + "]");
+
+                std::string name = "INPUT_BUF.in_vect.learn_" + std::to_string(learner) + ".elem_" + std::to_string(i) + ".lane_" +std::to_string(lane);
+
+                sc_core::sc_trace(tf, input_vect[learner][lane][i], "INPUT_BUF.input_vect[" + std::to_string(learner) + "][" + std::to_string(lane) + "][" + std::to_string(i) + "]");
+                sc_core::sc_trace(tf, input_vect[learner][lane][i], name);
+
                 sc_core::sc_trace(tf, accel->inputs_in[learner][lane][i], "accel.inputs_in[" + std::to_string(learner) + "][" + std::to_string(lane) + "][" + std::to_string(i) + "]");            
             }
 
@@ -264,6 +272,8 @@ I2CE_driver::compute_enable()
     //     << " SC delta=" << sc_delta_count()
     //     << std::endl;
 
+    printf("[ACC]  COMPUTE EN\n");
+
     en_trigger.write(!en_trigger.read());
 
     ld_input_complete.write(false);
@@ -322,7 +332,7 @@ void I2CE_driver::enable()
 
 void I2CE_driver::ld_inputs(int learner, int lane, int in_idx, float input_val)
 {
-    // printf("LD inputs --> %d %d %d --> %f\n", learner, lane, in_idx, input_val);
+    // printf("LD inputs --> [%d] [%d] [%d] --> %f\n", learner, lane, in_idx, input_val);
 
     input_vect[learner][lane][in_idx] = input_val;
 

@@ -385,22 +385,24 @@ class SveLdStructSICus_multiInputs : public PredMacroOp
 
         uint8_t ld_imm = 0;
 
-        // printf("N SIMD loads = %d\n", n_loads);
-        // printf("N learners = %d\n", numregs);
-        // printf("Num microops = %d\n", numMicroops);
-        
         uint8_t n_microOps_per_iter = (numregs * 2);
         numMicroops = n_microOps_per_iter * n_loads;
         microOps = new StaticInstPtr[numMicroops];
 
+        // printf("\n==============================\n");
+        // printf("SC_LOAD_INPUTS machInst=0x%016llx\n", (unsigned long long)machInst);
+        // printf("N SIMD loads = %d\n", n_loads);
+        // printf("UpPredLane = %d\n", upPredLane);
+        // printf("N learners = %d\n", numregs);
+        // printf("Num microops = %d\n", numMicroops);
+        
+
         for(int it=0; it<n_loads; it++){
             uint8_t base_uop_idx = (it * n_microOps_per_iter);
-
-            // printf("Adding a LD\n");
-
-            uint8_t use_pred = 1;
+            
+            uint8_t use_pred = 0;
             if(it == (n_loads - 1)){
-                use_pred = 0;
+                use_pred = 1;
             }
 
             // By default, load all the lanes, unless it is the last LOAD
@@ -419,10 +421,10 @@ class SveLdStructSICus_multiInputs : public PredMacroOp
             // DE-INTERLEAVE
             for (int i = 0; i < numregs; ++i) {
 
-                use_pred = 1;
+                use_pred = 0;
                 if(it == (n_loads - 1)){
                     if(i == (numregs - 1))
-                    use_pred = 0;
+                    use_pred = 1;
                 }
 
                 // printf("DE INTERL decoding --> use_pred = %d\n", use_pred);
