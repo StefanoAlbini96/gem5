@@ -26,14 +26,15 @@ SC_MODULE(get_idx){
     sc_in<bool>                         clk;
     sc_in<bool>                         rst;
 
-    sc_in<bool>                         get_idx_en;
+    sc_in<bool>                         in_en;
     // sc_in<bool> ready;
 
 
-    sc_signal<bool>                     idx_en_sig, idx_en_nxt;
+    sc_signal<bool>                     idx_en_reg, idx_en_nxt;
+    sc_signal<bool>                     idx_en_prev_reg, idx_en_prev_nxt;
 
     // Selects which lane has to be unpacked
-    sc_signal<sc_uint<LANE_IDX_BIT>>    sel_reg, sel_nxt;
+    sc_signal<sc_uint<LANE_IDX_BIT_MAX>>    sel_reg, sel_nxt;
 
     // Mask for the index
     sc_signal<sc_uint<IDX_BIT>>         mask_reg;
@@ -81,7 +82,11 @@ SC_MODULE(get_idx){
             sensitive << shamt_reg[lane];
         }
         sensitive << sel_reg;
-        sensitive << get_idx_en;
+        sensitive << in_en;
+        sensitive << idx_en_reg;
+        sensitive << idx_en_prev_reg;
+        sensitive << sel_reg;
+
     }
 
 

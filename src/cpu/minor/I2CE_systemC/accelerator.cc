@@ -114,7 +114,7 @@ void I2CE_accelerator::clock_thread()
 
         // EN for the TBL module
         // At the next cycle the MAC is EN and the activations are already in the register
-        if(pipeline_en[0].read()){
+        if(pipeline_en[1].read()){
 
             sum_reg.write(sum_nxt.read());
 

@@ -146,12 +146,10 @@ I2CE_driver::startup()
     sc_core::sc_trace(tf, accel->getidx_mod->sel_nxt, "accel.GET_IDX.sel_nxt");
     sc_core::sc_trace(tf, accel->getidx_mod->sel_reg, "accel.GET_IDX.sel_reg");
 
-    // sc_core::sc_trace(tf, accel->getidx_mod->idx_en_nxt, "accel.GET_IDX.idx_en_nxt");
-    // sc_core::sc_trace(tf, accel->getidx_mod->idx_en_sig, "accel.GET_IDX.idx_en_sig");
-
-
-    // sc_core::sc_trace(tf, accel->getidx_mod->lane_ptr_reg, "accel.GET_IDX.lane_ptr_reg");
-    // sc_core::sc_trace(tf, accel->getidx_mod->lane_ptr_nxt, "accel.GET_IDX.lane_ptr_nxt");
+    sc_core::sc_trace(tf, accel->getidx_mod->idx_en_nxt, "accel.GET_IDX.idx_en_nxt");
+    sc_core::sc_trace(tf, accel->getidx_mod->idx_en_reg, "accel.GET_IDX.idx_en_reg");
+    sc_core::sc_trace(tf, accel->getidx_mod->idx_en_prev_nxt, "accel.GET_IDX.idx_en_prev_nxt");
+    sc_core::sc_trace(tf, accel->getidx_mod->idx_en_prev_reg, "accel.GET_IDX.idx_en_prev_reg");
 
     for(int stage=0; stage<EN_STAGES; stage++){
         sc_core::sc_trace(tf, accel->pipeline_en[stage], "accel.pipeline_en[" + std::to_string(stage) + "]");
@@ -271,8 +269,6 @@ I2CE_driver::compute_enable()
     //     << " SC time=" << sc_time_stamp()
     //     << " SC delta=" << sc_delta_count()
     //     << std::endl;
-
-    printf("[ACC]  COMPUTE EN\n");
 
     en_trigger.write(!en_trigger.read());
 

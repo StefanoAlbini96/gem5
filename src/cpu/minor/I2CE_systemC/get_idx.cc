@@ -13,7 +13,9 @@ void get_idx::clock_thread()
 
     mask_reg = IDX_MASK;    // Remains constant
 
-    idx_en_sig.write(false);
+    idx_en_reg.write(false);
+    idx_en_prev_reg.write(false);
+
 
     wait();
 
@@ -22,12 +24,10 @@ void get_idx::clock_thread()
     while(1)
     {
 
-        idx_en_sig.write(idx_en_nxt.read());
+        idx_en_reg.write(idx_en_nxt.read());
+        idx_en_prev_reg.write(idx_en_prev_nxt.read());
 
-
-        // if(get_idx_en.read() && ready.read()){
-        if(get_idx_en.read() || idx_en_sig.read()){
-        // if(get_idx_en.read()){
+        if(idx_en_reg.read()){
 
 
             // For the duplicated packed lane
@@ -57,14 +57,12 @@ void get_idx::comb_method()
     sc_uint<SHAMT_BIT>              shamt_prev;
     sc_uint<SHAMT_BIT>              shamt_updated;
 
-    sc_uint<LANE_IDX_BIT>           sel_updated;
+    sc_uint<LANE_IDX_BIT_MAX>           sel_updated;
 
     for(int lane=0; lane<simd_lanes; lane++){
 
         // Get the correct lane of packed indexes        
         packed_lane = packed_indexes[sel_reg.read()].read();
-        // printf("GET IDX [%d] <-- %d\n", packed_lane);
-
 
         // Shift and mask_reg
         index = packed_lane >> shamt_reg[lane].read();
@@ -77,13 +75,11 @@ void get_idx::comb_method()
         shamt_updated = shamt_reg[lane].read() + (simd_lanes * IDX_BIT);
         shamt_nxt[lane].write(shamt_updated);
 
+
         // Overflow occurred --> need to use the next lane of packed indexes
-        // printf("%d < %d\n", (uint32_t)shamt_updated, (uint32_t)shamt_prev);
         if (shamt_updated < shamt_prev){
-            sel_nxt.write((sel_reg.read() + 1) % simd_lanes);
             sel_updated = (sel_reg.read() + 1) % simd_lanes;
         } else {
-            sel_nxt.write(sel_reg.read());
             sel_updated = sel_reg.read();
         }
 
@@ -92,16 +88,35 @@ void get_idx::comb_method()
     }
     
 
-    idx_en_nxt.write(idx_en_sig.read());
+    sel_nxt.write(sel_updated);
 
-    if(get_idx_en.read()){
-        idx_en_nxt.write(true);
+
+    bool en_next = idx_en_reg.read();
+
+    // Rising edge of EN input
+    bool en_rising = in_en.read() && !idx_en_prev_nxt.read();
+
+    // If rising edge, start the internal EN
+    if(!idx_en_reg.read() && en_rising){
+        en_next = true;
     }
 
-    // Detect overflow for the sel_reg
-    if(sel_updated < sel_reg.read()){
-        idx_en_nxt.write(false);
+
+    bool done_last_lane = (sel_updated < sel_reg.read());
+
+    // Stop when needed
+    if(idx_en_reg.read() && done_last_lane){
+        en_next = false;
     }
 
-    // en_out.write(idx_en_sig.read());
+
+    idx_en_nxt.write(en_next);
+    
+    idx_en_prev_nxt.write(in_en.read());
+
 }
+
+
+
+
+

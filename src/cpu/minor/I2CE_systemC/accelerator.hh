@@ -243,7 +243,7 @@ SC_MODULE(I2CE_accelerator){
         // getidx_mod->rst(mac_res_reset_reg);
 
         // getidx_mod->get_idx_en(en_input);
-        getidx_mod->get_idx_en(en_reg);
+        getidx_mod->in_en(en_reg);
 
         // getidx_mod->en_out(tbl_en_sig);
         for(int lane=0; lane<simd_lanes; lane++){
@@ -256,7 +256,7 @@ SC_MODULE(I2CE_accelerator){
         tbl_mod->clk(clk);
         tbl_mod->rst(rst);
         // tbl_mod->tbl_en(tbl_en_sig);
-        tbl_mod->tbl_en(pipeline_en[0]);
+        tbl_mod->tbl_en(pipeline_en[1]);
         for(int lane=0; lane<simd_lanes; lane++){
             tbl_mod->idxs[lane](res_getidx_mod_wire[lane]);
         }
@@ -272,8 +272,8 @@ SC_MODULE(I2CE_accelerator){
         mac_mod->clk(clk);
         mac_mod->rst(mac_res_reset_reg);
         // mac_mod->clear_res_toggle(mac_res_reset_reg);
-        mac_mod->mac_en(pipeline_en[1]);
-        mac_mod->add_en(pipeline_en[2]);
+        mac_mod->mac_en(pipeline_en[2]);
+        mac_mod->add_en(pipeline_en[3]);
         // mac_mod->en_out(red_en_sig);
         mac_mod->en_out(mac_en_out_wire);
         for(int learner=0; learner<n_learners; learner++){

@@ -83,6 +83,12 @@ using multi_learner_SIMD_regs = sc_vector<SIMD_reg<T>>;
 
 
 /**
+ * Upper-bound for the bit-width of the indexes to each lane 
+*/
+#define LANE_IDX_BIT_MAX    10
+
+
+/**
  * How many indexes are packed in each lane
  */
 #define IDX_PER_LANE    (LANE_BITS/IDX_BIT)
@@ -98,7 +104,7 @@ using multi_learner_SIMD_regs = sc_vector<SIMD_reg<T>>;
 
 // Number of stages/modules of the accelerator, neede to propagate the EN signal
 // I need 1 for the GET-IDX and TBL, and 2 for the MAC module (one for mul and one for add)
-#define EN_STAGES    3
+#define EN_STAGES    4
 
 
 /**
@@ -122,7 +128,7 @@ using multi_learner_SIMD_regs = sc_vector<SIMD_reg<T>>;
 #define MAC_LAT_CC          (4 + ACT_BUF_SIZE)
 
 // Number of CC that the EN should stay high to ensure full computation
-#define EN_NUM_CC       22
+#define EN_NUM_CC       23
 
 
 #endif
