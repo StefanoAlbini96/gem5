@@ -29,8 +29,8 @@ SC_MODULE(get_idx){
     sc_in<bool>                         in_en;
     // sc_in<bool> ready;
 
-    sc_in<sc_dt::sc_uint<IDX_BIT_MAX>>      bit_mask;
-    sc_in<sc_dt::sc_uint<8>>                idx_bits_in;
+    sc_in<sc_dt::sc_uint<IDX_BIT_MAX>>          bit_mask;
+    sc_in<sc_dt::sc_uint<8>>                    idx_bits_in;
 
     sc_signal<bool>                     idx_en_reg, idx_en_nxt;
     sc_signal<bool>                     idx_en_prev_reg, idx_en_prev_nxt;
@@ -40,7 +40,7 @@ SC_MODULE(get_idx){
 
     // Mask for the index
     sc_signal<sc_uint<IDX_BIT_MAX>>         mask_reg;
-    sc_signal<sc_uint<8>>                   bits_per_idx;                  
+    sc_signal<sc_uint<8>>                   bits_per_idx;
 
     // SIMD register of different packed indexes
     // sc_in<sc_dt::sc_uint<32>>           packed_indexes[N_LANES];
