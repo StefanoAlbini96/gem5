@@ -187,11 +187,23 @@ def create(args):
     # # for e in dir(type(system.cpu_cluster)):
     # #     print(e)
     # # print(system.cpu_cluster.cpus.execute.fu.01)
-    # print(system.cpu_cluster.cpus.execute)
-    # # print(dir(type(system.cpu_cluster)))
+    # # print(system.cpu_cluster.cpus.execute)
+    # print(dir(type(system.cpu_cluster)))
     # print("================================================")
     # print("================================================")
     # print("================================================")
+    # exit()
+
+
+    # ks = system.cpu_cluster.cpus[0]._params.keys()
+    # for k in ks:
+    #     print(k)
+    # # print(system.cpu_cluster.cpus[0]._params.keys())
+    # print("=========================")
+    # print(system.cpu_cluster.cpus[0].i2ce_accel)
+    # print("=========================")
+    # print("=========================")
+    # print("=========================")
     # exit()
 
     return system
@@ -308,14 +320,27 @@ def main():
     root.system = create(args)
 
 
-    my_accel = I2CE_accelerator()
-    my_driver = I2CE_driver()
+    num_learners = 2
+    num_simd_lanes = (args.sve_vl * 4)
+
+    print("=======================")
+    print("gem5 --> setting I2CE_accel")
+    print(f"n_learners = {num_learners}")
+    print(f"simd_lanes = {num_simd_lanes}")
+    print("=======================")
+
+    my_accel = I2CE_accelerator(
+        n_learners=num_learners,
+        simd_lanes=num_simd_lanes
+    )
+    my_driver = I2CE_driver(
+        n_learners=num_learners,
+        simd_lanes=num_simd_lanes
+    )
     my_driver.accel = my_accel
     # my_driver.clk_domain = root.system.clk_domain
 
-    print("=======================================")
-    print(root.system.clk_domain)
-    print("=======================================")
+
 
     kernel = SystemC_Kernel(feeder=my_driver)
     root.systemc_kernel=kernel
@@ -332,6 +357,12 @@ def main():
     # print(cpu.i2ce_accel)
 
     root.system.cpu_cluster.cpus[0].isa[0].sve_vl_se = args.sve_vl
+
+
+    print("==============================")
+    print(f"Gem5 with SVE_VL --> {args.sve_vl} --> {root.system.cpu_cluster.cpus[0].isa[0].sve_vl_se}")
+    print("==============================")
+
 
     # Instantiate the C++ object hierarchy. After this point,
     # SimObjects can't be instantiated anymore.

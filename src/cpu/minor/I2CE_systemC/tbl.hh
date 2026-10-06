@@ -60,7 +60,7 @@ SC_MODULE(tbl){
         for(int learn=0; learn<n_learners; learn++){
             weights_reg[learn].init(simd_lanes);
             weights_nxt[learn].init(simd_lanes);
-            codebook[learn].init(simd_lanes);
+            codebook[learn].init(CB_SIZE_MAX);
             out[learn].init(simd_lanes);
         }
 
@@ -79,8 +79,11 @@ SC_MODULE(tbl){
 
         for(int learner=0; learner<n_learners; learner++){
             for(int lane=0; lane<simd_lanes; lane++){
-                sensitive << codebook[learner][lane];
+                // sensitive << codebook[learner][lane];
                 sensitive << weights_reg[learner][lane];
+            }
+            for(int lane=0; lane<CB_SIZE_MAX; lane++){
+                sensitive << codebook[learner][lane];
             }
         }
     }

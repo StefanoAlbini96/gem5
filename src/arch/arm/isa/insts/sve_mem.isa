@@ -415,19 +415,19 @@ output decoder {{
         switch (numregs) {
             case 2:
                 return new SveLdStructSI_I2CE_LoadCB<etype,
-                        SveLoadRegImmMicroop,
+                        SveLoadRegImmMicroop_LoadCB_I2CE,
                         SveDeIntrlv2MicroopCusLDCB_I2CE>(
                                nm[numregs][esize], machInst, MemReadOp,
                                zt, pg, xn, imm, numregs, cb_size);
             case 3:
                 return new SveLdStructSI_I2CE_LoadCB<etype,
-                        SveLoadRegImmMicroop,
+                        SveLoadRegImmMicroop_LoadCB_I2CE,
                         SveDeIntrlv3MicroopCusLDCB_I2CE>(
                                nm[numregs][esize], machInst, MemReadOp,
                                zt, pg, xn, imm, numregs, cb_size);
             case 4:
                 return new SveLdStructSI_I2CE_LoadCB<etype,
-                        SveLoadRegImmMicroop,
+                        SveLoadRegImmMicroop_LoadCB_I2CE,
                         SveDeIntrlv4MicroopCusLDCB_I2CE>(
                                nm[numregs][esize], machInst, MemReadOp,
                                zt, pg, xn, imm, numregs, cb_size);
@@ -1520,10 +1520,11 @@ let {{
         // Pointer to the DRIVER
         gem5::I2CE_driver* i2ce_driver_ptr = xc->tcBase()->getCpuPtr()->get_I2CE_Driver();
         for (int i = 0; i < eCount; i++) {
+            // cout << \"LD IDXS GP \" << i << \" --> \" << GpOp_x[i] << endl;
             if (GpOp_x[i]) {
                 i2ce_driver_ptr->load_packed_idxs(i, memDataView[i]);
             } else {
-                i2ce_driver_ptr->load_packed_idxs(i, 0);
+                //i2ce_driver_ptr->load_packed_idxs(i, 0);
             }
         }
         '''
@@ -2316,6 +2317,8 @@ let {{
         // Pointer to the DRIVER
         gem5::I2CE_driver* i2ce_driver_ptr = xc->tcBase()->getCpuPtr()->get_I2CE_Driver();
 
+        // cout << \"eCount = \" << eCount << endl;
+
         for (unsigned int i = 0; i < eCount; ++i) {
             unsigned int absIdx = (regIndex + numRegs * i);
             unsigned int srcIdx = absIdx % eCount;
@@ -2418,6 +2421,9 @@ let {{
             unsigned int absIdx = (regIndex + numRegs * i);
             unsigned int srcIdx = absIdx % eCount;
             unsigned int srcVec = absIdx / eCount;
+
+            // cout << \"Ld Inputs --> \" << this->regIndex << \", \" << i << \", \" << input_index << \", \" << bitsToFloat32(AA64IntrlvReg0_x[srcIdx]) << endl;
+
             if (srcVec == 0){
                 i2ce_driver_ptr->ld_inputs(this->regIndex, i, input_index, bitsToFloat32(AA64IntrlvReg0_x[srcIdx]));
             }
@@ -2751,6 +2757,7 @@ let {{
 
         
         loadMemAccCode = '''
+        // cout << \"eCount = \" << eCount << endl;
         for (int i = 0; i < eCount; i++) {
             int gpIdx = (regIndex * eCount + i) / numRegs;
             if (GpOp_x[gpIdx]) {
@@ -2760,6 +2767,22 @@ let {{
             }
         }
         '''
+
+
+        loadMemAccCode_LoadCB_I2CE = '''
+        for (int i = 0; i < eCount; i++) {
+            int gpIdx = (regIndex * eCount + i) / numRegs;
+
+            // if (GpOp_x[gpIdx]) {
+            if (gpIdx < cb_size) {
+                AA64FpDest_x[i] = memDataView[i];
+            } else {
+                AA64FpDest_x[i] = 0;
+            }
+        }
+        '''
+
+
         loadMemAccCodeCus = '''
         for (int i = 0; i < eCount; i++) {
             int gpIdx = (regIndex * eCount + i) / numRegs;
@@ -2790,7 +2813,7 @@ let {{
                 if (gpIdx <= last_lane) {
                     float value = memDataView[i];
                     AA64FpDest_x[i] = value;
-                    //cout << \"      Loading for lane \" << gpIdx << \" Value: \" << AA64FpDest_x[i] << \" | \" << bitsToFloat32(value) << endl;
+                    // cout << \"      Loading for lane \" << gpIdx << \" Value: \" << AA64FpDest_x[i] << \" | \" << bitsToFloat32(value) << endl;
                 } else {
                     AA64FpDest_x[i] = 0;
                 }
@@ -2889,6 +2912,15 @@ let {{
              'fa_code' : ''},
             ['IsLoad', 'IsMicroop'])
 
+        loadIop_LoadCB_I2CE = ArmInstObjParams('ldxx',
+            'SveLoadRegImmMicroop_LoadCB_I2CE' if offsetIsImm else 'SveLoadRegRegMicroop_LoadCB_I2CE',
+            'MicroOp',
+            {'targs': 'Element',
+             'memacc_code': loadMemAccCode_LoadCB_I2CE,
+             'ea_code' : sveEnabledCheckCode + eaCode,
+             'fa_code' : ''},
+            ['IsLoad', 'IsMicroop'])
+
         loadIopCus = ArmInstObjParams('ldxx',
             'SveLoadRegImmMicroopCus' if offsetIsImm else 'SveLoadRegRegMicroopCus',
             'MicroOp',
@@ -2953,6 +2985,7 @@ let {{
             ['IsStore', 'IsMicroop'])
         if offsetIsImm:
             header_output += SveStructMemSIMicroopDeclare.subst(loadIop)
+            header_output += SveStructMemSIMicroopDeclare_LoadCB_I2CE.subst(loadIop_LoadCB_I2CE)
             header_output += SveStructMemSIMicroopDeclareCus.subst(loadIopCus)
             header_output += SveStructMemSIMicroopDeclareCus_I2CE.subst(loadIopCus_I2CE)
             header_output += SveStructMemSIInputsMicroopDeclareCus.subst(loadInputsIopCus)
@@ -2961,6 +2994,7 @@ let {{
             header_output += SveStructMemSIMicroopDeclare.subst(storeIop)
         else:
             header_output += SveStructMemSSMicroopDeclare.subst(loadIop)
+            header_output += SveStructMemSSMicroopDeclare_LoadCB_I2CE.subst(loadIop_LoadCB_I2CE)
             header_output += SveStructMemSSMicroopDeclareCus.subst(loadIopCus)
             header_output += SveStructMemSSMicroopDeclareCus_I2CE.subst(loadIopCus_I2CE)
             header_output += SveStructMemSSInputsMicroopDeclareCus.subst(loadInputsIopCus)
@@ -2971,6 +3005,9 @@ let {{
             SveStructLoadExecute.subst(loadIop) +
             SveStructLoadInitiateAcc.subst(loadIop) +
             SveStructLoadCompleteAcc.subst(loadIop) +
+            SveStructLoadExecute.subst(loadIop_LoadCB_I2CE) +
+            SveStructLoadInitiateAcc.subst(loadIop_LoadCB_I2CE) +
+            SveStructLoadCompleteAcc.subst(loadIop_LoadCB_I2CE) +
             SveStructLoadExecute.subst(loadIopCus) +
             SveStructLoadInitiateAcc.subst(loadIopCus) +
             SveStructLoadCompleteAcc.subst(loadIopCus) +
@@ -2994,6 +3031,11 @@ let {{
             substDict = {'targs': type,
                          'class_name': 'SveLoadRegImmMicroop' if offsetIsImm
                                        else 'SveLoadRegRegMicroop'}
+            exec_output += SveStructMemExecDeclare.subst(substDict)
+
+            substDict = {'targs': type,
+                         'class_name': 'SveLoadRegImmMicroop_LoadCB_I2CE' if offsetIsImm
+                                       else 'SveLoadRegRegMicroop_LoadCB_I2CE'}
             exec_output += SveStructMemExecDeclare.subst(substDict)
 
             substDict['class_name'] = ('SveLoadRegImmMicroopCus' if offsetIsImm

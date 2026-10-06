@@ -19,7 +19,9 @@ I2CE_driver::I2CE_driver(const gem5::I2CE_driverParams &params) :
     // clk(params.clk_domain)
 {
 
-    printf("Crating DRIVER with n_learners = %d\n", n_learners);
+    printf("Crating DRIVER with:\n");
+    printf("n_learners = %d\n", n_learners);
+    printf("simd_lanes = %d\n", simd_lanes);
 
     // accel = acc;
     delay = 1;
@@ -33,9 +35,9 @@ I2CE_driver::I2CE_driver(const gem5::I2CE_driverParams &params) :
     red_out.init(n_learners);
     res_tmp.init(n_learners);
 
-    for(int learner=0; learner<n_learners; learner++){
+    for(int learner=0; learner<n_learners; learner++){  
         input_vect[learner].init(simd_lanes);
-        codebooks[learner].init(simd_lanes);
+        codebooks[learner].init(CB_SIZE_MAX);
 
         for(int lane=0; lane<simd_lanes; lane++){
             input_vect[learner][lane].init(ACT_BUF_SIZE);
@@ -72,11 +74,15 @@ I2CE_driver::I2CE_driver(const gem5::I2CE_driverParams &params) :
 
     for(int learn=0; learn<n_learners; learn++){
         for(int lane=0; lane<simd_lanes; lane++){
-            accel->codebook_in[learn][lane](codebooks[learn][lane]);
+            // accel->codebook_in[learn][lane](codebooks[learn][lane]);
 
             for(int i=0; i<ACT_BUF_SIZE; i++){
+                // printf("\t\ti = %d\n", i);
                 accel->inputs_in[learn][lane][i](input_vect[learn][lane][i]);
             }
+        }
+        for(int lane=0; lane<CB_SIZE_MAX; lane++){
+            accel->codebook_in[learn][lane](codebooks[learn][lane]);
         }
 
         accel->red_out[learn](red_out[learn]);
@@ -192,8 +198,8 @@ I2CE_driver::startup()
                 sc_core::sc_trace(tf, accel->inputs_in[learner][lane][i], "accel.inputs_in[" + std::to_string(learner) + "][" + std::to_string(lane) + "][" + std::to_string(i) + "]");            
             }
 
-            sc_core::sc_trace(tf, codebooks[learner][lane], "codebooks[" + std::to_string(learner) + "][" + std::to_string(lane) + "]");
-            sc_core::sc_trace(tf, accel->codebook_reg[learner][lane], "accel.codebook_reg[" + std::to_string(learner) + "][" + std::to_string(lane) + "]");
+            // sc_core::sc_trace(tf, codebooks[learner][lane], "codebooks[" + std::to_string(learner) + "][" + std::to_string(lane) + "]");
+            // sc_core::sc_trace(tf, accel->codebook_reg[learner][lane], "accel.codebook_reg[" + std::to_string(learner) + "][" + std::to_string(lane) + "]");
 
             sc_core::sc_trace(tf, accel->res_tbl_mod_wire[learner][lane], "accel.res_tbl_mod_wire[" + std::to_string(learner) + "][" + std::to_string(lane) + "]");
 
@@ -203,7 +209,7 @@ I2CE_driver::startup()
 
 
             // TBL module
-            sc_core::sc_trace(tf, accel->tbl_mod->codebook[learner][lane], "accel.tbl_mod.codebook[" + std::to_string(learner) + "][" + std::to_string(lane) + "]");
+            // sc_core::sc_trace(tf, accel->tbl_mod->codebook[learner][lane], "accel.tbl_mod.codebook[" + std::to_string(learner) + "][" + std::to_string(lane) + "]");
             sc_core::sc_trace(tf, accel->tbl_mod->weights_nxt[learner][lane], "accel.tbl_mod.weights_nxt[" + std::to_string(learner) + "][" + std::to_string(lane) + "]");
             sc_core::sc_trace(tf, accel->tbl_mod->weights_reg[learner][lane], "accel.tbl_mod.weights_reg[" + std::to_string(learner) + "][" + std::to_string(lane) + "]");
 
@@ -223,6 +229,15 @@ I2CE_driver::startup()
             sc_core::sc_trace(tf, accel->mac_mod->mul_res_reg[learner][lane], "accel.mac_mod.mul_res_reg[" + std::to_string(learner) + "][" + std::to_string(lane) + "]");
             sc_core::sc_trace(tf, accel->mac_mod->add_res_reg[learner][lane], "accel.mac_mod.add_res_reg[" + std::to_string(learner) + "][" + std::to_string(lane) + "]");
             sc_core::sc_trace(tf, accel->mac_mod->res_reg[learner][lane], "accel.mac_mod.res_reg[" + std::to_string(learner) + "][" + std::to_string(lane) + "]");
+        }
+
+
+        for(int lane=0; lane<CB_SIZE_MAX; lane++){
+
+            sc_core::sc_trace(tf, codebooks[learner][lane], "codebooks[" + std::to_string(learner) + "][" + std::to_string(lane) + "]");
+            sc_core::sc_trace(tf, accel->codebook_reg[learner][lane], "accel.codebook_reg[" + std::to_string(learner) + "][" + std::to_string(lane) + "]");
+
+            sc_core::sc_trace(tf, accel->tbl_mod->codebook[learner][lane], "accel.tbl_mod.codebook[" + std::to_string(learner) + "][" + std::to_string(lane) + "]");
         }
 
 
@@ -395,8 +410,13 @@ void I2CE_driver::ld_codebooks(int learner, int lane, float cb_word, uint8_t cb_
 void I2CE_driver::load_packed_idxs(int lane, uint32_t idx_word)
 {
 
-    // printf("\nLoading packed indexes = %d\n", idx_word);
+    // printf("Loading packed indexes [%d] = %d\n", lane, idx_word);
     packed_indexes[lane].write(idx_word);
+
+    // Set all the other lanes to 0
+    for(int ln=(lane+1); ln<simd_lanes; ln++){
+        packed_indexes[ln].write(0);
+    }
 }
 
 

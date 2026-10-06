@@ -384,8 +384,6 @@ class SveLdStructSI_I2CE_LoadCB : public PredMacroOp
           dest(_dest), gp(_gp), base(_base), imm(_imm), numregs(_numregs), cb_size(_cb_size)
     {
 
-        printf("[LD CODEBOOK] CB SIZE = %d\n", cb_size);
-
 
         numMicroops = numregs * 2;
 
@@ -394,7 +392,7 @@ class SveLdStructSI_I2CE_LoadCB : public PredMacroOp
         for (int i = 0; i < numregs; ++i) {
             microOps[i] = new MicroopLdMemType<Element>(
                     mnem, machInst, static_cast<RegIndex>(INTRLVREG0 + i),
-                    _gp, _base, _imm, _numregs, i);
+                    _gp, _base, _imm, _numregs, i, cb_size);
         }
         for (int i = 0; i < numregs; ++i) {
             microOps[i + numregs] = new MicroopDeIntrlvType<Element>(

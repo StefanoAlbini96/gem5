@@ -147,6 +147,9 @@ SC_MODULE(I2CE_accelerator){
     : n_learners(_n_learners), simd_lanes(_simd_lanes)
     {
 
+        printf("Accel.n_learners = %d\n", n_learners);
+        printf("Accel.simd_lanes = %d\n", simd_lanes);
+
         inputs_in.init(n_learners);
         inputs_reg.init(n_learners);
         inputs_nxt.init(n_learners);
@@ -173,9 +176,9 @@ SC_MODULE(I2CE_accelerator){
             inputs_reg[learner].init(simd_lanes);
             inputs_nxt[learner].init(simd_lanes);
 
-            codebook_in[learner].init(simd_lanes);
-            codebook_reg[learner].init(simd_lanes);
-            codebook_nxt[learner].init(simd_lanes);
+            codebook_in[learner].init(CB_SIZE_MAX);
+            codebook_reg[learner].init(CB_SIZE_MAX);
+            codebook_nxt[learner].init(CB_SIZE_MAX);
 
             res_tbl_mod_wire[learner].init(simd_lanes);
             res_mac_mod_wire[learner].init(simd_lanes);
@@ -214,11 +217,15 @@ SC_MODULE(I2CE_accelerator){
         }
         for(int learner=0; learner<n_learners; learner++){
             for(int lane=0; lane<simd_lanes; lane++){
-                sensitive << codebook_in[learner][lane];
+                // sensitive << codebook_in[learner][lane];
 
                 for(int i=0; i<ACT_BUF_SIZE; i++){
                     sensitive << inputs_in[learner][lane][i];
                 }
+            }
+
+            for(int lane=0; lane<CB_SIZE_MAX; lane++){
+                sensitive << codebook_in[learner][lane];
             }
 
             sensitive << res_tmp[learner];
@@ -269,8 +276,12 @@ SC_MODULE(I2CE_accelerator){
         }
         for(int learner=0; learner<n_learners; learner++){
             for(int lane=0; lane<simd_lanes; lane++){
-                tbl_mod->codebook[learner][lane](codebook_reg[learner][lane]);
+                // tbl_mod->codebook[learner][lane](codebook_reg[learner][lane]);
                 tbl_mod->out[learner][lane](res_tbl_mod_wire[learner][lane]);
+            }
+
+            for(int lane=0; lane<CB_SIZE_MAX; lane++){
+                tbl_mod->codebook[learner][lane](codebook_reg[learner][lane]);
             }
         }
 

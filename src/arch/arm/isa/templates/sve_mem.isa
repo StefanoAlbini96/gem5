@@ -2181,6 +2181,105 @@ def template SveStructMemSSMicroopDeclare {{
 
 
 
+def template SveStructMemSSMicroopDeclare_LoadCB_I2CE {{
+    template <class _Element>
+    class %(class_name)s : public %(base_class)s
+    {
+      private:
+        %(reg_idx_arr_decl)s;
+
+      protected:
+        typedef _Element Element;
+        typedef _Element TPElem;
+
+        RegIndex dest;
+        RegIndex gp;
+        RegIndex base;
+        RegIndex offset;
+
+        uint8_t numRegs;
+        int regIndex;
+        uint8_t cb_size;
+
+
+        unsigned memAccessFlags;
+
+        bool baseIsSP;
+
+      public:
+        %(class_name)s(const char* mnem, ExtMachInst machInst,
+                RegIndex _dest, RegIndex _gp, RegIndex _base,
+                RegIndex _offset, uint8_t _numRegs, int _regIndex, uint8_t _cb_size) :
+            %(base_class)s(mnem, machInst, %(op_class)s),
+            dest(_dest), gp(_gp), base(_base), offset(_offset),
+            numRegs(_numRegs), regIndex(_regIndex), cb_size(_cb_size),
+            memAccessFlags(ArmISA::MMU::AllowUnaligned)
+        {
+            %(set_reg_idx_arr)s;
+            %(constructor)s;
+            baseIsSP = isSP(_base);
+        }
+
+        Fault execute(ExecContext *, trace::InstRecord *) const override;
+        Fault initiateAcc(ExecContext *, trace::InstRecord *) const override;
+        Fault completeAcc(PacketPtr, ExecContext *,
+                          trace::InstRecord *) const override;
+
+        void
+        annotateFault(ArmISA::ArmFault *fault) override
+        {
+            %(fa_code)s
+        }
+
+        std::string
+        generateDisassembly(Addr pc,
+                            const loader::SymbolTable *symtab) const override
+        {
+            std::stringstream ss;
+            printMnemonic(ss, "", false);
+            ccprintf(ss, "{");
+            switch (dest) {
+              case INTRLVREG0:
+                ccprintf(ss, "INTRLV0");
+                break;
+              case INTRLVREG1:
+                ccprintf(ss, "INTRLV1");
+                break;
+              case INTRLVREG2:
+                ccprintf(ss, "INTRLV2");
+                break;
+              case INTRLVREG3:
+                ccprintf(ss, "INTRLV3");
+                break;
+              default:
+                printVecReg(ss, dest, true);
+                break;
+            }
+            ccprintf(ss, "}, ");
+            printVecPredReg(ss, gp);
+            if (_opClass == MemReadOp) {
+                ccprintf(ss, "/z");
+            }
+            ccprintf(ss, ", [");
+            printIntReg(ss, base);
+            ccprintf(ss, ", ");
+            printVecReg(ss, offset, true);
+            ccprintf(ss, "] (uop reg %d tfer)", regIndex);
+            return ss.str();
+        }
+    };
+}};
+
+
+
+
+
+
+
+
+
+
+
 
 
 def template SveStructMemSSMicroopDeclareCus {{
