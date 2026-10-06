@@ -38,8 +38,12 @@ void I2CE_accelerator::clock_thread()
     for(int learner=0; learner<n_learners; learner++){
         for(int lane=0; lane<simd_lanes; lane++){
 
-            codebook_reg[learner][lane] = 0;
+            // codebook_reg[learner][lane] = 0;
             inputs_reg[learner][lane] = 0;
+        }
+
+        for(int lane=0; lane<CB_SIZE_MAX; lane++){
+            codebook_reg[learner][lane] = 0;
         }
 
 
@@ -102,7 +106,7 @@ void I2CE_accelerator::clock_thread()
         }
 
         for(int learner=0; learner<n_learners; learner++){
-            for(int lane=0; lane<simd_lanes; lane++){
+            for(int lane=0; lane<CB_SIZE_MAX; lane++){
                 codebook_reg[learner][lane].write(codebook_nxt[learner][lane]);
             }
 
@@ -163,15 +167,11 @@ void I2CE_accelerator::comb_method()
     // Inputs
     for(int learner=0; learner<n_learners; learner++){
         for(int lane=0; lane<simd_lanes; lane++){
-
+            // codebook_nxt[learner][lane] = codebook_in[learner][lane];
+            inputs_nxt[learner][lane] = inputs_in[learner][lane][input_pointer];
+        }
+        for(int lane=0; lane<CB_SIZE_MAX; lane++){
             codebook_nxt[learner][lane] = codebook_in[learner][lane];
-
-            // // Write 0 if the en is off so that the accumulation in the MAC module is correct
-            // if(pipeline_en[0]){
-                inputs_nxt[learner][lane] = inputs_in[learner][lane][input_pointer];
-            // } else {
-            //     inputs_nxt[learner][lane] = 0;
-            // }
         }
     }
 
