@@ -46,7 +46,7 @@ class I2CE_driver : public gem5::SimObject
         void notify_ld_complete();
         bool is_ld_complete();
 
-        void ld_codebooks(int learner, int lane, float cb_word);
+        void ld_codebooks(int learner, int lane, float cb_word, uint8_t cb_size);
         void load_packed_idxs(int lane, uint32_t idx_word);
 
         void ld_tmp_res(int learner_id, float val);
@@ -100,6 +100,12 @@ class I2CE_driver : public gem5::SimObject
 
         // sc_core::sc_signal<sc_dt::sc_uint<32>>      packed_indexes[N_LANES];
         SIMD_reg<sc_signal<sc_dt::sc_uint<32>>>     packed_indexes;
+
+        // Mask for the indexes retrieval
+        sc_signal<sc_dt::sc_uint<IDX_BIT_MAX>>      bit_mask;
+        sc_signal<sc_dt::sc_uint<8>>                bits_per_idx;
+
+        sc_signal<sc_dt::sc_uint<IDXS_PER_LANE_BITS>>                idxs_per_lane;
 
         // sc_core::sc_signal<float>                   red_out[N_LEARNERS];
         SIMD_reg<sc_signal<float>>                  red_out;

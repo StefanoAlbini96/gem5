@@ -2599,6 +2599,56 @@ def template SveDeIntrlvMicroopDeclareCus {{
 
 
 
+
+def template SveDeIntrlvMicroopDeclare_I2CE_LoadCB {{
+    template <class _Element>
+    class %(class_name)s : public %(base_class)s
+    {
+      public:
+        %(reg_idx_arr_decl)s;
+
+      protected:
+        typedef _Element Element;
+        typedef _Element TPElem;
+        RegIndex dest;
+        uint8_t numRegs;
+        int regIndex;
+        uint8_t cb_size;
+
+        StaticInst *macroOp;
+
+
+      public:
+        %(class_name)s(const char* mnem, ExtMachInst machInst,
+                RegIndex _dest, uint8_t _numRegs, int _regIndex, uint8_t _cb_size,
+                StaticInst *_macroOp) :
+            MicroOp(mnem, machInst, SimdAluOp), dest(_dest),
+            numRegs(_numRegs), regIndex(_regIndex), cb_size(_cb_size), macroOp(_macroOp)
+        {
+            %(set_reg_idx_arr)s;
+            %(constructor)s;
+        }
+
+        Fault execute(ExecContext *, trace::InstRecord *) const override;
+
+        std::string
+        generateDisassembly(Addr pc,
+                            const loader::SymbolTable *symtab) const override
+        {
+            std::stringstream ss;
+            ccprintf(ss, "%s", macroOp->disassemble(pc, symtab));
+            ccprintf(ss, " (uop deinterleave)");
+            return ss.str();
+        }
+    };
+}};
+
+
+
+
+
+
+
 def template SveDeIntrlvMicroopDeclareCus_multiInputs {{
     template <class _Element>
     class %(class_name)s : public %(base_class)s

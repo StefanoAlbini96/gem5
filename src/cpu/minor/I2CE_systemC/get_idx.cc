@@ -4,14 +4,21 @@
 void get_idx::clock_thread()
 {
 
-    // Initialize
+    // Initialize //
+
+
+    // mask_reg = IDX_MASK;    // Remains constant
+    mask_reg.write(0);
+    bits_per_idx.write(0);   
+
+
     for(int lane=0; lane<simd_lanes; lane++){
         idxs_reg[lane] = 0;
-        shamt_reg[lane] = (lane * IDX_BIT);
+        // shamt_reg[lane] = (lane * bits_per_idx.read());
     }
     sel_reg = 0;
 
-    mask_reg = IDX_MASK;    // Remains constant
+    shamt_reg.write(0);
 
     idx_en_reg.write(false);
     idx_en_prev_reg.write(false);
@@ -24,18 +31,23 @@ void get_idx::clock_thread()
     while(1)
     {
 
+        mask_reg.write(bit_mask.read());
+        bits_per_idx.write(idx_bits_in.read()); 
+
         idx_en_reg.write(idx_en_nxt.read());
         idx_en_prev_reg.write(idx_en_prev_nxt.read());
-
+        
         if(idx_en_reg.read()){
 
+
+            shamt_reg.write(shamt_nxt);
 
             // For the duplicated packed lane
             for(int lane=0; lane<simd_lanes; lane++){
 
+                // shamt_reg[lane].write(shamt_nxt[lane]);
                 idxs_reg[lane].write(idxs_nxt[lane]);
 
-                shamt_reg[lane].write(shamt_nxt[lane]);
             }
 
             // For the sel signal
@@ -59,25 +71,38 @@ void get_idx::comb_method()
 
     sc_uint<LANE_IDX_BIT_MAX>           sel_updated;
 
+    sc_uint<SHAMT_BIT>              lane_shamt;
+
     for(int lane=0; lane<simd_lanes; lane++){
 
         // Get the correct lane of packed indexes        
         packed_lane = packed_indexes[sel_reg.read()].read();
 
         // Shift and mask_reg
-        index = packed_lane >> shamt_reg[lane].read();
+        // index = packed_lane >> shamt_reg[lane].read();
+        lane_shamt = shamt_reg.read() + (lane * bits_per_idx.read());
+        index = packed_lane >> lane_shamt;
         index = index & mask_reg.read();
 
         idxs_nxt[lane] = index;
 
-        // shamt_prev = shamt_nxt[lane].read();
-        shamt_prev = shamt_reg[lane].read();
-        shamt_updated = shamt_reg[lane].read() + (simd_lanes * IDX_BIT);
-        shamt_nxt[lane].write(shamt_updated);
+        // shamt_prev = shamt_reg[lane].read();
 
+        // // If shamt not initialized yet, set them with the initial values
+        // if((idx_bits_in.read() != 0) && (bits_per_idx.read() == 0)){
+        //     shamt_updated = (lane * bits_per_idx.read());
+        //     shamt_nxt[lane].write(shamt_updated);
+        // } else {
+            // Else, update the shamts
+        // shamt_updated = shamt_reg[lane].read() + (simd_lanes * bits_per_idx.read());
+        // shamt_nxt[lane].write(shamt_updated);
+        // }
+
+        // Updated shamt for the lane
+        shamt_updated = shamt_reg.read() + (lane * bits_per_idx.read()) + (simd_lanes * bits_per_idx.read());
 
         // Overflow occurred --> need to use the next lane of packed indexes
-        if (shamt_updated < shamt_prev){
+        if (shamt_updated < lane_shamt){
             sel_updated = (sel_reg.read() + 1) % simd_lanes;
         } else {
             sel_updated = sel_reg.read();
@@ -87,6 +112,9 @@ void get_idx::comb_method()
         out[lane].write(idxs_reg[lane].read());
     }
     
+    // Updated shamt (base shamt)
+    shamt_updated = shamt_reg.read() + (simd_lanes * bits_per_idx.read());
+    shamt_nxt.write(shamt_updated);
 
     sel_nxt.write(sel_updated);
 
@@ -119,4 +147,65 @@ void get_idx::comb_method()
 
 
 
+// void get_idx::comb_method_set_shamt()
+// {
+
+//     sc_uint<SHAMT_BIT>              shamt_prev;
+//     sc_uint<SHAMT_BIT>              shamt_updated;
+
+//     sc_uint<LANE_IDX_BIT_MAX>           sel_updated;
+
+
+//     // Shamts have to be initialized
+//     bool shamt_need_init = (shamt_reg[simd_lanes - 1].read() == 0); 
+
+//     for(int lane=0; lane<simd_lanes; lane++){
+
+//         shamt_prev = shamt_reg[lane].read();
+
+//         // If shamt not initialized yet, set them with the initial values
+//         // if((idx_bits_in.read() != 0) && (bits_per_idx.read() == 0)){
+//        if (shamt_need_init) {
+//             shamt_updated = (lane * bits_per_idx.read());
+//             shamt_nxt[lane].write(shamt_updated);
+//         } else {
+//             // Else, update the shamts
+//             shamt_updated = shamt_reg[lane].read() + (simd_lanes * bits_per_idx.read());
+//             shamt_nxt[lane].write(shamt_updated);
+//         }
+
+
+//         // Overflow occurred --> need to use the next lane of packed indexes
+//         if (shamt_updated < shamt_prev){
+//             sel_updated = (sel_reg.read() + 1) % simd_lanes;
+//         } else {
+//             sel_updated = sel_reg.read();
+//         }
+//     }
+
+//     sel_nxt.write(sel_updated);
+    
+    
+//     bool en_next = idx_en_reg.read();
+
+//     // Rising edge of EN input
+//     bool en_rising = in_en.read() && !idx_en_prev_nxt.read();
+
+//     // If rising edge, start the internal EN
+//     if(!idx_en_reg.read() && en_rising){
+//         en_next = true;
+//     }
+
+
+//     bool done_last_lane = (sel_updated < sel_reg.read());
+
+//     // Stop when needed
+//     if(idx_en_reg.read() && done_last_lane){
+//         en_next = false;
+//     }
+
+
+//     idx_en_nxt.write(en_next);
+
+// }
 

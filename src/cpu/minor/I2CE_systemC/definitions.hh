@@ -49,37 +49,45 @@ using multi_learner_SIMD_regs = sc_vector<SIMD_reg<T>>;
  */
 #define LANE_BITS        32
 
-/**
- * The number of lanes per each vector/SIMD register
- */
-#define N_LANES         4
+// /**
+//  * The number of lanes per each vector/SIMD register
+//  */
+// #define N_LANES         4
 
 
-/**
- * Number of entried per each codebooks.
- * Initially let's keep it set to N_LANES
- */
-#define CB_SIZE         4
+// /**
+//  * Number of entried per each codebooks.
+//  * Initially let's keep it set to N_LANES
+//  */
+// #define CB_SIZE         4
 
 
-/**
- * Bit-width of each codebook index.
- */
-#define IDX_BIT         (log2_pow2(CB_SIZE))
+#define CB_SIZE_MAX     16
+
+// /**
+//  * Bit-width of each codebook index.
+//  */
+// #define IDX_BIT         (log2_pow2(CB_SIZE))
+
+
+/*
+ * Maximum number of bits for an index
+*/
+#define IDX_BIT_MAX     (log2_pow2(CB_SIZE_MAX))
 
 
 // #define MY_MAC  5
 
-/**
- * Mask for the codebook index extraction
- */
-#define IDX_MASK        (mask_gen(IDX_BIT))
+// /**
+//  * Mask for the codebook index extraction
+//  */
+// #define IDX_MASK        (mask_gen(IDX_BIT))
 
 
-/**
- * Bit-width of the index to a specific lane
- */
-#define LANE_IDX_BIT        (log2_pow2(N_LANES))
+// /**
+//  * Bit-width of the index to a specific lane
+//  */
+// #define LANE_IDX_BIT        (log2_pow2(N_LANES))
 
 
 /**
@@ -88,11 +96,15 @@ using multi_learner_SIMD_regs = sc_vector<SIMD_reg<T>>;
 #define LANE_IDX_BIT_MAX    10
 
 
-/**
- * How many indexes are packed in each lane
- */
-#define IDX_PER_LANE    (LANE_BITS/IDX_BIT)
-// #define IDX_PER_LANE    1
+// /**
+//  * How many indexes are packed in each lane
+//  */
+// #define IDX_PER_LANE    (LANE_BITS/IDX_BIT)
+// // #define IDX_PER_LANE    1
+
+
+#define IDXS_PER_LANE_BITS      5
+
 
 
 /**
@@ -123,7 +135,7 @@ using multi_learner_SIMD_regs = sc_vector<SIMD_reg<T>>;
 
 
 
-#define GET_IDX_LAT_CC      1
+#define GET_IDX_LAT_CC      2
 #define TBL_LAT_CC          1
 #define MAC_LAT_CC          (4 + ACT_BUF_SIZE)
 

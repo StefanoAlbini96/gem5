@@ -36,7 +36,7 @@ void tbl::clock_thread()
 void tbl::comb_method()
 {
 
-    sc_uint<IDX_BIT> index;
+    sc_uint<IDX_BIT_MAX> index;
     for(int lane=0; lane<simd_lanes; lane++){
         index = idxs[lane].read();
         

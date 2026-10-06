@@ -63,6 +63,10 @@ I2CE_driver::I2CE_driver(const gem5::I2CE_driverParams &params) :
         accel->packed_in[lane](packed_indexes[lane]);
     }
 
+    accel->bit_mask(bit_mask);
+    accel->bits_per_idx(bits_per_idx);
+
+    accel->idxs_per_lane_in(idxs_per_lane);
 
     // Bind the ports to the SystemC module //
 
@@ -115,6 +119,13 @@ I2CE_driver::startup()
     sc_core::sc_trace(tf, ld_input_complete, "ld_input_complete");
     sc_core::sc_trace(tf, debug, "debug");
 
+
+    sc_core::sc_trace(tf, accel->idx_processed_cnt_nxt, "accel.idx_processed_cnt_nxt");
+    sc_core::sc_trace(tf, accel->idx_processed_cnt_reg, "accel.idx_processed_cnt_reg");
+
+    sc_core::sc_trace(tf, accel->idxs_per_lane_in, "accel.idxs_per_lane_in");
+    sc_core::sc_trace(tf, accel->idxs_per_lane, "accel.idxs_per_lane");
+
     // sc_core::sc_trace(tf, en, "en");
     // sc_core::sc_trace(tf, accel->en_reg, "accel.en_reg");
     sc_core::sc_trace(tf, accel->tbl_mod->tbl_en, "accel.tbl_mod.tbl_mod_EN");
@@ -139,9 +150,14 @@ I2CE_driver::startup()
     sc_core::sc_trace(tf, accel->red_en_reg, "accel.red_en_reg");
     sc_core::sc_trace(tf, accel->red_mod->red_en, "accel.red_mod.red_en");
 
-
     sc_core::sc_trace(tf, accel->in_ptr_nxt, "accel.IN_pointer_nxt");
     sc_core::sc_trace(tf, accel->in_ptr_reg, "accel.IN_pointer_reg");
+
+    sc_core::sc_trace(tf, accel->getidx_mod->bit_mask, "accel.GET_IDX.bit_mask");
+    sc_core::sc_trace(tf, accel->getidx_mod->mask_reg, "accel.GET_IDX.mask_reg");
+
+    sc_core::sc_trace(tf, accel->getidx_mod->idx_bits_in, "accel.GET_IDX.idx_bits_in");
+    sc_core::sc_trace(tf, accel->getidx_mod->bits_per_idx, "accel.GET_IDX.bits_per_idx");
 
     sc_core::sc_trace(tf, accel->getidx_mod->sel_nxt, "accel.GET_IDX.sel_nxt");
     sc_core::sc_trace(tf, accel->getidx_mod->sel_reg, "accel.GET_IDX.sel_reg");
@@ -228,7 +244,8 @@ I2CE_driver::startup()
         sc_core::sc_trace(tf, accel->packed_idx_nxt[lane], "accel.packed_idx_nxt[" + std::to_string(lane) + "]");
         sc_core::sc_trace(tf, accel->packed_idx_reg[lane], "accel.packed_idx_reg[" + std::to_string(lane) + "]");
         sc_core::sc_trace(tf, accel->getidx_mod->packed_indexes[lane], "accel.GET_IDX.packed_indexes[" + std::to_string(lane) + "]");
-        sc_core::sc_trace(tf, accel->getidx_mod->shamt_reg[lane], "accel.GET_IDX.shamt_reg[" + std::to_string(lane) + "]");
+        // sc_core::sc_trace(tf, accel->getidx_mod->shamt_reg[lane], "accel.GET_IDX.shamt_reg[" + std::to_string(lane) + "]");
+        sc_core::sc_trace(tf, accel->getidx_mod->idxs_reg[lane], "accel.GET_IDX.idxs_reg[" + std::to_string(lane) + "]");
 
         sc_core::sc_trace(tf, accel->res_getidx_mod_wire[lane], "accel.res_getidx_mod_wire[" + std::to_string(lane) + "]");
 
@@ -237,6 +254,8 @@ I2CE_driver::startup()
         // TBL module
         sc_core::sc_trace(tf, accel->tbl_mod->idxs[lane], "accel.tbl_mod.idxs[" + std::to_string(lane) + "]");
     }
+
+        sc_core::sc_trace(tf, accel->getidx_mod->shamt_reg, "accel.GET_IDX.shamt_reg");
 }
 
 
@@ -354,8 +373,19 @@ bool I2CE_driver::is_ld_complete()
 }
 
 
-void I2CE_driver::ld_codebooks(int learner, int lane, float cb_word)
+void I2CE_driver::ld_codebooks(int learner, int lane, float cb_word, uint8_t cb_size)
 {
+    
+    uint8_t idx_bits = uint8_t(log2_pow2(cb_size));
+    uint8_t mask = mask_gen(idx_bits);
+
+    uint8_t indexes_per_lane = (uint8_t)(LANE_BITS / idx_bits);
+
+    // printf("Setting MASK = %d\n", mask);
+    // printf("Indexes per lane = %d\n", indexes_per_lane);
+    bit_mask.write(mask);
+    bits_per_idx.write(idx_bits);
+    idxs_per_lane.write(indexes_per_lane);
 
     // printf("\nLoading codebooks[%d][%d] = %f\n", learner, lane, cb_word);
     codebooks[learner][lane].write(cb_word);

@@ -358,6 +358,104 @@ class SveLdStructSICus : public PredMacroOp
 
 
 
+
+
+
+
+
+template <typename Element,
+         template <typename> class MicroopLdMemType,
+         template <typename> class MicroopDeIntrlvType>
+class SveLdStructSI_I2CE_LoadCB : public PredMacroOp
+{
+  protected:
+    RegIndex dest;
+    RegIndex gp;
+    RegIndex base;
+    int64_t imm;
+    uint8_t numregs;
+    uint8_t cb_size;
+
+  public:
+    SveLdStructSI_I2CE_LoadCB(const char* mnem, ExtMachInst machInst, OpClass __opClass,
+            RegIndex _dest, RegIndex _gp, RegIndex _base,
+            int64_t _imm, uint8_t _numregs, uint8_t _cb_size)
+        : PredMacroOp(mnem, machInst, __opClass),
+          dest(_dest), gp(_gp), base(_base), imm(_imm), numregs(_numregs), cb_size(_cb_size)
+    {
+
+        printf("[LD CODEBOOK] CB SIZE = %d\n", cb_size);
+
+
+        numMicroops = numregs * 2;
+
+        microOps = new StaticInstPtr[numMicroops];
+
+        for (int i = 0; i < numregs; ++i) {
+            microOps[i] = new MicroopLdMemType<Element>(
+                    mnem, machInst, static_cast<RegIndex>(INTRLVREG0 + i),
+                    _gp, _base, _imm, _numregs, i);
+        }
+        for (int i = 0; i < numregs; ++i) {
+            microOps[i + numregs] = new MicroopDeIntrlvType<Element>(
+                    mnem, machInst, static_cast<RegIndex>((_dest + i) % 32),
+                    _numregs, i, cb_size, this);
+        }
+
+        microOps[0]->setFirstMicroop();
+        microOps[numMicroops - 1]->setLastMicroop();
+
+        for (StaticInstPtr *uop = microOps; !(*uop)->isLastMicroop(); uop++) {
+            (*uop)->setDelayedCommit();
+        }
+    }
+
+    Fault
+    execute(ExecContext *, trace::InstRecord *) const override
+    {
+        panic("Execute method called when it shouldn't!");
+        return NoFault;
+    }
+
+    std::string
+    generateDisassembly(Addr pc,
+                        const loader::SymbolTable *symtab) const override
+    {
+        std::stringstream ss;
+        printMnemonic(ss, "", false);
+        ccprintf(ss, "{");
+        for (int i = 0; i < numregs; ++i) {
+            printVecReg(ss, (dest + i) % 32, true);
+            if (i < numregs - 1)
+                ccprintf(ss, ", ");
+        }
+        ccprintf(ss, "}, ");
+        printVecPredReg(ss, gp);
+        ccprintf(ss, "/z, [");
+        printIntReg(ss, base);
+        if (imm != 0) {
+            ccprintf(ss, ", #%d, MUL VL", imm);
+        }
+        ccprintf(ss, "]");
+        return ss.str();
+    }
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 template <typename Element,
          template <typename> class MicroopLdMemType,
          template <typename> class MicroopDeIntrlvType>

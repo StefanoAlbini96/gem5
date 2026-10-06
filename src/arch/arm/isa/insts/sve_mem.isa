@@ -403,7 +403,7 @@ output decoder {{
     StaticInstPtr
     decodeSveStructLoadSIInstsByNRegCusLDCB_I2CE(uint8_t esize, ExtMachInst machInst,
             RegIndex zt, RegIndex pg, RegIndex xn,
-            int64_t imm, int numregs)
+            int64_t imm, int numregs, uint8_t cb_size)
     {
         static const char* nm[5][4] = {
             { nullptr, nullptr, nullptr, nullptr},
@@ -414,23 +414,23 @@ output decoder {{
 
         switch (numregs) {
             case 2:
-                return new SveLdStructSI<etype,
+                return new SveLdStructSI_I2CE_LoadCB<etype,
                         SveLoadRegImmMicroop,
                         SveDeIntrlv2MicroopCusLDCB_I2CE>(
                                nm[numregs][esize], machInst, MemReadOp,
-                               zt, pg, xn, imm, numregs);
+                               zt, pg, xn, imm, numregs, cb_size);
             case 3:
-                return new SveLdStructSI<etype,
+                return new SveLdStructSI_I2CE_LoadCB<etype,
                         SveLoadRegImmMicroop,
                         SveDeIntrlv3MicroopCusLDCB_I2CE>(
                                nm[numregs][esize], machInst, MemReadOp,
-                               zt, pg, xn, imm, numregs);
+                               zt, pg, xn, imm, numregs, cb_size);
             case 4:
-                return new SveLdStructSI<etype,
+                return new SveLdStructSI_I2CE_LoadCB<etype,
                         SveLoadRegImmMicroop,
                         SveDeIntrlv4MicroopCusLDCB_I2CE>(
                                nm[numregs][esize], machInst, MemReadOp,
-                               zt, pg, xn, imm, numregs);
+                               zt, pg, xn, imm, numregs, cb_size);
         }
         return new Unknown64(machInst);
     }
@@ -441,21 +441,21 @@ output decoder {{
     StaticInstPtr
     decodeSveStructLoadSIInstsCusLDCB_I2CE(uint8_t esize, ExtMachInst machInst,
             RegIndex zt, RegIndex pg, RegIndex xn,
-            int64_t imm, int numregs)
+            int64_t imm, int numregs, uint8_t cb_size)
     {
         switch (esize) {
             case 0:
                 return decodeSveStructLoadSIInstsByNRegCusLDCB_I2CE<uint8_t>(esize,
-                        machInst, zt, pg, xn, imm, numregs);
+                        machInst, zt, pg, xn, imm, numregs, cb_size);
             case 1:
                 return decodeSveStructLoadSIInstsByNRegCusLDCB_I2CE<uint16_t>(esize,
-                        machInst, zt, pg, xn, imm, numregs);
+                        machInst, zt, pg, xn, imm, numregs, cb_size);
             case 2:
                 return decodeSveStructLoadSIInstsByNRegCusLDCB_I2CE<uint32_t>(esize,
-                        machInst, zt, pg, xn, imm, numregs);
+                        machInst, zt, pg, xn, imm, numregs, cb_size);
             case 3:
                 return decodeSveStructLoadSIInstsByNRegCusLDCB_I2CE<uint64_t>(esize,
-                        machInst, zt, pg, xn, imm, numregs);
+                        machInst, zt, pg, xn, imm, numregs, cb_size);
         }
         return new Unknown64(machInst);
     }
@@ -2322,9 +2322,9 @@ let {{
             unsigned int srcVec = absIdx / eCount;
             // cout << \"LOADING CB --> \" << this->regIndex << \", \" << i << \", \" << bitsToFloat32(AA64IntrlvReg0_x[srcIdx]) << \", \" << endl;
             if (srcVec == 0)
-                i2ce_driver_ptr->ld_codebooks(this->regIndex, i, bitsToFloat32(AA64IntrlvReg0_x[srcIdx]));
+                i2ce_driver_ptr->ld_codebooks(this->regIndex, i, bitsToFloat32(AA64IntrlvReg0_x[srcIdx]), cb_size);
             else if(srcVec == 1)
-                i2ce_driver_ptr->ld_codebooks(this->regIndex, i, bitsToFloat32(AA64IntrlvReg1_x[srcIdx]));
+                i2ce_driver_ptr->ld_codebooks(this->regIndex, i, bitsToFloat32(AA64IntrlvReg1_x[srcIdx]), cb_size);
         }'''
 
         code3 = sveEnabledCheckCode + '''
@@ -2339,11 +2339,11 @@ let {{
             unsigned int srcIdx = absIdx % eCount;
             unsigned int srcVec = absIdx / eCount;
             if (srcVec == 0)
-                i2ce_driver_ptr->ld_codebooks(this->regIndex, i, bitsToFloat32(AA64IntrlvReg0_x[srcIdx]));
+                i2ce_driver_ptr->ld_codebooks(this->regIndex, i, bitsToFloat32(AA64IntrlvReg0_x[srcIdx]), cb_size);
             else if(srcVec == 1)
-                i2ce_driver_ptr->ld_codebooks(this->regIndex, i, bitsToFloat32(AA64IntrlvReg1_x[srcIdx]));
+                i2ce_driver_ptr->ld_codebooks(this->regIndex, i, bitsToFloat32(AA64IntrlvReg1_x[srcIdx]), cb_size);
             else if(srcVec == 2)
-                i2ce_driver_ptr->ld_codebooks(this->regIndex, i, bitsToFloat32(AA64IntrlvReg2_x[srcIdx]));
+                i2ce_driver_ptr->ld_codebooks(this->regIndex, i, bitsToFloat32(AA64IntrlvReg2_x[srcIdx]), cb_size);
         }'''
 
         code4 = sveEnabledCheckCode + '''
@@ -2358,16 +2358,16 @@ let {{
             unsigned int srcIdx = absIdx % eCount;
             unsigned int srcVec = absIdx / eCount;
             if (srcVec == 0){
-                i2ce_driver_ptr->ld_codebooks(this->regIndex, i, bitsToFloat32(AA64IntrlvReg0_x[srcIdx]));
+                i2ce_driver_ptr->ld_codebooks(this->regIndex, i, bitsToFloat32(AA64IntrlvReg0_x[srcIdx]), cb_size);
             }
             else if(srcVec == 1){
-                i2ce_driver_ptr->ld_codebooks(this->regIndex, i, bitsToFloat32(AA64IntrlvReg1_x[srcIdx]));
+                i2ce_driver_ptr->ld_codebooks(this->regIndex, i, bitsToFloat32(AA64IntrlvReg1_x[srcIdx]), cb_size);
             }
             else if(srcVec == 2){
-                i2ce_driver_ptr->ld_codebooks(this->regIndex, i, bitsToFloat32(AA64IntrlvReg2_x[srcIdx]));
+                i2ce_driver_ptr->ld_codebooks(this->regIndex, i, bitsToFloat32(AA64IntrlvReg2_x[srcIdx]), cb_size);
             }
             else if(srcVec == 3){
-                i2ce_driver_ptr->ld_codebooks(this->regIndex, i, bitsToFloat32(AA64IntrlvReg3_x[srcIdx]));
+                i2ce_driver_ptr->ld_codebooks(this->regIndex, i, bitsToFloat32(AA64IntrlvReg3_x[srcIdx]), cb_size);
             }
         }'''
 
@@ -2386,9 +2386,9 @@ let {{
                 'MicroOp',
                 {'code': code4},
                 ['IsMicroop'])
-        header_output += SveDeIntrlvMicroopDeclare.subst(iop2);
-        header_output += SveDeIntrlvMicroopDeclare.subst(iop3);
-        header_output += SveDeIntrlvMicroopDeclare.subst(iop4);
+        header_output += SveDeIntrlvMicroopDeclare_I2CE_LoadCB.subst(iop2);
+        header_output += SveDeIntrlvMicroopDeclare_I2CE_LoadCB.subst(iop3);
+        header_output += SveDeIntrlvMicroopDeclare_I2CE_LoadCB.subst(iop4);
         exec_output += SveIntrlvMicroopExecute.subst(iop2);
         exec_output += SveIntrlvMicroopExecute.subst(iop3);
         exec_output += SveIntrlvMicroopExecute.subst(iop4);

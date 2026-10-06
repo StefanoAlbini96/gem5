@@ -37,7 +37,7 @@ SC_MODULE(tbl){
     multi_learner_SIMD_regs<sc_in<float>>               codebook;
 
     // sc_in<sc_uint<IDX_BIT>>             idxs[N_LANES];
-    SIMD_reg<sc_in<sc_uint<IDX_BIT>>>                          idxs;
+    SIMD_reg<sc_in<sc_uint<IDX_BIT_MAX>>>                          idxs;
 
     // sc_out<float>                       out[N_LEARNERS][N_LANES];
     multi_learner_SIMD_regs<sc_out<float>>               out;

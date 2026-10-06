@@ -17,6 +17,8 @@ void I2CE_accelerator::clock_thread()
     // en_reg.write(false);        // Probably it can be removed!
     idx_processed_cnt_reg.write(0);
 
+    idxs_per_lane.write(0);
+
     mac_res_reset_reg.write(false);
     // mac_res_reset_prev_reg.write(false);
     rst_mac_prev_reg.write(false);
@@ -65,6 +67,8 @@ void I2CE_accelerator::clock_thread()
         red_en_reg.write(red_en_nxt.read());
         red_trigger_prev_reg.write(red_trigger_prev_nxt.read());
 
+        idxs_per_lane.write(idxs_per_lane_in);
+
         // bool rising_edge_en = (en_input.read() && !en_prev_reg.read());
         bool rising_edge_en = (en_reg.read() && !en_prev_reg.read());
 
@@ -78,7 +82,8 @@ void I2CE_accelerator::clock_thread()
             idx_processed_cnt_reg.write(0);
         } 
         else if (pipeline_en[0].read()){
-            if(idx_processed_cnt_reg.read() >= (IDX_PER_LANE-1)){
+            // if(idx_processed_cnt_reg.read() >= (IDX_PER_LANE-1)){
+            if(idx_processed_cnt_reg.read() >= (idxs_per_lane.read() - 1)){
                 pipeline_en[0].write(false);
             } else {
                 idx_processed_cnt_reg.write(idx_processed_cnt_reg.read() + 1);

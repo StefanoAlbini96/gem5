@@ -55,6 +55,13 @@ SC_MODULE(I2CE_accelerator){
     sc_signal<bool>                         red_trigger_prev_reg, red_trigger_prev_nxt;
 
 
+    sc_in<sc_dt::sc_uint<IDX_BIT_MAX>>      bit_mask;
+    sc_in<sc_dt::sc_uint<8>>                bits_per_idx;
+
+    // How many indexes are packed per lane
+    sc_in<sc_uint<IDXS_PER_LANE_BITS>>                       idxs_per_lane_in;
+    sc_signal<sc_uint<IDXS_PER_LANE_BITS>>                   idxs_per_lane;
+
     sc_in<bool>             en_trigger;
     sc_signal<bool>         en_reg, en_nxt;
     sc_signal<sc_uint<5>>   en_count_reg, en_count_nxt;
@@ -103,7 +110,7 @@ SC_MODULE(I2CE_accelerator){
     // sc_signal<float>                        res_mac_mod_wire[N_LEARNERS][N_LANES];  // wire to connect one output to the input of submodules
     // sc_signal<float>                        res_red_mod_wire[N_LEARNERS];  // wire to connect one output to the input of submodules
 
-    SIMD_reg<sc_signal<sc_uint<IDX_BIT>>>       res_getidx_mod_wire;
+    SIMD_reg<sc_signal<sc_uint<IDX_BIT_MAX>>>       res_getidx_mod_wire;
     multi_learner_SIMD_regs<sc_signal<float>>   res_tbl_mod_wire;
     multi_learner_SIMD_regs<sc_signal<float>>   res_mac_mod_wire;
     SIMD_reg<sc_signal<float>>                  res_red_mod_wire;
@@ -114,9 +121,6 @@ SC_MODULE(I2CE_accelerator){
     SIMD_reg<sc_out<float>>                 red_out;
 
     sc_signal<float>                        sum_reg, sum_nxt;    
-
-    // sc_out<sc_uint<IDX_BIT>>  red_out[N_LEARNERS];
-
 
     // GET_IDX module //
     get_idx *getidx_mod;
@@ -244,6 +248,9 @@ SC_MODULE(I2CE_accelerator){
 
         // getidx_mod->get_idx_en(en_input);
         getidx_mod->in_en(en_reg);
+
+        getidx_mod->bit_mask(bit_mask);
+        getidx_mod->idx_bits_in(bits_per_idx);
 
         // getidx_mod->en_out(tbl_en_sig);
         for(int lane=0; lane<simd_lanes; lane++){
