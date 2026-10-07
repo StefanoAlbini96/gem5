@@ -7,6 +7,8 @@
 void I2CE_accelerator::clock_thread()
 {
 
+    simd_lanes_reg.write(simd_lanes);
+
     en_reg.write(false);
     en_count_reg.write(false);
     en_trigger_prev_reg.write(false);
@@ -87,10 +89,12 @@ void I2CE_accelerator::clock_thread()
         } 
         else if (pipeline_en[0].read()){
             // if(idx_processed_cnt_reg.read() >= (IDX_PER_LANE-1)){
-            if(idx_processed_cnt_reg.read() >= (idxs_per_lane.read() - 1)){
+            // if(idx_processed_cnt_reg.read() >= (idxs_per_lane.read() - 1)){
+            if(idx_processed_cnt_reg.read() >= ((ACT_BUF_SIZE - 1))){
                 pipeline_en[0].write(false);
             } else {
                 idx_processed_cnt_reg.write(idx_processed_cnt_reg.read() + 1);
+            //     idx_processed_cnt_reg.write(idx_processed_cnt_reg.read() + simd_lanes_reg.read());
             }
         }
 
@@ -167,8 +171,14 @@ void I2CE_accelerator::comb_method()
     // Inputs
     for(int learner=0; learner<n_learners; learner++){
         for(int lane=0; lane<simd_lanes; lane++){
-            // codebook_nxt[learner][lane] = codebook_in[learner][lane];
+            
             inputs_nxt[learner][lane] = inputs_in[learner][lane][input_pointer];
+
+            // if(lane <= last_active_lane.read()){
+            //     inputs_nxt[learner][lane] = inputs_in[learner][lane][input_pointer];
+            // } else {
+            //     inputs_nxt[learner][lane] = 0.0;
+            // }
         }
         for(int lane=0; lane<CB_SIZE_MAX; lane++){
             codebook_nxt[learner][lane] = codebook_in[learner][lane];

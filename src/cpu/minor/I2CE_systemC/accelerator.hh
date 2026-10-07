@@ -36,6 +36,8 @@ SC_MODULE(I2CE_accelerator){
     sc_in<bool>                             clk;
     sc_in<bool>                             rst;
 
+    sc_signal<sc_uint<LANE_IDX_BIT_MAX>>             simd_lanes_reg;
+
     sc_in<bool>                             rst_mac;
     sc_signal<bool>                         mac_res_reset_reg, mac_res_reset_nxt;
     sc_signal<bool>                         rst_mac_prev_reg, rst_mac_prev_nxt;
@@ -62,6 +64,8 @@ SC_MODULE(I2CE_accelerator){
     sc_in<sc_uint<IDXS_PER_LANE_BITS>>                       idxs_per_lane_in;
     sc_signal<sc_uint<IDXS_PER_LANE_BITS>>                   idxs_per_lane;
 
+    sc_signal<sc_uint<LANE_IDX_BIT_MAX>>                    last_active_lane;
+
     sc_in<bool>             en_trigger;
     sc_signal<bool>         en_reg, en_nxt;
     sc_signal<sc_uint<5>>   en_count_reg, en_count_nxt;
@@ -83,7 +87,7 @@ SC_MODULE(I2CE_accelerator){
     sc_signal<sc_uint<log2_pow2(ACT_BUF_SIZE)>>                  in_ptr_reg, in_ptr_nxt; // this points at a specific input in the sequence
     
     // Counts the number of processed indexes so it knows when to stop the EN
-    sc_signal<sc_uint<8>>                   idx_processed_cnt_reg, idx_processed_cnt_nxt; 
+    sc_signal<sc_uint<IDXS_PER_LANE_BITS>>                   idx_processed_cnt_reg, idx_processed_cnt_nxt; 
 
     // sc_in<float>                            res_tmp[N_LEARNERS];
     SIMD_reg<sc_in<float>>                  res_tmp;
@@ -258,6 +262,10 @@ SC_MODULE(I2CE_accelerator){
 
         getidx_mod->bit_mask(bit_mask);
         getidx_mod->idx_bits_in(bits_per_idx);
+        getidx_mod->idxs_per_lane(idxs_per_lane);
+        getidx_mod->processed_idxs(idx_processed_cnt_reg);
+        getidx_mod->simd_lanes_in(simd_lanes_reg);
+        getidx_mod->last_active_lane(last_active_lane);
 
         // getidx_mod->en_out(tbl_en_sig);
         for(int lane=0; lane<simd_lanes; lane++){

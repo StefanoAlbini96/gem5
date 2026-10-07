@@ -31,6 +31,10 @@ SC_MODULE(get_idx){
 
     sc_in<sc_dt::sc_uint<IDX_BIT_MAX>>          bit_mask;
     sc_in<sc_dt::sc_uint<8>>                    idx_bits_in;
+    sc_in<sc_dt::sc_uint<IDXS_PER_LANE_BITS>>   idxs_per_lane;
+    sc_in<sc_dt::sc_uint<IDXS_PER_LANE_BITS>>   processed_idxs;
+
+    sc_in<sc_uint<LANE_IDX_BIT_MAX>>             simd_lanes_in;
 
     sc_signal<bool>                     idx_en_reg, idx_en_nxt;
     sc_signal<bool>                     idx_en_prev_reg, idx_en_prev_nxt;
@@ -40,7 +44,10 @@ SC_MODULE(get_idx){
 
     // Mask for the index
     sc_signal<sc_uint<IDX_BIT_MAX>>         mask_reg;
-    sc_signal<sc_uint<8>>                   bits_per_idx;
+    sc_signal<sc_uint<IDX_BIT_MAX>>                   bits_per_idx;
+
+    // Acts as a predicate specifying the index of the last active SIMD lane
+    sc_signal<sc_uint<LANE_IDX_BIT_MAX>>    pred_last_active_lane_reg, pred_last_active_lane_nxt;
 
     // SIMD register of different packed indexes
     // sc_in<sc_dt::sc_uint<32>>           packed_indexes[N_LANES];
@@ -57,6 +64,7 @@ SC_MODULE(get_idx){
     
     // sc_out<sc_uint<IDX_BIT>>            out[N_LANES];
     SIMD_reg<sc_out<sc_uint<IDX_BIT_MAX>>>  out;
+    sc_out<sc_uint<LANE_IDX_BIT_MAX>>       last_active_lane;
 
 
 
@@ -93,6 +101,7 @@ SC_MODULE(get_idx){
         sensitive << idx_en_reg;
         sensitive << idx_en_prev_reg;
         sensitive << idx_bits_in;
+        // sensitive << pred_last_active_lane_reg;
 
 
         // SC_METHOD(comb_method_set_shamt);
