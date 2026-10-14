@@ -85,6 +85,8 @@ void get_idx::comb_method()
 
     sc_uint<IDXS_PER_LANE_BITS> last_shamt_possible = (idxs_per_lane.read() * bits_per_idx.read()) - bits_per_idx.read();
 
+    // To check that we found the last active lane, in case subsequent one have the same condition
+    bool last_act_lane_found = false;
 
     sel_updated = sel_reg.read();
 
@@ -93,7 +95,8 @@ void get_idx::comb_method()
         // printf("\n ----- lane  = %u -----\n", lane);
 
         // Get the correct lane of packed indexes        
-        packed_lane = packed_indexes[sel_reg.read()].read();
+        // packed_lane = packed_indexes[sel_reg.read()].read();
+        packed_lane = packed_indexes[sel_updated].read();
 
         // Shift and mask_reg
         // index = packed_lane >> shamt_reg[lane].read();
@@ -122,15 +125,20 @@ void get_idx::comb_method()
         //     sel_updated = sel_reg.read();
         // }
 
-        if (lane_shamt == last_shamt_possible){
+        // Write the output
+        out[lane].write(idxs_reg[lane].read());
+
+
+        if ((lane_shamt == last_shamt_possible) && !last_act_lane_found){
+            // last_act_lane_found = true;
             last_active_lane_next = (lane);
-            sel_updated = (sel_reg.read() + 1) % simd_lanes;
+            // sel_updated = (sel_reg.read() + 1) % simd_lanes;
+            sel_updated = (sel_updated + 1) % simd_lanes;
+            // printf("SEL UPDATED --> %u\n", sel_updated.to_uint());
+            // break;
         }
 
         // printf("\tlane = %d shamnt = %u --> shamt updated = %u -> %u  |  sel_updated = %u\n", lane, lane_shamt.to_uint(), shamt_reg.read().to_uint(), shamt_updated.to_uint(), sel_updated.to_uint());
-
-        // Write the output
-        out[lane].write(idxs_reg[lane].read());
     }
     
     // printf("LAst shamt possilbe = %u * %u = %u   ||   %u\n", idxs_per_lane.read().to_uint(), bits_per_idx.read().to_uint(), last_shamt_possible.to_uint(), shamt_updated.to_uint());

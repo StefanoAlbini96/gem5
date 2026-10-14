@@ -216,6 +216,7 @@ SC_MODULE(I2CE_accelerator){
         sensitive << tbl_en_sig;
         sensitive << mac_en_sig;
         sensitive << in_ptr_reg;
+        sensitive << last_active_lane;
         for(int lane=0; lane<simd_lanes; lane++){
             sensitive << packed_in[lane];
         }

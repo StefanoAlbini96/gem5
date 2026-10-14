@@ -168,17 +168,19 @@ void I2CE_accelerator::comb_method()
 
     uint16_t input_pointer = in_ptr_reg.read();
 
+    // printf("ACCEL in pointer = %u --> last active laen = %u\n", in_ptr_reg.read().to_uint(), last_active_lane.read().to_uint());
+
     // Inputs
     for(int learner=0; learner<n_learners; learner++){
         for(int lane=0; lane<simd_lanes; lane++){
             
-            inputs_nxt[learner][lane] = inputs_in[learner][lane][input_pointer];
+            // inputs_nxt[learner][lane] = inputs_in[learner][lane][input_pointer];
 
-            // if(lane <= last_active_lane.read()){
-            //     inputs_nxt[learner][lane] = inputs_in[learner][lane][input_pointer];
-            // } else {
-            //     inputs_nxt[learner][lane] = 0.0;
-            // }
+            if(lane <= last_active_lane.read()){
+                inputs_nxt[learner][lane] = inputs_in[learner][lane][input_pointer];
+            } else {
+                inputs_nxt[learner][lane] = 0.0;
+            }
         }
         for(int lane=0; lane<CB_SIZE_MAX; lane++){
             codebook_nxt[learner][lane] = codebook_in[learner][lane];

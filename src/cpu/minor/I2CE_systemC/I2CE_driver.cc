@@ -173,6 +173,11 @@ I2CE_driver::startup()
     sc_core::sc_trace(tf, accel->getidx_mod->idx_en_prev_nxt, "accel.GET_IDX.idx_en_prev_nxt");
     sc_core::sc_trace(tf, accel->getidx_mod->idx_en_prev_reg, "accel.GET_IDX.idx_en_prev_reg");
 
+    sc_core::sc_trace(tf, accel->last_active_lane, "accel.last_active_lane");
+
+    sc_core::sc_trace(tf, accel->getidx_mod->pred_last_active_lane_nxt, "accel.GET_IDX.pred_last_active_lane_nxt");
+    sc_core::sc_trace(tf, accel->getidx_mod->pred_last_active_lane_reg, "accel.GET_IDX.pred_last_active_lane_reg");
+
     for(int stage=0; stage<EN_STAGES; stage++){
         sc_core::sc_trace(tf, accel->pipeline_en[stage], "accel.pipeline_en[" + std::to_string(stage) + "]");
     }
@@ -390,6 +395,7 @@ bool I2CE_driver::is_ld_complete()
 
 void I2CE_driver::ld_codebooks(int learner, int lane, float cb_word, uint8_t cb_size)
 {
+    // printf("\nLoading codebooks[%d][%d] = %f\n", learner, lane, cb_word);
     
     uint8_t idx_bits = uint8_t(log2_pow2(cb_size));
     uint8_t mask = mask_gen(idx_bits);
