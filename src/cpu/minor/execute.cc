@@ -144,43 +144,44 @@ Execute::Execute(const std::string &name_,
 
         fu_name << name_ << ".fu." << i;
 
-        // Identify the FU with the custom ALU operation class and instantiate the appropiate
-        // FU pipeline class.
-        bool hasCusAlu = false;
-        for(int opc=0; opc<fu_description->opClasses->opClasses.size(); opc++){
-            if(fu_description->opClasses->opClasses[opc]->opClass == enums::CusFUtbl){
-                hasCusAlu = true;
-                break;
-            }
-        }
+        // // Identify the FU with the custom ALU operation class and instantiate the appropiate
+        // // FU pipeline class.
+        // bool hasCusAlu = false;
+        // for(int opc=0; opc<fu_description->opClasses->opClasses.size(); opc++){
+        //     if(fu_description->opClasses->opClasses[opc]->opClass == enums::CusFUtbl){
+        //         hasCusAlu = true;
+        //         break;
+        //     }
+        // }
 
-        FUPipeline *fu;
-        // I2CE_driver *fu_driver;
-        if (hasCusAlu){
+        // FUPipeline *fu;
+        // // I2CE_driver *fu_driver;
+        // if (hasCusAlu){
 
-            uint8_t vector_len = 4;
-            uint8_t n_codebooks = 4;
-            uint8_t cb_len = 4;
+        //     uint8_t vector_len = 4;
+        //     uint8_t n_codebooks = 4;
+        //     uint8_t cb_len = 4;
 
-            uint8_t bits_per_idx = static_cast<int>(std::log2(cb_len));
-            uint8_t mask = (1u << bits_per_idx) - 1u;
-            uint8_t idx_per_lane = 32 / bits_per_idx;   // TODO: put 32 as parametric
-
-
-            fu = new CusFU_SVE_tblMAC(fu_name.str(), *fu_description, cpu, vector_len, idx_per_lane, n_codebooks, bits_per_idx, mask);
-            tblmac_fu = (CusFU_SVE_tblMAC*)fu;
-            setMyFUPInMinorCPU();
+        //     uint8_t bits_per_idx = static_cast<int>(std::log2(cb_len));
+        //     uint8_t mask = (1u << bits_per_idx) - 1u;
+        //     uint8_t idx_per_lane = 32 / bits_per_idx;   // TODO: put 32 as parametric
 
 
-            // fu_driver = new I2CE_driver();
-            // i2ce_driver_fu = fu_driver;
-            // i2ce_driver_fu->drive();
-            // i2ce_driver_fu->test();
+        //     fu = new CusFU_SVE_tblMAC(fu_name.str(), *fu_description, cpu, vector_len, idx_per_lane, n_codebooks, bits_per_idx, mask);
+        //     tblmac_fu = (CusFU_SVE_tblMAC*)fu;
+        //     setMyFUPInMinorCPU();
 
-        } else {
-            fu = new FUPipeline(fu_name.str(), *fu_description, cpu);
-        }
 
+        //     // fu_driver = new I2CE_driver();
+        //     // i2ce_driver_fu = fu_driver;
+        //     // i2ce_driver_fu->drive();
+        //     // i2ce_driver_fu->test();
+
+        // } else {
+            // fu = new FUPipeline(fu_name.str(), *fu_description, cpu);
+        // }
+
+        FUPipeline *fu = new FUPipeline(fu_name.str(), *fu_description, cpu);
         funcUnits.push_back(fu);
     }
 
@@ -640,7 +641,15 @@ Execute::issue(ThreadID thread_id)
     unsigned num_mem_insts_issued = 0;
 
 
+    // printf("[EXECUTE] getting the DRIVER ptr...\n");
     gem5::I2CE_driver* i2ce_driver_ptr = cpu.get_I2CE_Driver();
+    
+    // printf("[EXECUTE] test_now ...\n");
+    // bool test_now = i2ce_driver_ptr->is_ld_complete();
+    // std::cout << "test now = " << test_now << std::endl;
+    // printf("[EXECUTE] test_now DONE\n");
+
+    // printf("[EXECUTE] getting the DRIVER ptr --> DONE\n");
 
     do {
         MinorDynInstPtr inst = insts_in->insts[thread.inputIndex];
@@ -676,7 +685,9 @@ Execute::issue(ThreadID thread_id)
             /* Try and issue a single instruction stepping through the
              *  available FUs */
             do {
+                // fprintf(stderr, "EXEC FU %d ...\n", fu_index);
                 FUPipeline *fu = funcUnits[fu_index];
+                // fprintf(stderr, "EXEC FU %d ... DONE\n", fu_index);
 
                 DPRINTF(MinorExecute, "Trying to issue inst: %s to FU: %d\n",
                     *inst, fu_index);
@@ -687,6 +698,20 @@ Execute::issue(ThreadID thread_id)
                  *  inFlightInsts queue rather than having an FU. */
                 bool fu_is_capable = (!inst->isFault() ?
                     fu->provides(inst->staticInst->opClass()) : true);
+                
+
+                    ///////////
+                    // TRY TO LAUNCH WITH AN OLDER EXECUTE.CC FILEEE
+                    ///////////
+                
+
+                // fprintf(stderr, "INSTR NAME = %s\n", inst->staticInst->getName().c_str());
+                // fprintf(stderr, "[ISSUE] after provides: %d\n", fu_is_capable);
+                // fprintf(stderr, "EXEC FU %d provides ...\n", fu_index);
+                // fprintf(stderr, "INSTR TYPE MOCK BEFORE\n");
+                // fprintf(stderr, "INSTR TYPE = %d\n", inst->staticInst->opClass());
+                // fprintf(stderr, "INSTR TYPE MOCK AFTER\n");
+                
 
                 if (inst->isNoCostInst()) {
                     /* Issue free insts. to a fake numbered FU */
@@ -751,10 +776,14 @@ Execute::issue(ThreadID thread_id)
                     {
                         DPRINTF(MinorExecute, "Can't issue inst: %s yet\n",
                             *inst);
-                    } else if( (inst->staticInst->opClass() == enums::CusFUCompute_SC) && (!i2ce_driver_ptr->is_ld_complete()))
-                    {
+                    // } else if( (inst->staticInst->opClass() == enums::CusFUCompute_SC) && (!i2ce_driver_ptr->is_ld_complete()))
+                    // } else if( (!inst->isFault()) && (inst->staticInst->opClass() == enums::CusFUCompute_SC) ){
+                    } else if ( 
+                                (!inst->isFault()) && 
+                                (inst->staticInst->opClass() == enums::CusFUCompute_SC) && 
+                                (!i2ce_driver_ptr->is_ld_complete())) 
+                                {
                         DPRINTF(MinorExecute, "Can't issue I2CE compute since LD has not finished\n");
-                    
                     } else {
                         /* Can insert the instruction into this FU */
                         DPRINTF(MinorExecute, "Issuing inst: %s"
@@ -824,18 +853,12 @@ Execute::issue(ThreadID thread_id)
 
                         // printf("Instruction %s in %d\n", inst->staticInst->getName().c_str(), fu_index);
 
-
-                        // i2ce_driver_fu->test();
-                        // i2ce_driver_fu->drive();
-
-
-                        // cout << "OP CLASS = " << inst->staticInst->opClass() << endl;
-                        // if(inst->staticInst->opClass() == enums::CusFUCompute_SC){
-                        //     i2ce_driver_fu->drive();
-                        // }
+                        // fprintf(stderr, "Issue instruction .....\n");
 
                         /* Issue to FU */
                         fu->push(fu_inst);
+
+                        // fprintf(stderr, "Issue instruction DONE\n");
 
                         /* Record the cycle at which this microop entered
                          * the FU pipeline.  We do this AFTER fu->push() so
@@ -844,7 +867,10 @@ Execute::issue(ThreadID thread_id)
                          * cpu.curCycle() + 1 because push() makes the inst
                          * available from the *next* cycle onward. */
 
-                        if(inst->staticInst->opClass() == enums::CusFUCompute_SC) {
+                        if(
+                            (!inst->isFault()) &&
+                            (inst->staticInst->opClass() == enums::CusFUCompute_SC)) 
+                            {
                             // issue_cycle_cmpt_en = cpu.curCycle() + Cycles(1);
                             // printf("[TIMING] CusFUCompute_SC  entered FU at cycle %lu: %s\n",
                             //         (uint64_t)issue_cycle_cmpt_en,
@@ -856,10 +882,16 @@ Execute::issue(ThreadID thread_id)
                             // cnt_cmpt_en++;
 
                             // gem5::I2CE_driver* i2ce_driver_ptr = cpu.get_I2CE_Driver();
+                            
+                            // fprintf(stderr, "[EXECUTE] DRIVER compute enable...\n");
                             i2ce_driver_ptr->compute_enable();
+                            // fprintf(stderr, "[EXECUTE] DRIVER compute enable DONE\n");
                         }
 
-                        if (inst->staticInst->opClass() == enums::CusReduce_SC) {
+                        if (
+                            (!inst->isFault()) &&
+                            (inst->staticInst->opClass() == enums::CusReduce_SC)) 
+                            {
                             // issue_cycle_reduce = cpu.curCycle() + Cycles(1);
                             // printf("[TIMING] CusReduce_SC  entered FU at cycle %lu: %s\n",
                             //         (uint64_t)issue_cycle_reduce,
