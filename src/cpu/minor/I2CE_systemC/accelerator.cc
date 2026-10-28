@@ -13,8 +13,11 @@ void I2CE_accelerator::clock_thread()
     en_count_reg.write(false);
     en_trigger_prev_reg.write(false);
 
+    rst_in_ptr_prev_reg.write(false);
+    can_reset_in_ptr_reg.write(false);
 
     in_ptr_reg.write(0);
+    in_ptr_next_reg.write(0);
     en_prev_reg.write(false);
     // en_reg.write(false);        // Probably it can be removed!
     idx_processed_cnt_reg.write(0);
@@ -36,6 +39,9 @@ void I2CE_accelerator::clock_thread()
     for(int stage=0; stage<EN_STAGES; stage++){
         pipeline_en[stage] = 0;
     }
+
+    in_ptr_en_reg.write(false);
+    // get_idx_en_interal_prev_reg.write(false);
     
     for(int learner=0; learner<n_learners; learner++){
         for(int lane=0; lane<simd_lanes; lane++){
@@ -64,6 +70,8 @@ void I2CE_accelerator::clock_thread()
 
         en_prev_reg.write(en_prev_nxt.read());
 
+        rst_in_ptr_prev_reg.write(rst_in_ptr_prev_nxt.read());
+        can_reset_in_ptr_reg.write(can_reset_in_ptr_nxt.read());
 
         mac_res_reset_reg.write(mac_res_reset_nxt.read());
         rst_mac_prev_reg.write(rst_mac_prev_nxt.read());
@@ -127,7 +135,12 @@ void I2CE_accelerator::clock_thread()
 
         // EN for the TBL module
         // At the next cycle the MAC is EN and the activations are already in the register
-        if(pipeline_en[1].read()){
+        // if(pipeline_en[1].read()){
+        if(can_reset_in_ptr_reg.read()){
+
+            in_ptr_reg.write(0);    // Reset its value
+
+        } else if(in_ptr_en_reg.read()){
 
             sum_reg.write(sum_nxt.read());
 
@@ -138,7 +151,24 @@ void I2CE_accelerator::clock_thread()
             }
 
             in_ptr_reg.write(in_ptr_nxt.read());
+
+        } else {
+
+            for(int learner=0; learner<n_learners; learner++){
+                for(int lane=0; lane<simd_lanes; lane++){
+                    inputs_reg[learner][lane] = 0.0;
+                }
+            }
         }
+
+        // if((get_idx_en_interal.read()) && (pipeline_en[1].read())){
+        //     in_ptr_reg.write(in_ptr_nxt.read());
+        //     in_ptr_next_reg.write(in_ptr_nxt.read() + 1);
+        // }
+
+
+        in_ptr_en_reg.write(in_ptr_en_nxt.read());
+
 
         wait();
     }
@@ -174,13 +204,13 @@ void I2CE_accelerator::comb_method()
     for(int learner=0; learner<n_learners; learner++){
         for(int lane=0; lane<simd_lanes; lane++){
             
-            // inputs_nxt[learner][lane] = inputs_in[learner][lane][input_pointer];
+            inputs_nxt[learner][lane] = inputs_in[learner][lane][input_pointer];
 
-            if(lane <= last_active_lane.read()){
-                inputs_nxt[learner][lane] = inputs_in[learner][lane][input_pointer];
-            } else {
-                inputs_nxt[learner][lane] = 0.0;
-            }
+            // if(lane <= last_active_lane.read()){
+            //     inputs_nxt[learner][lane] = inputs_in[learner][lane][input_pointer];
+            // } else {
+            //     inputs_nxt[learner][lane] = 0.0;
+            // }
         }
         for(int lane=0; lane<CB_SIZE_MAX; lane++){
             codebook_nxt[learner][lane] = codebook_in[learner][lane];
@@ -262,8 +292,32 @@ void I2CE_accelerator::trigger_en_comb_method()
         // Conclude the pulse
         en_nxt.write(false);
         en_count_nxt.write(0);
+
+
     }
 }
+
+
+
+void I2CE_accelerator::delay_idx_en()
+{
+    in_ptr_en_nxt.write(get_idx_en_interal.read());
+}
+
+
+
+void I2CE_accelerator::reset_in_ptr()
+{
+    rst_in_ptr_prev_nxt.write(rst_in_ptr.read());
+
+
+    if(rst_in_ptr.read() != rst_in_ptr_prev_reg.read()){
+        can_reset_in_ptr_nxt.write(true);
+    } else {
+        can_reset_in_ptr_nxt.write(false);
+    }
+}
+
 
 
 

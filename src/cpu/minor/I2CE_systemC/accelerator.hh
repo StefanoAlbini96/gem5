@@ -43,6 +43,11 @@ SC_MODULE(I2CE_accelerator){
     sc_signal<bool>                         rst_mac_prev_reg, rst_mac_prev_nxt;
     // sc_signal<bool>                         mac_res_reset_prev_reg, mac_res_reset_prev_nxt;
 
+    // To reset the pointer to the buffer element
+    sc_in<bool>                             rst_in_ptr;    
+    sc_signal<bool>                         rst_in_ptr_prev_reg, rst_in_ptr_prev_nxt;    
+    sc_signal<bool>                         can_reset_in_ptr_reg, can_reset_in_ptr_nxt;
+
     sc_in<bool>                             en_input;
     sc_signal<bool>                         en_prev_reg, en_prev_nxt;    // To detecet the rising edge --> start of compute loop
     // sc_signal<bool>                         en_reg, en_nxt;
@@ -74,6 +79,12 @@ SC_MODULE(I2CE_accelerator){
 
     sc_signal<bool>                         pipeline_en[EN_STAGES];
 
+    // EN signal that follows the internal EN signal of GET_IDX module, with a 1 CC delay (only the start, then end follows precisely)
+    // Used to stop the input pointer when there are no more indexes to be extracted
+    sc_signal<bool>                         in_ptr_en_reg, in_ptr_en_nxt;     
+    sc_signal<bool>                         get_idx_en_interal;     // Internal EN of GET_IDX module
+    // sc_signal<bool>                         get_idx_en_interal_prev_reg, get_idx_en_interal_prev_nxt;     
+
     // sc_in<sc_dt::sc_uint<32>>               packed_in[N_LANES];
     SIMD_reg<sc_in<sc_dt::sc_uint<32>>>     packed_in;
 
@@ -85,6 +96,8 @@ SC_MODULE(I2CE_accelerator){
     // sc_in<float>                            inputs_in[sN_LEARNERS][N_LANES][ACT_BUF_SIZE];
     multi_learner_SIMD_regs<sc_vector<sc_in<float>>>   inputs_in;
     sc_signal<sc_uint<log2_pow2(ACT_BUF_SIZE)>>                  in_ptr_reg, in_ptr_nxt; // this points at a specific input in the sequence
+    sc_signal<sc_uint<log2_pow2(ACT_BUF_SIZE)>>                  in_ptr_next_reg, in_ptr_next_nxt; 
+
     
     // Counts the number of processed indexes so it knows when to stop the EN
     sc_signal<sc_uint<IDXS_PER_LANE_BITS>>                   idx_processed_cnt_reg, idx_processed_cnt_nxt; 
@@ -216,6 +229,7 @@ SC_MODULE(I2CE_accelerator){
         sensitive << tbl_en_sig;
         sensitive << mac_en_sig;
         sensitive << in_ptr_reg;
+        sensitive << in_ptr_next_reg;
         sensitive << last_active_lane;
         for(int lane=0; lane<simd_lanes; lane++){
             sensitive << packed_in[lane];
@@ -253,6 +267,15 @@ SC_MODULE(I2CE_accelerator){
         sensitive << en_count_reg;
 
 
+        SC_METHOD(delay_idx_en);
+        sensitive << get_idx_en_interal;
+        // sensitive << get_idx_en_interal_prev_reg;
+        
+        SC_METHOD(reset_in_ptr);
+        sensitive << rst_in_ptr;
+        sensitive << rst_in_ptr_prev_reg;
+
+
         // Bind the ports for the get_idx module
         getidx_mod->clk(clk);
         getidx_mod->rst(rst);
@@ -267,6 +290,7 @@ SC_MODULE(I2CE_accelerator){
         getidx_mod->processed_idxs(idx_processed_cnt_reg);
         getidx_mod->simd_lanes_in(simd_lanes_reg);
         getidx_mod->last_active_lane(last_active_lane);
+        getidx_mod->en_out(get_idx_en_interal);
 
         // getidx_mod->en_out(tbl_en_sig);
         for(int lane=0; lane<simd_lanes; lane++){
@@ -347,6 +371,8 @@ SC_MODULE(I2CE_accelerator){
     void trigger_reduce_comb_method();
     void trigger_mac_res_reset_comb_method();
     void trigger_en_comb_method();
+    void delay_idx_en();
+    void reset_in_ptr();
 
 
 

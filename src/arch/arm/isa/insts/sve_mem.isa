@@ -1527,6 +1527,9 @@ let {{
                 //i2ce_driver_ptr->load_packed_idxs(i, 0);
             }
         }
+
+        i2ce_driver_ptr->notify_ld_complete();
+
         '''
 
         loadMemAccCodeCus_I2CE_loadTmpRes = '''
@@ -2435,7 +2438,7 @@ let {{
         if(this->is_last){
             // cout << \"De-interleaved with notify...\" << endl;
 
-            i2ce_driver_ptr->notify_ld_complete();
+            // i2ce_driver_ptr->notify_ld_complete();
         }
 
         '''

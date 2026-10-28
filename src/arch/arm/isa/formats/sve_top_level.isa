@@ -123,6 +123,7 @@ namespace Aarch64
     StaticInstPtr decodeSveLoadStructsSICusLoadCodebooks_I2CE(ExtMachInst machInst);
     StaticInstPtr decodeSveLoadStructsSICusLoadTmpRes_I2CE(ExtMachInst machInst);
     StaticInstPtr decodeSveContigStoreSICus_I2CE(ExtMachInst machInst);
+    StaticInstPtr decodeRedAndSt_I2CE_SC(ExtMachInst machInst);
     
     StaticInstPtr decodeCusSveIntAdd1(ExtMachInst machInst);
 
@@ -450,21 +451,26 @@ namespace Aarch64
 
             case 0x0:
                 // SC LOAD INPUTS
+                // printf("SC_LOAD_INPUTS\n");
                 return decodeSveLoadStructsSICusLoadInputs_I2CE(machInst);
             case 0x1:
                 // SC LOAD INDEXES
+                // printf("SC_LOAD_INDEXES\n");
                 return decodeSveContigLoadSICusLDIDX_I2CE(machInst);
             case 0x2:
                 // SC LOAD CODEBOOKS
+                // printf("SC_LOAD_CODEBOOKS\n");
                 return decodeSveLoadStructsSICusLoadCodebooks_I2CE(machInst);
             case 0x3:
                 {
                 // SC LOAD TMP RESULT
+                // printf("SC_LOAD_TMP_RES\n");
                 return decodeSveContigLoadSICusLDTmpRes_I2CE(machInst);
                 }
             case 0x4:
                 {
                 // SC EN COMPUTE
+                // printf("SC_EN_CMPT\n");
                 RegIndex rd = (RegIndex)(uint32_t)bits(machInst, 4, 0);
                 RegIndex rdsp = makeSP(rd); // destination
 
@@ -477,17 +483,24 @@ namespace Aarch64
             case 0x5:
                 {
                 // SC DISABLE COMPUTE
+                // printf("SC_STOP_CMPT\n");
                 RegIndex rd = (RegIndex)(uint32_t)bits(machInst, 4, 0);
                 RegIndex rdsp = makeSP(rd);
 
                 RegIndex rn = (RegIndex)(uint32_t)bits(machInst, 9, 5);
                 RegIndex rnsp = makeSP(rn); // op1, must be destination of the first instruction to create dependency
 
-                return new StopCompute_en64(machInst, rdsp, rnsp);
+                //return new StopCompute_en64(machInst, rdsp, rnsp);
+                return new Unknown64(machInst);
                 }
             case 0x6:
                 {
+
+                // return decodeRedAndSt_I2CE_SC(machInst);
+
+
                 // SC REDUCE
+                // printf("SC_REDUCE\n");
                 RegIndex rd = (RegIndex)(uint32_t)bits(machInst, 4, 0);
                 RegIndex rdsp = makeSP(rd);
 
@@ -500,7 +513,8 @@ namespace Aarch64
             case 0x7:
                 {
                 // SC STORE
-                printf("Decoding SC_STORE\n");
+                // printf("SC_STORE\n");
+                // printf("Decoding SC_STORE\n");
                 return decodeSveContigStoreSICus_I2CE(machInst);
                 }
             default:

@@ -66,6 +66,8 @@ SC_MODULE(get_idx){
     SIMD_reg<sc_out<sc_uint<IDX_BIT_MAX>>>  out;
     sc_out<sc_uint<LANE_IDX_BIT_MAX>>       last_active_lane;
 
+    sc_out<bool>                            en_out;
+
 
 
     SC_CTOR(get_idx);

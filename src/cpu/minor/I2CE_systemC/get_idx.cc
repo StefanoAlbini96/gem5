@@ -98,9 +98,14 @@ void get_idx::comb_method()
         // packed_lane = packed_indexes[sel_reg.read()].read();
         packed_lane = packed_indexes[sel_updated].read();
 
-        // Shift and mask_reg
-        // index = packed_lane >> shamt_reg[lane].read();
-        lane_shamt = shamt_reg.read() + (lane * bits_per_idx.read());
+        // If the shift register spills, then I behave like starting from the beginning
+        uint8_t lane_shamt_tmp = shamt_reg.read() + (lane * bits_per_idx.read());
+        if(lane_shamt_tmp > last_shamt_possible){
+            lane_shamt = lane_shamt_tmp - (last_shamt_possible + bits_per_idx.read());      
+        } else {
+            lane_shamt = lane_shamt_tmp;
+        }
+
         index = packed_lane >> lane_shamt;
         index = index & mask_reg.read();
 
@@ -150,11 +155,21 @@ void get_idx::comb_method()
 
 
     // Updated shamt (base shamt)
-    shamt_updated = shamt_reg.read() + (simd_lanes * bits_per_idx.read());
-    if(shamt_updated < shamt_reg.read()){
-        shamt_updated = 0;
+    // shamt_updated = shamt_reg.read() + (simd_lanes * bits_per_idx.read());
+    // if(shamt_updated < shamt_reg.read()){
+    //     shamt_updated = 0;
+    // }
+    // shamt_nxt.write(shamt_updated);
+
+    uint8_t lane_shamt_tmp = shamt_reg.read() + ((simd_lanes) * bits_per_idx.read());
+    if(lane_shamt_tmp > last_shamt_possible){
+        lane_shamt = lane_shamt_tmp - (last_shamt_possible + bits_per_idx.read());      
+    } else {
+        lane_shamt = lane_shamt_tmp;
     }
-    shamt_nxt.write(shamt_updated);
+    shamt_nxt.write(lane_shamt);
+
+    
 
     sel_nxt.write(sel_updated);
 
@@ -185,6 +200,8 @@ void get_idx::comb_method()
 
 
     last_active_lane.write(pred_last_active_lane_reg.read());
+
+    en_out.write(idx_en_reg.read());
 
 }
 

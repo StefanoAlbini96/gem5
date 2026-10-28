@@ -57,9 +57,9 @@ I2CE_driver::I2CE_driver(const gem5::I2CE_driverParams &params) :
     accel->rst_mac(rst_mac);
     accel->red_trigger(red_trigger);
     accel->rst(rst);
-    // accel->a(ab);
-    // accel->b(ab);
 
+    accel->rst_in_ptr(rst_in_ptr);
+    
     // Connect the packed indexes
     for(int lane=0; lane<simd_lanes; lane++){
         accel->packed_in[lane](packed_indexes[lane]);
@@ -143,7 +143,13 @@ I2CE_driver::startup()
     sc_core::sc_trace(tf, accel->en_count_reg, "accel.en_count_reg");
     sc_core::sc_trace(tf, accel->en_trigger_prev_reg, "accel.en_trigger_prev_reg");
 
+    sc_core::sc_trace(tf, accel->get_idx_en_interal, "accel.get_idx_en_interal");
+    sc_core::sc_trace(tf, accel->in_ptr_en_reg, "accel.in_ptr_en_reg");
+    // sc_core::sc_trace(tf, accel->get_idx_en_interal_prev_reg, "accel.get_idx_en_interal_prev_reg");
+
     sc_core::sc_trace(tf, accel->rst_mac, "accel.rst_mac");
+
+    sc_core::sc_trace(tf, accel->rst_in_ptr, "accel.rst_in_ptr");
 
     sc_core::sc_trace(tf, accel->mac_res_reset_reg, "accel.mac_res_reset_reg");
     sc_core::sc_trace(tf, accel->mac_res_reset_nxt, "accel.mac_res_reset_nxt");
@@ -158,6 +164,7 @@ I2CE_driver::startup()
 
     sc_core::sc_trace(tf, accel->in_ptr_nxt, "accel.IN_pointer_nxt");
     sc_core::sc_trace(tf, accel->in_ptr_reg, "accel.IN_pointer_reg");
+    sc_core::sc_trace(tf, accel->in_ptr_next_reg, "accel.IN_pointer_next_reg");
 
     sc_core::sc_trace(tf, accel->getidx_mod->bit_mask, "accel.GET_IDX.bit_mask");
     sc_core::sc_trace(tf, accel->getidx_mod->mask_reg, "accel.GET_IDX.mask_reg");
@@ -276,6 +283,9 @@ I2CE_driver::startup()
     }
 
         sc_core::sc_trace(tf, accel->getidx_mod->shamt_reg, "accel.GET_IDX.shamt_reg");
+
+
+    printf("RST accel DONE!\n");
 }
 
 
@@ -378,6 +388,8 @@ void I2CE_driver::ld_inputs(int learner, int lane, int in_idx, float input_val)
         input_vect[learner][lane][idx] = 0.0;
     }
 
+    rst_in_ptr.write(!rst_in_ptr.read());
+
 }
 
 
@@ -438,7 +450,6 @@ void I2CE_driver::ld_tmp_res(int learner_id, float val)
 
 float I2CE_driver::get_out_value(int learner_id)
 {
-
 
     // std::cout
     //     << "[GETOUTVALS]"
