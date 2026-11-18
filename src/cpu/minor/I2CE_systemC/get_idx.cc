@@ -193,6 +193,11 @@ void get_idx::comb_method()
         en_next = false;
     }
 
+    // Anticipating by 3 CC when there are no SIMD activations left
+    if(n_simd_left.read() == 3){
+        en_next = false;
+    }
+
 
     idx_en_nxt.write(en_next);
     

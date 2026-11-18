@@ -39,6 +39,10 @@ SC_MODULE(get_idx){
     sc_signal<bool>                     idx_en_reg, idx_en_nxt;
     sc_signal<bool>                     idx_en_prev_reg, idx_en_prev_nxt;
 
+
+    // How many SIMD registers of activations do we need the indexes for
+    sc_in<sc_uint<32>>                              n_simd_left;
+
     // Selects which lane has to be unpacked
     sc_signal<sc_uint<LANE_IDX_BIT_MAX>>    sel_reg, sel_nxt;
 

@@ -504,6 +504,8 @@ class SveLdStructSICus_multiInputs : public PredMacroOp
             // By default, load all the lanes, unless it is the last LOAD
             // printf("Adding a LD with use_pred = %d\n", use_pred);
 
+            // printf("# load [%d]  --> imm = %d\n", it, ld_imm);
+
             // LOAD
             for(int i=0; i<numregs; i++){
                 microOps[base_uop_idx + i] = new MicroopLdMemType<Element>(
@@ -527,7 +529,7 @@ class SveLdStructSICus_multiInputs : public PredMacroOp
 
                 microOps[base_uop_idx + (i + numregs)] = new MicroopDeIntrlvType<Element>(
                         mnem, machInst,
-                        _numregs, i, this, it, use_pred);
+                        _numregs, i, this, it, use_pred, n_loads);
             }
 
             // TODO: update based on the SIMD width

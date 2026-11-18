@@ -2439,6 +2439,9 @@ let {{
             // cout << \"De-interleaved with notify...\" << endl;
 
             // i2ce_driver_ptr->notify_ld_complete();
+            
+            i2ce_driver_ptr->set_n_loads(this->n_loaded);
+
         }
 
         '''

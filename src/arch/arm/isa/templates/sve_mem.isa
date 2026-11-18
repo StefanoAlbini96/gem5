@@ -1547,6 +1547,172 @@ def template SveStructMemSIMicroopDeclare {{
 
 
 
+def template SveStructMemSIMicroopDeclare_LoadCB_I2CE {{
+    template<class _Element>
+    class %(class_name)s : public %(base_class)s
+    {
+      public:
+        %(reg_idx_arr_decl)s;
+
+      protected:
+        typedef _Element Element;
+        typedef _Element TPElem;
+
+        RegIndex dest;
+        RegIndex gp;
+        RegIndex base;
+        int64_t imm;
+
+        uint8_t numRegs;
+        int regIndex;
+        uint8_t cb_size;
+
+        unsigned memAccessFlags;
+
+        bool baseIsSP;
+
+      public:
+        %(class_name)s(const char* mnem, ExtMachInst machInst,
+                RegIndex _dest, RegIndex _gp, RegIndex _base,
+                int64_t _imm, uint8_t _numRegs, int _regIndex, uint8_t _cb_size) :
+            %(base_class)s(mnem, machInst, %(op_class)s),
+            dest(_dest), gp(_gp), base(_base), imm(_imm),
+            numRegs(_numRegs), regIndex(_regIndex), cb_size(_cb_size),
+            memAccessFlags(ArmISA::MMU::AllowUnaligned)
+        {
+            %(set_reg_idx_arr)s;
+            %(constructor)s;
+            baseIsSP = isSP(_base);
+        }
+
+        Fault execute(ExecContext *, trace::InstRecord *) const override;
+        Fault initiateAcc(ExecContext *, trace::InstRecord *) const override;
+        Fault completeAcc(PacketPtr, ExecContext *,
+                          trace::InstRecord *) const override;
+
+        void
+        annotateFault(ArmISA::ArmFault *fault) override
+        {
+            %(fa_code)s
+        }
+
+        std::string
+        generateDisassembly(Addr pc,
+                            const loader::SymbolTable *symtab) const override
+        {
+            std::stringstream ss;
+            printMnemonic(ss, "", false);
+            ccprintf(ss, "{");
+            switch (dest) {
+              case INTRLVREG0:
+                ccprintf(ss, "INTRLV0");
+                break;
+              case INTRLVREG1:
+                ccprintf(ss, "INTRLV1");
+                break;
+              case INTRLVREG2:
+                ccprintf(ss, "INTRLV2");
+                break;
+              case INTRLVREG3:
+                ccprintf(ss, "INTRLV3");
+                break;
+              default:
+                printVecReg(ss, dest, true);
+                break;
+            }
+            ccprintf(ss, "}, ");
+            printVecPredReg(ss, gp);
+            if (_opClass == MemReadOp) {
+                ccprintf(ss, "/z");
+            }
+            ccprintf(ss, ", [");
+            printVecReg(ss, base, true);
+            if (imm != 0) {
+                ccprintf(ss, ", #%d", imm * sizeof(Element));
+            }
+            ccprintf(ss, "] (uop reg %d tfer)", regIndex);
+            return ss.str();
+        }
+    };
+}};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+def template SveStructMemSIMicroopDeclare_storeRed_SC {{
+    template<class _Element>
+    class %(class_name)s : public %(base_class)s
+    {
+      public:
+        %(reg_idx_arr_decl)s;
+
+      protected:
+        typedef _Element Element;
+        typedef _Element TPElem;
+
+        RegIndex gp;
+        RegIndex base;
+        int64_t imm;
+
+        RegIndex tmpSrcReg;
+        RegIndex tmpDestReg;
+
+        unsigned memAccessFlags;
+
+        bool baseIsSP;
+
+      public:
+        %(class_name)s(const char* mnem, ExtMachInst machInst,
+                RegIndex _dest, RegIndex _gp, RegIndex _base,
+                int64_t _imm) :
+            %(base_class)s(mnem, machInst, %(op_class)s),
+            tmpSrcReg(_dest), tmpDestReg(_dest), gp(_gp), base(_base), imm(_imm),
+            memAccessFlags(ArmISA::MMU::AllowUnaligned)
+        {
+            %(set_reg_idx_arr)s;
+            %(constructor)s;
+            baseIsSP = isSP(_base);
+        }
+
+        Fault execute(ExecContext *, trace::InstRecord *) const override;
+        Fault initiateAcc(ExecContext *, trace::InstRecord *) const override;
+        Fault completeAcc(PacketPtr, ExecContext *,
+                          trace::InstRecord *) const override;
+
+        void
+        annotateFault(ArmISA::ArmFault *fault) override
+        {
+            %(fa_code)s
+        }
+
+        std::string
+        generateDisassembly(Addr pc,
+                            const loader::SymbolTable *symtab) const override
+        {
+            std::stringstream ss;
+            ccprintf(ss, " (uop deinterleave)");
+            return ss.str();
+        }
+    };
+}};
+
+
+
+
+
+
+
 
 
 
@@ -2761,6 +2927,7 @@ def template SveDeIntrlvMicroopDeclareCus_multiInputs {{
         uint8_t numRegs;
         int regIndex;
         uint8_t is_last;
+        uint32_t n_loaded;
 
         StaticInst *macroOp;
 
@@ -2769,9 +2936,9 @@ def template SveDeIntrlvMicroopDeclareCus_multiInputs {{
       public:
         %(class_name)s(const char* mnem, ExtMachInst machInst,
                 uint8_t _numRegs, int _regIndex,
-                StaticInst *_macroOp, int _in_idx, uint8_t _is_last) :
+                StaticInst *_macroOp, int _in_idx, uint8_t _is_last, uint32_t _n_loaded) :
             MicroOp(mnem, machInst, SimdAluOp),
-            numRegs(_numRegs), regIndex(_regIndex), macroOp(_macroOp), input_index(_in_idx), is_last(_is_last)
+            numRegs(_numRegs), regIndex(_regIndex), macroOp(_macroOp), input_index(_in_idx), is_last(_is_last), n_loaded(_n_loaded)
         {
             %(set_reg_idx_arr)s;
             %(constructor)s;

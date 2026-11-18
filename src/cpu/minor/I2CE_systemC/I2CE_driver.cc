@@ -54,6 +54,7 @@ I2CE_driver::I2CE_driver(const gem5::I2CE_driverParams &params) :
     // accel->en_input(en);
     accel->en_input(en_trigger);
 
+    accel->rst_getidx(rst_getidx);
     accel->rst_mac(rst_mac);
     accel->red_trigger(red_trigger);
     accel->rst(rst);
@@ -89,7 +90,7 @@ I2CE_driver::I2CE_driver(const gem5::I2CE_driverParams &params) :
         accel->res_tmp[learn](res_tmp[learn]);
     }
 
-
+    accel->n_simd_loads(n_simd_loads);
 
 
     rst.write(false);
@@ -125,6 +126,10 @@ I2CE_driver::startup()
     sc_core::sc_trace(tf, ld_input_complete, "ld_input_complete");
     sc_core::sc_trace(tf, debug, "debug");
 
+    sc_core::sc_trace(tf, accel->n_simd_loads, "accel.n_simd_loads");
+    sc_core::sc_trace(tf, accel->n_simd_act_left_reg, "accel.n_simd_act_left_reg");
+    sc_core::sc_trace(tf, accel->can_reset_in_ptr_reg, "accel.can_reset_in_ptr_reg");
+    sc_core::sc_trace(tf, accel->processed_all_buf_reg, "accel.processed_all_buf_reg");
 
     sc_core::sc_trace(tf, accel->idx_processed_cnt_nxt, "accel.idx_processed_cnt_nxt");
     sc_core::sc_trace(tf, accel->idx_processed_cnt_reg, "accel.idx_processed_cnt_reg");
@@ -145,8 +150,10 @@ I2CE_driver::startup()
 
     sc_core::sc_trace(tf, accel->get_idx_en_interal, "accel.get_idx_en_interal");
     sc_core::sc_trace(tf, accel->in_ptr_en_reg, "accel.in_ptr_en_reg");
+    sc_core::sc_trace(tf, accel->in_ptr_en_nxt, "accel.in_ptr_en_nxt");
     // sc_core::sc_trace(tf, accel->get_idx_en_interal_prev_reg, "accel.get_idx_en_interal_prev_reg");
 
+    sc_core::sc_trace(tf, accel->rst_getidx, "accel.rst_getidx");
     sc_core::sc_trace(tf, accel->rst_mac, "accel.rst_mac");
 
     sc_core::sc_trace(tf, accel->rst_in_ptr, "accel.rst_in_ptr");
@@ -399,6 +406,13 @@ void I2CE_driver::notify_ld_complete()
 }
 
 
+void I2CE_driver::set_n_loads(uint32_t simd_lds)
+{
+    n_simd_loads.write(simd_lds);
+}
+
+
+
 bool I2CE_driver::is_ld_complete()
 {
     return ld_input_complete.read();
@@ -435,6 +449,10 @@ void I2CE_driver::load_packed_idxs(int lane, uint32_t idx_word)
     for(int ln=(lane+1); ln<simd_lanes; ln++){
         packed_indexes[ln].write(0);
     }
+
+    // Reset the get_idx module
+    rst_getidx.write(!rst_getidx.read());
+
 }
 
 
