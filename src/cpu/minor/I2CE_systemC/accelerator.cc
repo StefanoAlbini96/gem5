@@ -147,7 +147,7 @@ void I2CE_accelerator::clock_thread()
 
             in_ptr_reg.write(0);    // Reset its value
             processed_all_buf_reg.write(false);
-            n_simd_act_left_reg.write(simd_lanes_reg.read());
+            n_simd_act_left_reg.write(ACT_BUF_SIZE);
 
 
         } else if(in_ptr_en_reg.read()){

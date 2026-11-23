@@ -30,11 +30,15 @@ using multi_learner_SIMD_regs = sc_vector<SIMD_reg<T>>;
 /**
  * Support macro to generate the mask bits for the index
  */
-#define mask_gen(x)         \
-    x == 1  ? 0b1    :      \
-    x == 2  ? 0b11   :      \
-    x == 3  ? 0b111  :      \
-    x == 4  ? 0b1111 : 0    \
+#define mask_gen(x)                \
+    x == 1  ? 0b1           :      \
+    x == 2  ? 0b11          :      \
+    x == 3  ? 0b111         :      \
+    x == 4  ? 0b1111        :      \
+    x == 5  ? 0b11111       :      \
+    x == 6  ? 0b111111      :      \
+    x == 7  ? 0b1111111     :      \
+    x == 8  ? 0b11111111    :  0   \
 
 
 /**
@@ -62,7 +66,7 @@ using multi_learner_SIMD_regs = sc_vector<SIMD_reg<T>>;
 // #define CB_SIZE         4
 
 
-#define CB_SIZE_MAX     16
+#define CB_SIZE_MAX     32
 
 // /**
 //  * Bit-width of each codebook index.

@@ -9,7 +9,7 @@ void get_idx::clock_thread()
 
     // mask_reg = IDX_MASK;    // Remains constant
     mask_reg.write(0);
-    bits_per_idx.write(0);   
+    bits_per_idx.write(2);   
 
     pred_last_active_lane_reg.write(0);
 
@@ -84,6 +84,10 @@ void get_idx::comb_method()
 
 
     sc_uint<IDXS_PER_LANE_BITS> last_shamt_possible = (idxs_per_lane.read() * bits_per_idx.read()) - bits_per_idx.read();
+    sc_uint<IDXS_PER_LANE_BITS> shamt_mod = last_shamt_possible + bits_per_idx.read();
+
+    // sc_uint<IDXS_PER_LANE_BITS> indexes_per_lane = (LANE_BITS / idx_bits_in);       // How many indexes in each lane
+    
 
     // To check that we found the last active lane, in case subsequent one have the same condition
     bool last_act_lane_found = false;
@@ -94,82 +98,57 @@ void get_idx::comb_method()
 
         // printf("\n ----- lane  = %u -----\n", lane);
 
+        // printf("shamt_reg = %u\n", shamt_reg.read().to_uint());
+
         // Get the correct lane of packed indexes        
         // packed_lane = packed_indexes[sel_reg.read()].read();
         packed_lane = packed_indexes[sel_updated].read();
 
         // If the shift register spills, then I behave like starting from the beginning
         uint8_t lane_shamt_tmp = shamt_reg.read() + (lane * bits_per_idx.read());
-        if(lane_shamt_tmp > last_shamt_possible){
-            lane_shamt = lane_shamt_tmp - (last_shamt_possible + bits_per_idx.read());      
-        } else {
-            lane_shamt = lane_shamt_tmp;
-        }
+        // if(lane_shamt_tmp > last_shamt_possible){
+        //     lane_shamt = lane_shamt_tmp - (last_shamt_possible + bits_per_idx.read());      
+        // } else {
+        //     lane_shamt = lane_shamt_tmp;
+        // }
+        
+        lane_shamt = lane_shamt_tmp % 30;
 
         index = packed_lane >> lane_shamt;
         index = index & mask_reg.read();
 
 
         uint8_t shifted = (packed_lane >> lane_shamt);
-        // printf("Sel register = %u\n", sel_reg.read().to_uint());
-        // printf("Packed lane = %u\n", packed_lane.to_uint());
-        // printf("Lane shamt = %u\n", lane_shamt.to_uint());
-        // printf("Packed lane shifted = %u\n", shifted);
-        // std::cout << packed_lane.to_string(sc_dt::SC_BIN) << std::endl;
-        // printf("Index = %u\n", index);
+        
 
         idxs_nxt[lane] = index;
 
         // Updated shamt for the lane
         shamt_updated = shamt_reg.read() + (lane * bits_per_idx.read()) + (simd_lanes * bits_per_idx.read());
 
-        // Overflow occurred --> need to use the next lane of packed indexes
-        // if (shamt_updated <= lane_shamt){
-        //     sel_updated = (sel_reg.read() + 1) % simd_lanes;
-        // } else {
-        //     sel_updated = sel_reg.read();
-        // }
-
         // Write the output
         out[lane].write(idxs_reg[lane].read());
 
 
         if ((lane_shamt == last_shamt_possible) && !last_act_lane_found){
-            // last_act_lane_found = true;
             last_active_lane_next = (lane);
-            // sel_updated = (sel_reg.read() + 1) % simd_lanes;
             sel_updated = (sel_updated + 1) % simd_lanes;
-            // printf("SEL UPDATED --> %u\n", sel_updated.to_uint());
-            // break;
         }
+
+        // printf("last_act_lane_found = %d\n", last_act_lane_found);
 
         // printf("\tlane = %d shamnt = %u --> shamt updated = %u -> %u  |  sel_updated = %u\n", lane, lane_shamt.to_uint(), shamt_reg.read().to_uint(), shamt_updated.to_uint(), sel_updated.to_uint());
     }
-    
-    // printf("LAst shamt possilbe = %u * %u = %u   ||   %u\n", idxs_per_lane.read().to_uint(), bits_per_idx.read().to_uint(), last_shamt_possible.to_uint(), shamt_updated.to_uint());
-    // if(shamt_updated >= last_shamt_possible){
-    //     sel_updated = (sel_reg.read() + 1) % simd_lanes;
-    // } else {
-    //     sel_updated = sel_reg.read();
-    // }
-
-
-    // Updated shamt (base shamt)
-    // shamt_updated = shamt_reg.read() + (simd_lanes * bits_per_idx.read());
-    // if(shamt_updated < shamt_reg.read()){
-    //     shamt_updated = 0;
-    // }
-    // shamt_nxt.write(shamt_updated);
 
     uint8_t lane_shamt_tmp = shamt_reg.read() + ((simd_lanes) * bits_per_idx.read());
-    if(lane_shamt_tmp > last_shamt_possible){
-        lane_shamt = lane_shamt_tmp - (last_shamt_possible + bits_per_idx.read());      
-    } else {
-        lane_shamt = lane_shamt_tmp;
-    }
-    shamt_nxt.write(lane_shamt);
+    // if(lane_shamt_tmp > last_shamt_possible){
+    //     lane_shamt = lane_shamt_tmp - (last_shamt_possible + bits_per_idx.read());      
+    // } else {
+    //     lane_shamt = lane_shamt_tmp;
+    // }
 
-    
+    lane_shamt = lane_shamt_tmp % 30;
+    shamt_nxt.write(lane_shamt);
 
     sel_nxt.write(sel_updated);
 
@@ -194,7 +173,7 @@ void get_idx::comb_method()
     }
 
     // Anticipating by 3 CC when there are no SIMD activations left
-    if(n_simd_left.read() == 3){
+    if(idx_en_reg.read() && (n_simd_left.read() == 3)){
         en_next = false;
     }
 
