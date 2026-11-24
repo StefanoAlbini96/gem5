@@ -370,35 +370,86 @@ class SveLdStructSI_I2CE_LoadCB : public PredMacroOp
 {
   protected:
     RegIndex dest;
+    uint8_t n_iters;
     RegIndex gp;
     RegIndex base;
     int64_t imm;
     uint8_t numregs;
+    uint8_t cb_size_exp;
     uint8_t cb_size;
 
   public:
     SveLdStructSI_I2CE_LoadCB(const char* mnem, ExtMachInst machInst, OpClass __opClass,
-            RegIndex _dest, RegIndex _gp, RegIndex _base,
-            int64_t _imm, uint8_t _numregs, uint8_t _cb_size)
+            uint8_t _n_iters, RegIndex _gp, RegIndex _base,
+            int64_t _imm, uint8_t _numregs, uint8_t _cb_size_exp)
         : PredMacroOp(mnem, machInst, __opClass),
-          dest(_dest), gp(_gp), base(_base), imm(_imm), numregs(_numregs), cb_size(_cb_size)
+          n_iters(_n_iters), gp(_gp), base(_base), imm(_imm), numregs(_numregs), cb_size_exp(_cb_size_exp)
     {
 
+        // Destination is not really used since the loaded values go into the accelerator
+        // I just use a mock value
+        // TODO: remove the dest input from the custom DeInterlv constructor
+        dest = 2;
 
-        numMicroops = numregs * 2;
+        printf("==== CUS LD CB ===== --> n_iters = %d\n", n_iters);
 
+        // The actual CB size to load is given by 2^cb_size_exp
+        cb_size = 1;
+        for(int e=0; e<cb_size_exp; e++){
+            cb_size *= 2;
+        }
+        
+        uint8_t n_microOps_per_iter = (numregs * 2);
+        numMicroops = (n_microOps_per_iter * n_iters);
         microOps = new StaticInstPtr[numMicroops];
+        
+        uint8_t ld_imm = imm;
 
-        for (int i = 0; i < numregs; ++i) {
-            microOps[i] = new MicroopLdMemType<Element>(
-                    mnem, machInst, static_cast<RegIndex>(INTRLVREG0 + i),
-                    _gp, _base, _imm, _numregs, i, cb_size);
+        printf("N-ITERS = %d --> N-uOP = %d\n", n_iters, numMicroops);
+        printf("N regs = %d\n", numregs);
+        
+
+        for(uint8_t it=0; it<n_iters; it++){
+            printf("=====  ADDING instructions for IT = %d =====\n", it);
+
+            uint8_t base_uop_idx = (it * n_microOps_per_iter);
+            printf("BAse uop idx = %d\n", base_uop_idx);
+            
+            
+            // IMM makes sure we are accessing subsequent interleaved data, skipping the previous ones.
+            ld_imm = imm + (it * numregs);
+            printf("ld_imm = %d\n", ld_imm);
+
+            // LOAD interleaved
+            for (int i = 0; i < numregs; ++i) {
+                printf("Adding LD uOp[%d]\n", base_uop_idx + i);
+                microOps[base_uop_idx + i] = new MicroopLdMemType<Element>(
+                        mnem, machInst, static_cast<RegIndex>(INTRLVREG0 + i),
+                        gp, base, ld_imm, numregs, i, cb_size);
+            }
+
+            // De-interleave
+            for (int i = 0; i < numregs; ++i) {
+                printf("Adding DeInterl uOp[%d]\n", base_uop_idx + (i + numregs));
+                microOps[base_uop_idx + (i + numregs)] = new MicroopDeIntrlvType<Element>(
+                        mnem, machInst, static_cast<RegIndex>((dest + i) % 32),
+                        numregs, i, cb_size, it, this);
+                }   
+
+
+
         }
-        for (int i = 0; i < numregs; ++i) {
-            microOps[i + numregs] = new MicroopDeIntrlvType<Element>(
-                    mnem, machInst, static_cast<RegIndex>((_dest + i) % 32),
-                    _numregs, i, cb_size, this);
-        }
+
+        // for (int i = 0; i < numregs; ++i) {
+        //     microOps[i] = new MicroopLdMemType<Element>(
+        //             mnem, machInst, static_cast<RegIndex>(INTRLVREG0 + i),
+        //             _gp, _base, _imm, _numregs, i, cb_size);
+        // }
+        // for (int i = 0; i < numregs; ++i) {
+        //     microOps[i + numregs] = new MicroopDeIntrlvType<Element>(
+        //             mnem, machInst, static_cast<RegIndex>((dest + i) % 32),
+        //             _numregs, i, cb_size, this);
+        // }
 
         microOps[0]->setFirstMicroop();
         microOps[numMicroops - 1]->setLastMicroop();

@@ -402,7 +402,7 @@ output decoder {{
     template <class etype>
     StaticInstPtr
     decodeSveStructLoadSIInstsByNRegCusLDCB_I2CE(uint8_t esize, ExtMachInst machInst,
-            RegIndex zt, RegIndex pg, RegIndex xn,
+            uint8_t zt, RegIndex pg, RegIndex xn,
             int64_t imm, int numregs, uint8_t cb_size)
     {
         static const char* nm[5][4] = {
@@ -440,7 +440,7 @@ output decoder {{
 
     StaticInstPtr
     decodeSveStructLoadSIInstsCusLDCB_I2CE(uint8_t esize, ExtMachInst machInst,
-            RegIndex zt, RegIndex pg, RegIndex xn,
+            uint8_t zt, RegIndex pg, RegIndex xn,
             int64_t imm, int numregs, uint8_t cb_size)
     {
         switch (esize) {
@@ -2327,10 +2327,13 @@ let {{
             unsigned int srcIdx = absIdx % eCount;
             unsigned int srcVec = absIdx / eCount;
             // cout << \"LOADING CB --> \" << this->regIndex << \", \" << i << \", \" << bitsToFloat32(AA64IntrlvReg0_x[srcIdx]) << \", \" << endl;
+            
+            int lane = (eCount * n_iter) + i;
+
             if (srcVec == 0)
-                i2ce_driver_ptr->ld_codebooks(this->regIndex, i, bitsToFloat32(AA64IntrlvReg0_x[srcIdx]), cb_size);
+                i2ce_driver_ptr->ld_codebooks(this->regIndex, lane, bitsToFloat32(AA64IntrlvReg0_x[srcIdx]), cb_size);
             else if(srcVec == 1)
-                i2ce_driver_ptr->ld_codebooks(this->regIndex, i, bitsToFloat32(AA64IntrlvReg1_x[srcIdx]), cb_size);
+                i2ce_driver_ptr->ld_codebooks(this->regIndex, lane, bitsToFloat32(AA64IntrlvReg1_x[srcIdx]), cb_size);
         }'''
 
         code3 = sveEnabledCheckCode + '''

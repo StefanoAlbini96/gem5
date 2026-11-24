@@ -3852,7 +3852,9 @@ namespace Aarch64
     StaticInstPtr
     decodeSveLoadStructsSICusLoadCodebooks_I2CE(ExtMachInst machInst)
     {
-        RegIndex zt = (RegIndex) (uint8_t) bits(machInst, 4, 0);
+        // RegIndex zt = (RegIndex) (uint8_t) bits(machInst, 4, 0);
+        uint8_t zt = (RegIndex) (uint8_t) bits(machInst, 4, 0);
+
         RegIndex rn = makeSP(
                 (RegIndex) (uint8_t) bits(machInst, 9, 5));
         

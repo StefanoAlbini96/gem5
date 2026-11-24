@@ -2879,16 +2879,17 @@ def template SveDeIntrlvMicroopDeclare_I2CE_LoadCB {{
         uint8_t numRegs;
         int regIndex;
         uint8_t cb_size;
+        uint8_t n_iter;
 
         StaticInst *macroOp;
 
 
       public:
         %(class_name)s(const char* mnem, ExtMachInst machInst,
-                RegIndex _dest, uint8_t _numRegs, int _regIndex, uint8_t _cb_size,
+                RegIndex _dest, uint8_t _numRegs, int _regIndex, uint8_t _cb_size, uint8_t _n_iter,
                 StaticInst *_macroOp) :
             MicroOp(mnem, machInst, SimdAluOp), dest(_dest),
-            numRegs(_numRegs), regIndex(_regIndex), cb_size(_cb_size), macroOp(_macroOp)
+            numRegs(_numRegs), regIndex(_regIndex), cb_size(_cb_size), n_iter(_n_iter), macroOp(_macroOp)
         {
             %(set_reg_idx_arr)s;
             %(constructor)s;
