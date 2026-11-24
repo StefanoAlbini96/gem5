@@ -19,12 +19,14 @@ using multi_learner_SIMD_regs = sc_vector<SIMD_reg<T>>;
  * Support LUT macro for log2 computation of power-of-2 numbers 
  */
 #define log2_pow2(x) \
-    x == 2  ? 1 : \
-    x == 4  ? 2 : \
-    x == 8  ? 3 : \
-    x == 16 ? 4 : \
-    x == 32 ? 5 : \
-    x == 64 ? 6 : 0
+    x == 2   ? 1 : \
+    x == 4   ? 2 : \
+    x == 8   ? 3 : \
+    x == 16  ? 4 : \
+    x == 32  ? 5 : \
+    x == 64  ? 6 : \
+    x == 128 ? 7 : \
+    x == 256 ? 8 : 0
 
 
 /**
@@ -66,7 +68,7 @@ using multi_learner_SIMD_regs = sc_vector<SIMD_reg<T>>;
 // #define CB_SIZE         4
 
 
-#define CB_SIZE_MAX     32
+#define CB_SIZE_MAX     256
 
 // /**
 //  * Bit-width of each codebook index.
@@ -100,13 +102,9 @@ using multi_learner_SIMD_regs = sc_vector<SIMD_reg<T>>;
 #define LANE_IDX_BIT_MAX    10
 
 
-// /**
-//  * How many indexes are packed in each lane
-//  */
-// #define IDX_PER_LANE    (LANE_BITS/IDX_BIT)
-// // #define IDX_PER_LANE    1
-
-
+/**
+ * How many bits to represent the amount of indexes packed in each lane
+ */
 #define IDXS_PER_LANE_BITS      5
 
 

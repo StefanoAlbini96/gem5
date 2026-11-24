@@ -26,6 +26,8 @@ void I2CE_accelerator::clock_thread()
     processed_all_buf_reg.write(false);
 
     idxs_per_lane.write(0);
+    idxs_per_simd_reg.write(0);
+    cc_active_getidx_reg.write(0);
 
 
     getidx_reset_reg.write(false);
@@ -88,7 +90,9 @@ void I2CE_accelerator::clock_thread()
         red_en_reg.write(red_en_nxt.read());
         red_trigger_prev_reg.write(red_trigger_prev_nxt.read());
 
-        idxs_per_lane.write(idxs_per_lane_in);
+        idxs_per_lane.write(idxs_per_lane_in.read());
+        idxs_per_simd_reg.write(idxs_per_simd_nxt.read());
+        cc_active_getidx_reg.write(cc_active_getidx_nxt.read());
 
         // bool rising_edge_en = (en_input.read() && !en_prev_reg.read());
         bool rising_edge_en = (en_reg.read() && !en_prev_reg.read());
@@ -268,6 +272,25 @@ void I2CE_accelerator::comb_method()
     mac_en_nxt = tbl_en_sig.read();
 
 }
+
+
+
+void I2CE_accelerator::update_idx_per_simd()
+{
+
+    sc_uint<32> next_idx_per_simd = idxs_per_lane_in.read() * simd_lanes_reg.read();
+
+    idxs_per_simd_nxt.write(next_idx_per_simd);
+
+    sc_uint<IDXS_PER_LANE_BITS> cc_active = 0;
+    if(idxs_per_lane_in.read() < n_simd_act_left_reg.read()) {
+        cc_active = idxs_per_lane_in.read();
+    } else {
+        cc_active = n_simd_act_left_reg.read();
+    }
+    cc_active_getidx_nxt.write(cc_active);
+}
+
 
 
 void I2CE_accelerator::trigger_reduce_comb_method()

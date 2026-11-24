@@ -34,10 +34,16 @@ SC_MODULE(get_idx){
     sc_in<sc_dt::sc_uint<IDXS_PER_LANE_BITS>>   idxs_per_lane;
     sc_in<sc_dt::sc_uint<IDXS_PER_LANE_BITS>>   processed_idxs;
 
+    sc_in<sc_dt::sc_uint<IDXS_PER_LANE_BITS>>   cc_active;      // How many CC the EN signal should stay active
+
     sc_in<sc_uint<LANE_IDX_BIT_MAX>>             simd_lanes_in;
 
     sc_signal<bool>                     idx_en_reg, idx_en_nxt;
     sc_signal<bool>                     idx_en_prev_reg, idx_en_prev_nxt;
+
+
+    // Counts the CC the EN signal is active
+    sc_signal<sc_dt::sc_uint<IDXS_PER_LANE_BITS>>       en_cc_counter_reg, en_cc_counter_nxt;
 
 
     // How many SIMD registers of activations do we need the indexes for

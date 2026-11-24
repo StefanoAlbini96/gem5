@@ -19,7 +19,7 @@ I2CE_driver::I2CE_driver(const gem5::I2CE_driverParams &params) :
     // clk(params.clk_domain)
 {
 
-    printf("Crating DRIVER with:\n");
+    printf("Creating DRIVER with:\n");
     printf("n_learners = %d\n", n_learners);
     printf("simd_lanes = %d\n", simd_lanes);
 
@@ -134,8 +134,11 @@ I2CE_driver::startup()
     sc_core::sc_trace(tf, accel->idx_processed_cnt_nxt, "accel.idx_processed_cnt_nxt");
     sc_core::sc_trace(tf, accel->idx_processed_cnt_reg, "accel.idx_processed_cnt_reg");
 
+    sc_core::sc_trace(tf, idxs_per_lane, "idxs_per_lane");
     sc_core::sc_trace(tf, accel->idxs_per_lane_in, "accel.idxs_per_lane_in");
     sc_core::sc_trace(tf, accel->idxs_per_lane, "accel.idxs_per_lane");
+    sc_core::sc_trace(tf, accel->idxs_per_simd_reg, "accel.idxs_per_simd_reg");
+    sc_core::sc_trace(tf, accel->cc_active_getidx_reg, "accel.cc_active_getidx_reg");
 
     // sc_core::sc_trace(tf, en, "en");
     // sc_core::sc_trace(tf, accel->en_reg, "accel.en_reg");
@@ -172,6 +175,10 @@ I2CE_driver::startup()
     sc_core::sc_trace(tf, accel->in_ptr_nxt, "accel.IN_pointer_nxt");
     sc_core::sc_trace(tf, accel->in_ptr_reg, "accel.IN_pointer_reg");
     sc_core::sc_trace(tf, accel->in_ptr_next_reg, "accel.IN_pointer_next_reg");
+
+    sc_core::sc_trace(tf, accel->getidx_mod->cc_active, "accel.GET_IDX.cc_active");
+    sc_core::sc_trace(tf, accel->getidx_mod->en_cc_counter_reg, "accel.GET_IDX.en_cc_counter_reg");
+
 
     sc_core::sc_trace(tf, accel->getidx_mod->bit_mask, "accel.GET_IDX.bit_mask");
     sc_core::sc_trace(tf, accel->getidx_mod->mask_reg, "accel.GET_IDX.mask_reg");
@@ -427,6 +434,8 @@ void I2CE_driver::ld_codebooks(int learner, int lane, float cb_word, uint8_t cb_
     uint8_t mask = mask_gen(idx_bits);
 
     uint8_t indexes_per_lane = (uint8_t)(LANE_BITS / idx_bits);
+
+    // printf("CB loaded --> bits_per_idx = %d\n", idx_bits);
 
     // printf("Setting MASK = %d\n", mask);
     // printf("Indexes per lane = %d\n", indexes_per_lane);

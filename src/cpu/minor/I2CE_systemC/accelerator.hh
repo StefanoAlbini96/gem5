@@ -71,8 +71,10 @@ SC_MODULE(I2CE_accelerator){
     sc_in<sc_dt::sc_uint<8>>                bits_per_idx;
 
     // How many indexes are packed per lane
-    sc_in<sc_uint<IDXS_PER_LANE_BITS>>                       idxs_per_lane_in;
-    sc_signal<sc_uint<IDXS_PER_LANE_BITS>>                   idxs_per_lane;
+    sc_in<sc_uint<IDXS_PER_LANE_BITS>>          idxs_per_lane_in;
+    sc_signal<sc_uint<IDXS_PER_LANE_BITS>>      idxs_per_lane;
+    sc_signal<sc_uint<32>>                      idxs_per_simd_reg, idxs_per_simd_nxt;                   // How many indexes I can pack in a SIMD vector
+    sc_signal<sc_uint<IDXS_PER_LANE_BITS>>      cc_active_getidx_reg, cc_active_getidx_nxt;             // How many CC get_idx module should stay active
 
     sc_signal<sc_uint<LANE_IDX_BIT_MAX>>                    last_active_lane;
 
@@ -258,6 +260,10 @@ SC_MODULE(I2CE_accelerator){
             sensitive << res_tmp[learner];
         }
 
+
+        SC_METHOD(update_idx_per_simd);
+        sensitive << idxs_per_lane_in;
+
         SC_METHOD(trigger_getidx_reset_comb_method);
         sensitive << rst_getidx;
         sensitive << getidx_reset_reg;
@@ -297,6 +303,7 @@ SC_MODULE(I2CE_accelerator){
         // getidx_mod->get_idx_en(en_input);
         getidx_mod->in_en(en_reg);
 
+        getidx_mod->cc_active(cc_active_getidx_reg);
         getidx_mod->bit_mask(bit_mask);
         getidx_mod->idx_bits_in(bits_per_idx);
         getidx_mod->idxs_per_lane(idxs_per_lane);
@@ -381,6 +388,7 @@ SC_MODULE(I2CE_accelerator){
     void clock_thread();
     // void comb_method_red_en();
     void comb_method();
+    void update_idx_per_simd();
     void ld_res_mem();
     void trigger_reduce_comb_method();
     void trigger_getidx_reset_comb_method();
