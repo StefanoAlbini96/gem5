@@ -6,6 +6,13 @@
 
 
 
+
+#define GEM5
+// #define HLS
+
+
+
+
 template <typename T>
 using SIMD_reg = sc_vector<T>;
 
@@ -43,63 +50,84 @@ using multi_learner_SIMD_regs = sc_vector<SIMD_reg<T>>;
     x == 8  ? 0b11111111    :  0   \
 
 
-/**
- * The number of learners in the model.
- * This reflects in the number of vector register in some modules.
- */
-// #define N_LEARNERS      2
-
 
 /**
  * Bit-width of each lane element
  */
 #define LANE_BITS        32
 
-// /**
-//  * The number of lanes per each vector/SIMD register
-//  */
-// #define N_LANES         4
 
 
-// /**
-//  * Number of entried per each codebooks.
-//  * Initially let's keep it set to N_LANES
-//  */
-// #define CB_SIZE         4
 
 
-#define CB_SIZE_MAX     256
+#ifdef HLS
 
-// /**
-//  * Bit-width of each codebook index.
-//  */
-// #define IDX_BIT         (log2_pow2(CB_SIZE))
-
-
-/*
- * Maximum number of bits for an index
-*/
-#define IDX_BIT_MAX     (log2_pow2(CB_SIZE_MAX))
+    /**
+    * The number of learners in the model.
+    * This reflects in the number of vector register in some modules.
+    */
+    #define N_LEARNERS      2
 
 
-// #define MY_MAC  5
+    /**
+    * The number of lanes per each vector/SIMD register
+    */
+    #define N_LANES         4
+
+
+
+    /**
+    * Number of entried per each codebooks.
+    * Initially let's keep it set to N_LANES
+    */
+    #define CB_SIZE         4
+
+
+    /**
+    * Bit-width of each codebook index.
+    */
+    #define IDX_BIT         (log2_pow2(CB_SIZE))
+
+    /*
+    * Maximum number of bits for an index
+    */
+    #define IDX_BIT_MAX     (log2_pow2(CB_SIZE_MAX))
+
+
+
+    /**
+     * Bit-width of the index to a specific lane
+     */
+    #define LANE_IDX_BIT        (log2_pow2(N_LANES))
+
+
+
+#else   // GEM5
+
+
+    #define CB_SIZE_MAX     256
+
+
+    /*
+    * Maximum number of bits for an index
+    */
+    #define IDX_BIT_MAX     (log2_pow2(CB_SIZE_MAX))
+
+
+    /**
+    * Upper-bound for the bit-width of the indexes to each lane 
+    */
+    #define LANE_IDX_BIT_MAX    10
+
+#endif
+
+
 
 // /**
 //  * Mask for the codebook index extraction
 //  */
 // #define IDX_MASK        (mask_gen(IDX_BIT))
 
-
-// /**
-//  * Bit-width of the index to a specific lane
-//  */
-// #define LANE_IDX_BIT        (log2_pow2(N_LANES))
-
-
-/**
- * Upper-bound for the bit-width of the indexes to each lane 
-*/
-#define LANE_IDX_BIT_MAX    10
 
 
 /**
@@ -114,6 +142,7 @@ using multi_learner_SIMD_regs = sc_vector<SIMD_reg<T>>;
  * It depends on how many indexes I can pack in a lane.
  */
 #define SHAMT_BIT       5
+
 
 
 // Number of stages/modules of the accelerator, neede to propagate the EN signal

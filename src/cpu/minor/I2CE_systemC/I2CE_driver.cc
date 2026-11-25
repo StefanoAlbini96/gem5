@@ -19,9 +19,9 @@ I2CE_driver::I2CE_driver(const gem5::I2CE_driverParams &params) :
     // clk(params.clk_domain)
 {
 
-    printf("Creating DRIVER with:\n");
-    printf("n_learners = %d\n", n_learners);
-    printf("simd_lanes = %d\n", simd_lanes);
+    // printf("Creating DRIVER with:\n");
+    // printf("n_learners = %d\n", n_learners);
+    // printf("simd_lanes = %d\n", simd_lanes);
 
     // accel = acc;
     delay = 1;
@@ -194,10 +194,10 @@ I2CE_driver::startup()
     sc_core::sc_trace(tf, accel->getidx_mod->idx_en_prev_nxt, "accel.GET_IDX.idx_en_prev_nxt");
     sc_core::sc_trace(tf, accel->getidx_mod->idx_en_prev_reg, "accel.GET_IDX.idx_en_prev_reg");
 
-    sc_core::sc_trace(tf, accel->last_active_lane, "accel.last_active_lane");
+    // sc_core::sc_trace(tf, accel->last_active_lane, "accel.last_active_lane");
 
-    sc_core::sc_trace(tf, accel->getidx_mod->pred_last_active_lane_nxt, "accel.GET_IDX.pred_last_active_lane_nxt");
-    sc_core::sc_trace(tf, accel->getidx_mod->pred_last_active_lane_reg, "accel.GET_IDX.pred_last_active_lane_reg");
+    // sc_core::sc_trace(tf, accel->getidx_mod->pred_last_active_lane_nxt, "accel.GET_IDX.pred_last_active_lane_nxt");
+    // sc_core::sc_trace(tf, accel->getidx_mod->pred_last_active_lane_reg, "accel.GET_IDX.pred_last_active_lane_reg");
 
     for(int stage=0; stage<EN_STAGES; stage++){
         sc_core::sc_trace(tf, accel->pipeline_en[stage], "accel.pipeline_en[" + std::to_string(stage) + "]");

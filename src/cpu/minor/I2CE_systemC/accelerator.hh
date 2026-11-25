@@ -76,7 +76,7 @@ SC_MODULE(I2CE_accelerator){
     sc_signal<sc_uint<32>>                      idxs_per_simd_reg, idxs_per_simd_nxt;                   // How many indexes I can pack in a SIMD vector
     sc_signal<sc_uint<IDXS_PER_LANE_BITS>>      cc_active_getidx_reg, cc_active_getidx_nxt;             // How many CC get_idx module should stay active
 
-    sc_signal<sc_uint<LANE_IDX_BIT_MAX>>                    last_active_lane;
+    // sc_signal<sc_uint<LANE_IDX_BIT_MAX>>                    last_active_lane;
 
     sc_in<bool>             en_trigger;
     sc_signal<bool>         en_reg, en_nxt;
@@ -240,7 +240,7 @@ SC_MODULE(I2CE_accelerator){
         sensitive << mac_en_sig;
         sensitive << in_ptr_reg;
         sensitive << in_ptr_next_reg;
-        sensitive << last_active_lane;
+        // sensitive << last_active_lane;
         for(int lane=0; lane<simd_lanes; lane++){
             sensitive << packed_in[lane];
         }
@@ -307,11 +307,11 @@ SC_MODULE(I2CE_accelerator){
         getidx_mod->bit_mask(bit_mask);
         getidx_mod->idx_bits_in(bits_per_idx);
         getidx_mod->idxs_per_lane(idxs_per_lane);
-        getidx_mod->processed_idxs(idx_processed_cnt_reg);
-        getidx_mod->simd_lanes_in(simd_lanes_reg);
-        getidx_mod->last_active_lane(last_active_lane);
+        // getidx_mod->processed_idxs(idx_processed_cnt_reg);
+        // getidx_mod->simd_lanes_in(simd_lanes_reg);
+        // getidx_mod->last_active_lane(last_active_lane);
         getidx_mod->en_out(get_idx_en_interal);
-        getidx_mod->n_simd_left(n_simd_act_left_reg);
+        // getidx_mod->n_simd_left(n_simd_act_left_reg);
 
         // getidx_mod->en_out(tbl_en_sig);
         for(int lane=0; lane<simd_lanes; lane++){
