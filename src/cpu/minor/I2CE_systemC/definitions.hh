@@ -20,6 +20,13 @@ template <typename T>
 using multi_learner_SIMD_regs = sc_vector<SIMD_reg<T>>;
 
 
+#ifdef GEM5
+    using float_type = float;
+#else
+    using float_type = ac_ieee_float32;
+#endif
+
+
 
 
 /**
@@ -81,6 +88,7 @@ using multi_learner_SIMD_regs = sc_vector<SIMD_reg<T>>;
     * Initially let's keep it set to N_LANES
     */
     #define CB_SIZE         4
+    #define CB_SIZE_MAX     256
 
 
     /**
@@ -98,7 +106,7 @@ using multi_learner_SIMD_regs = sc_vector<SIMD_reg<T>>;
     /**
      * Bit-width of the index to a specific lane
      */
-    #define LANE_IDX_BIT        (log2_pow2(N_LANES))
+    #define LANE_IDX_BIT_MAX        (log2_pow2(N_LANES))
 
 
 

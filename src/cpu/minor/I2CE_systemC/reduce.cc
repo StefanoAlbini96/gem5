@@ -5,9 +5,15 @@
 void reduce_mod::clock_thread()
 {
 
+    #ifdef GEM5
+        int num_learners = n_learners;
+    #else
+        int num_learners = N_LEARNERS;
+    #endif
+
     // Initialize
-    for(int learner=0; learner<n_learners; learner++){
-        reduced_reg[learner] = 0.0;
+    for(int learner=0; learner<num_learners; learner++){
+        reduced_reg[learner] = (float_type)0.0;
     }
 
     wait();
@@ -15,7 +21,7 @@ void reduce_mod::clock_thread()
     // Clocked behaviour
     while(1){
         if(red_en){
-            for(int learner=0; learner<n_learners; learner++){
+            for(int learner=0; learner<num_learners; learner++){
 
                 reduced_reg[learner].write(reduced_nxt[learner]);
             }
@@ -31,22 +37,22 @@ void reduce_mod::clock_thread()
 void reduce_mod::comb_method()
 {
 
-    for(int learner=0; learner<n_learners; learner++){
 
-        float res_tmp = 0.0;
+    #ifdef GEM5
+        int n_lanes = simd_lanes;
+        int num_learners = n_learners;
+    #else
+        int n_lanes = N_LANES;
+        int num_learners = N_LEARNERS;
+    #endif
 
-        // if(learner==0){
-        //     printf("\nREDUCING...\n");
-        // }
 
-        for(int lane=0; lane<simd_lanes; lane++){
-            // if(learner==0){
-            //     printf("%f += %f = ", res_tmp, mac_res[learner][lane].read());
-            // }
+    for(int learner=0; learner<num_learners; learner++){
+
+        float_type res_tmp = (float_type)0.0;
+
+        for(int lane=0; lane<n_lanes; lane++){
             res_tmp = res_tmp + mac_res[learner][lane].read();
-            // if(learner==0){
-            //     printf("%f\n", res_tmp);
-            // }
         }
 
         // Add the previous result from memory

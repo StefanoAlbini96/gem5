@@ -5,22 +5,30 @@
 void simd_mac::clock_thread()
 {
 
+    #ifdef GEM5
+        int n_lanes = simd_lanes;
+        int num_learners = n_learners;
+    #else
+        int n_lanes = N_LANES;
+        int num_learners = N_LEARNERS;
+    #endif
+
     // Initialize
 
-    for(int learner=0; learner<n_learners; learner++){
-        for(int lane=0; lane<simd_lanes; lane++){
+    for(int learner=0; learner<num_learners; learner++){
+        for(int lane=0; lane<n_lanes; lane++){
 
-            mul_res_reg[learner][lane] = 0.0;
-            add_res_reg[learner][lane] = 0.0;
-            res_reg[learner][lane] = 0.0;
+            mul_res_reg[learner][lane] = (float_type)0.0;
+            add_res_reg[learner][lane] = (float_type)0.0;
+            res_reg[learner][lane] = (float_type)0.0;
 
             for(int m_stage=0; m_stage<MUL_STAGES; m_stage++){
-                pipeline_mul[learner][lane][m_stage] = 0.0;
+                pipeline_mul[learner][lane][m_stage] = (float_type)0.0;
             }
 
             for(int add_stage=0; add_stage<ADD_STAGES; add_stage++){
-                pipeline_add[learner][lane][add_stage] = 0.0;
-                pipeline_add_drain[learner][lane][add_stage] = 0.0;
+                pipeline_add[learner][lane][add_stage] = (float_type)0.0;
+                pipeline_add_drain[learner][lane][add_stage] = (float_type)0.0;
             }
         }
     }
@@ -52,10 +60,6 @@ void simd_mac::clock_thread()
         mul_en_sig[0] = mac_en.read();
 
 
-        // n_adds_cnt_reg.write(n_adds_cnt_nxt);
-        // add_en_sig.write(add_en_nxt);
-
-
         // Update and shift the add drain enable
         for(int add_stage=(ADD_DRAIN_EN-1); add_stage>0; add_stage--){
             add_drain_en_sig[add_stage] = add_drain_en_sig[add_stage-1];
@@ -70,8 +74,8 @@ void simd_mac::clock_thread()
         */
         if(mac_en.read()){
 
-            for(int learner=0; learner<n_learners; learner++){
-                for(int lane=0; lane<simd_lanes; lane++){
+            for(int learner=0; learner<num_learners; learner++){
+                for(int lane=0; lane<n_lanes; lane++){
 
                     for(int m_stage=(MUL_STAGES-1); m_stage>0; m_stage--){
                         pipeline_mul[learner][lane][m_stage] = pipeline_mul[learner][lane][m_stage-1];
@@ -82,8 +86,8 @@ void simd_mac::clock_thread()
         }
 
 
-        for(int learner=0; learner<n_learners; learner++){
-            for(int lane=0; lane<simd_lanes; lane++){
+        for(int learner=0; learner<num_learners; learner++){
+            for(int lane=0; lane<n_lanes; lane++){
                 mul_res_reg[learner][lane].write(mul_res_nxt[learner][lane]);
             }
         }
@@ -96,8 +100,8 @@ void simd_mac::clock_thread()
 
         if(mul_en_sig[0].read() || add_drain_en_sig[ADD_DRAIN_EN-1].read()){
 
-            for(int learner=0; learner<n_learners; learner++){
-                for(int lane=0; lane<simd_lanes; lane++){
+            for(int learner=0; learner<num_learners; learner++){
+                for(int lane=0; lane<n_lanes; lane++){
                     for(int add_stage=(ADD_STAGES-1); add_stage>0; add_stage--){
                         pipeline_add[learner][lane][add_stage] = pipeline_add[learner][lane][add_stage-1];
                     }
@@ -112,8 +116,8 @@ void simd_mac::clock_thread()
         // Update the Pipeline ADD drain
         if(add_drain_en_sig[ADD_DRAIN_EN-2].read()){
 
-            for(int learner=0; learner<n_learners; learner++){
-                for(int lane=0; lane<simd_lanes; lane++){
+            for(int learner=0; learner<num_learners; learner++){
+                for(int lane=0; lane<n_lanes; lane++){
                     for(int add_stage=(ADD_STAGES-1); add_stage>0; add_stage--){
                         pipeline_add_drain[learner][lane][add_stage] = pipeline_add_drain[learner][lane][add_stage-1];
                     }
@@ -127,8 +131,8 @@ void simd_mac::clock_thread()
         // Update the result
         if(add_drain_en_sig[ADD_DRAIN_EN-1].read()){
 
-            for(int learner=0; learner<n_learners; learner++){
-                for(int lane=0; lane<simd_lanes; lane++){
+            for(int learner=0; learner<num_learners; learner++){
+                for(int lane=0; lane<n_lanes; lane++){
                     res_reg[learner][lane].write(res_nxt[learner][lane].read());
                 }
             }
@@ -145,15 +149,24 @@ void simd_mac::clock_thread()
 
 void simd_mac::mult_comb_method()
 {
-    for(int learner=0; learner<n_learners; learner++){
-        for(int lane=0; lane<simd_lanes; lane++){
+
+    #ifdef GEM5
+        int n_lanes = simd_lanes;
+        int num_learners = n_learners;
+    #else
+        int n_lanes = N_LANES;
+        int num_learners = N_LEARNERS;
+    #endif
+
+    for(int learner=0; learner<num_learners; learner++){
+        for(int lane=0; lane<n_lanes; lane++){
 
             mul_comb_res[learner][lane] = activation[learner][lane].read() * weight[learner][lane].read();
 
             if(mul_en_sig[MUL_EN-1].read()){
                 mul_res_nxt[learner][lane] = pipeline_mul[learner][lane][MUL_STAGES-1];
             } else {
-                mul_res_nxt[learner][lane] = 0;
+                mul_res_nxt[learner][lane] = (float_type)0.0;
             }
         }
     }
@@ -165,10 +178,19 @@ void simd_mac::mult_comb_method()
 void simd_mac::add_comb_method()
 {   
 
-    for(int learner=0; learner<n_learners; learner++){
-        for(int lane=0; lane<simd_lanes; lane++){
 
-            float sum = 0.0;
+    #ifdef GEM5
+        int n_lanes = simd_lanes;
+        int num_learners = n_learners;
+    #else
+        int n_lanes = N_LANES;
+        int num_learners = N_LEARNERS;
+    #endif
+
+    for(int learner=0; learner<num_learners; learner++){
+        for(int lane=0; lane<n_lanes; lane++){
+
+            float_type sum = (float_type)0.0;
             
             add_comb_res[learner][lane] = mul_res_reg[learner][lane].read() + add_res_reg[learner][lane].read();
 
@@ -179,13 +201,7 @@ void simd_mac::add_comb_method()
             }
             sum += add_res_reg[learner][lane].read();
             res_nxt[learner][lane] = sum;
-
-            // if(!clear_res_toggle.read()){
-            //     res_nxt[learner][lane] = sum;
-            // } else {
-            //     res_nxt[learner][lane] = 0.0;
-            // }
-
+            
             // Write the output
             out[learner][lane].write(res_reg[learner][lane].read());
         }

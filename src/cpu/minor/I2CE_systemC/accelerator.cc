@@ -1,11 +1,27 @@
 
 
-#include "params/I2CE_accelerator.hh"
+#include "definitions.hh"
 #include "accelerator.hh"
+
+
+
+
+#ifdef GEM5
+#include "params/I2CE_accelerator.hh"
+#endif
 
 
 void I2CE_accelerator::clock_thread()
 {
+
+
+    #ifdef GEM5
+        int n_lanes = simd_lanes;
+        int num_learners = n_learners;
+    #else
+        int n_lanes = N_LANES;
+        int num_learners = N_LEARNERS;
+    #endif
 
     simd_lanes_reg.write(simd_lanes);
 
@@ -19,7 +35,6 @@ void I2CE_accelerator::clock_thread()
     in_ptr_reg.write(0);
     in_ptr_next_reg.write(0);
     en_prev_reg.write(false);
-    // en_reg.write(false);        // Probably it can be removed!
     idx_processed_cnt_reg.write(0);
 
     n_simd_act_left_reg.write(ACT_BUF_SIZE);
@@ -40,7 +55,7 @@ void I2CE_accelerator::clock_thread()
     red_trigger_prev_reg.write(false);
     
 
-    for(int lane=0; lane<simd_lanes; lane++){
+    for(int lane=0; lane<n_lanes; lane++){
         packed_idx_reg[lane] = 0;
     }
 
@@ -49,12 +64,9 @@ void I2CE_accelerator::clock_thread()
     }
 
     in_ptr_en_reg.write(false);
-    // get_idx_en_interal_prev_reg.write(false);
     
-    for(int learner=0; learner<n_learners; learner++){
-        for(int lane=0; lane<simd_lanes; lane++){
-
-            // codebook_reg[learner][lane] = 0;
+    for(int learner=0; learner<num_learners; learner++){
+        for(int lane=0; lane<n_lanes; lane++){
             inputs_reg[learner][lane] = 0;
         }
 
@@ -94,26 +106,20 @@ void I2CE_accelerator::clock_thread()
         idxs_per_simd_reg.write(idxs_per_simd_nxt.read());
         cc_active_getidx_reg.write(cc_active_getidx_nxt.read());
 
-        // bool rising_edge_en = (en_input.read() && !en_prev_reg.read());
         bool rising_edge_en = (en_reg.read() && !en_prev_reg.read());
 
         // The EN is coming externally and we start counting
-        // if(en_input.read() && !pipeline_en[0].read()){
         if(rising_edge_en && !pipeline_en[0].read()){
 
-            // pipeline_en[0].write(en_input.read());
             pipeline_en[0].write(en_reg.read());
             
             idx_processed_cnt_reg.write(0);
         } 
         else if (pipeline_en[0].read()){
-            // if(idx_processed_cnt_reg.read() >= (IDX_PER_LANE-1)){
-            // if(idx_processed_cnt_reg.read() >= (idxs_per_lane.read() - 1)){
             if(idx_processed_cnt_reg.read() >= ((ACT_BUF_SIZE - 1))){
                 pipeline_en[0].write(false);
             } else {
                 idx_processed_cnt_reg.write(idx_processed_cnt_reg.read() + 1);
-            //     idx_processed_cnt_reg.write(idx_processed_cnt_reg.read() + simd_lanes_reg.read());
             }
         }
 
@@ -124,11 +130,11 @@ void I2CE_accelerator::clock_thread()
 
 
         // Packed indexes
-        for(int lane=0; lane<simd_lanes; lane++){
+        for(int lane=0; lane<n_lanes; lane++){
             packed_idx_reg[lane].write(packed_idx_nxt[lane]);
         }
 
-        for(int learner=0; learner<n_learners; learner++){
+        for(int learner=0; learner<num_learners; learner++){
             for(int lane=0; lane<CB_SIZE_MAX; lane++){
                 codebook_reg[learner][lane].write(codebook_nxt[learner][lane]);
             }
@@ -139,14 +145,11 @@ void I2CE_accelerator::clock_thread()
 
 
         // Propagate the EN signal through the modules
-        // en_reg.write(en_nxt.read());
-        // tbl_en_sig.write(tbl_en_nxt.read());
         mac_en_sig.write(mac_en_nxt.read());
 
 
         // EN for the TBL module
         // At the next cycle the MAC is EN and the activations are already in the register
-        // if(pipeline_en[1].read()){
         if(can_reset_in_ptr_reg.read()){
 
             in_ptr_reg.write(0);    // Reset its value
@@ -158,8 +161,8 @@ void I2CE_accelerator::clock_thread()
 
             sum_reg.write(sum_nxt.read());
 
-            for(int learner=0; learner<n_learners; learner++){
-                for(int lane=0; lane<simd_lanes; lane++){
+            for(int learner=0; learner<num_learners; learner++){
+                for(int lane=0; lane<n_lanes; lane++){
                     inputs_reg[learner][lane] = inputs_nxt[learner][lane];
                 }
             }
@@ -171,17 +174,12 @@ void I2CE_accelerator::clock_thread()
 
         } else {
 
-            for(int learner=0; learner<n_learners; learner++){
-                for(int lane=0; lane<simd_lanes; lane++){
+            for(int learner=0; learner<num_learners; learner++){
+                for(int lane=0; lane<n_lanes; lane++){
                     inputs_reg[learner][lane] = 0.0;
                 }
             }
         }
-
-        // if((get_idx_en_interal.read()) && (pipeline_en[1].read())){
-        //     in_ptr_reg.write(in_ptr_nxt.read());
-        //     in_ptr_next_reg.write(in_ptr_nxt.read() + 1);
-        // }
 
 
         in_ptr_en_reg.write(in_ptr_en_nxt.read());
@@ -197,37 +195,29 @@ void I2CE_accelerator::comb_method()
 {
 
 
-    // en_prev_nxt.write(en_input.read());
+    #ifdef GEM5
+        int n_lanes = simd_lanes;
+        int num_learners = n_learners;
+    #else
+        int n_lanes = N_LANES;
+        int num_learners = N_LEARNERS;
+    #endif
+
+
     en_prev_nxt.write(en_reg.read());
 
 
-    // printf("Triggered\n");
     // Packed indexes
-    for(int lane=0; lane<simd_lanes; lane++){
-        // std::cout << sc_time_stamp()
-        //   << " packed_in = "
-        //   << packed_in[lane].read()
-        //   << std::endl;
+    for(int lane=0; lane<n_lanes; lane++){
         packed_idx_nxt[lane] = packed_in[lane];
     }
 
-
-
     uint16_t input_pointer = in_ptr_reg.read();
 
-    // printf("ACCEL in pointer = %u --> last active laen = %u\n", in_ptr_reg.read().to_uint(), last_active_lane.read().to_uint());
-
     // Inputs
-    for(int learner=0; learner<n_learners; learner++){
-        for(int lane=0; lane<simd_lanes; lane++){
-            
+    for(int learner=0; learner<num_learners; learner++){
+        for(int lane=0; lane<n_lanes; lane++){
             inputs_nxt[learner][lane] = inputs_in[learner][lane][input_pointer];
-
-            // if(lane <= last_active_lane.read()){
-            //     inputs_nxt[learner][lane] = inputs_in[learner][lane][input_pointer];
-            // } else {
-            //     inputs_nxt[learner][lane] = 0.0;
-            // }
         }
         for(int lane=0; lane<CB_SIZE_MAX; lane++){
             codebook_nxt[learner][lane] = codebook_in[learner][lane];
@@ -242,32 +232,6 @@ void I2CE_accelerator::comb_method()
 
     int simd_activations_left = n_simd_loads.read() - in_ptr_reg.read();
     n_simd_act_left_nxt.write(simd_activations_left);
-
-    // Overflow --> run out of INPUTS from the buffer
-    // if(in_ptr_nxt.read() < in_ptr_reg.read()){
-    // if(in_ptr_nxt.read() >= (ACT_BUF_SIZE - 1)){
-    //     processed_all_buf_nxt.write(true);
-    // }
-
-
-    // bool can_update_in_ptr = (input_pointer < (ACT_BUF_SIZE - 1));
-    // if(can_update_in_ptr){
-    // in_ptr_nxt.write(in_ptr_reg.read() + 1);
-     // }
-
-
-
-    // // Update the EN signal
-    // en_nxt.write(en_reg.read());
-
-    // if(en_input.read()){
-    //     en_nxt.write(true);
-    // }
-
-    // if(!can_update_in_ptr){
-    //     en_nxt.write(false);
-    // }
-
 
     mac_en_nxt = tbl_en_sig.read();
 
@@ -365,10 +329,6 @@ void I2CE_accelerator::trigger_en_comb_method()
 
 void I2CE_accelerator::delay_idx_en()
 {
-    // if(in_ptr_next_reg.read() < in_ptr_reg.read()){
-    //     in_ptr_en_nxt.write(false);
-
-    // if(processed_all_buf_reg.read() || 
     if(n_simd_act_left_reg.read() <= 1){
         in_ptr_en_nxt.write(false);
     } else {
@@ -394,7 +354,7 @@ void I2CE_accelerator::reset_in_ptr()
 
 
 
-
+#ifdef GEM5
 I2CE_accelerator *
 gem5::I2CE_acceleratorParams::create() const
 {
@@ -410,3 +370,4 @@ gem5::I2CE_acceleratorParams::create() const
 
     return acc;
 }
+#endif
